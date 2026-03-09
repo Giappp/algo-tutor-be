@@ -11,7 +11,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ojuser -d onlinejudge"]
       interval: 10s
@@ -29,7 +28,7 @@ services:
       RABBITMQ_DEFAULT_PASS: ojpass
     ports:
       - "5672:5672"
-      - "15672:15672"   # Management UI: http://localhost:15672
+      - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
