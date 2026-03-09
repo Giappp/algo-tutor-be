@@ -1,0 +1,116 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: oj-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: onlinejudge
+      POSTGRES_USER: ojuser
+      POSTGRES_PASSWORD: ojpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ojuser -d onlinejudge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oj-dev-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: oj-rabbitmq-dev
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ojuser
+      RABBITMQ_DEFAULT_PASS: ojpass
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # Management UI: http://localhost:15672
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oj-dev-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: oj-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oj-dev-net
+
+  api-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: oj-api-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/onlinejudge
+      SPRING_DATASOURCE_USERNAME: ojuser
+      SPRING_DATASOURCE_PASSWORD: ojpass
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ojuser
+      SPRING_RABBITMQ_PASSWORD: ojpass
+
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8080:8080"
+      - "5005:5005"
+    volumes:
+      - ./backend:/app
+      - maven_cache:/root/.m2
+    networks:
+      - oj-dev-net
+
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: oj-pgadmin-dev
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@oj.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - oj-dev-net
+    profiles:
+      - tools
+
+networks:
+  oj-dev-net:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
+  maven_cache:
