@@ -52,45 +52,6 @@ services:
     networks:
       - oj-dev-net
 
-  api-server:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
-    container_name: oj-api-dev
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/onlinejudge
-      SPRING_DATASOURCE_USERNAME: ojuser
-      SPRING_DATASOURCE_PASSWORD: ojpass
-
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USERNAME: ojuser
-      SPRING_RABBITMQ_PASSWORD: ojpass
-
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-
-      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-
-      SPRING_PROFILES_ACTIVE: dev
-    ports:
-      - "8080:8080"
-      - "5005:5005"
-    volumes:
-      - ./backend:/app
-      - maven_cache:/root/.m2
-    networks:
-      - oj-dev-net
-
-
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: oj-pgadmin-dev
