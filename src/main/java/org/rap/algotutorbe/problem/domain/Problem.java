@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
 import org.rap.algotutorbe.problem.domain.enums.Difficulty;
+import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
 import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 
 import java.util.ArrayList;
@@ -32,6 +33,9 @@ public class Problem extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private Difficulty difficulty;
+
+    @Enumerated(EnumType.STRING)
+    private ProblemStatus status;
 
     @Column(name = "model_solution_code", columnDefinition = "TEXT")
     private String modelSolutionCode;
