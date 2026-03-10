@@ -12,12 +12,12 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Constraints {
-    private int timeLimitMs;
-    private int memoryLimitMb;
-    private int maxCodeLengthBytes;
-    private int maxOutputSizeBytes;
+    private Long timeLimitMs;
+    private Long memoryLimitMb;
+    private Long maxCodeLengthBytes;
+    private Long maxOutputSizeBytes;
 
     public static Constraints defaults() {
-        return new Constraints(1000, 256, 65536, 1048576);
+        return new Constraints(1000L, 256L, 65536L, 1048576L);
     }
 }
