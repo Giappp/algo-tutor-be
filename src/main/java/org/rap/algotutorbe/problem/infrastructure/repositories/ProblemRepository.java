@@ -19,5 +19,6 @@ public interface ProblemRepository extends JpaRepository<@NonNull Problem, @NonN
     // Lấy problem cùng toàn bộ test case (dùng cho worker khi chấm bài hoặc benchmark)
     @Query("SELECT p FROM Problem p LEFT JOIN FETCH p.testCases WHERE p.id = :id")
     Optional<Problem> findByIdWithTestCases(@Param("id") Long id);
-    
+
+    boolean existsBySlug(String slug);
 }

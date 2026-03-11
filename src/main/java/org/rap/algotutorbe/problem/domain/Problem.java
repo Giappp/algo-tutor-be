@@ -67,4 +67,8 @@ public class Problem extends BaseEntity {
     public void markAsBenchmarked() {
         this.isBenchmarked = true;
     }
+
+    public void addTag(ProblemTag tag) {
+        this.tags.add(tag);
+    }
 }

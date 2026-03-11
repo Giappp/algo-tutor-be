@@ -17,11 +17,11 @@ public class AIPromptContext extends BaseEntity {
     private Problem problem;
 
     @Column(columnDefinition = "TEXT")
-    private String algorithmicConcept; // Khái niệm thuật toán liên quan đến bài toán
+    private String algorithmicConcept;
 
     @Column(columnDefinition = "TEXT")
-    private String predefinedHints; // Các hint chuẩn bị sẵn để AI dùng làm cơ sở sinh câu trả lời
+    private String predefinedHints;
 
     @Column(columnDefinition = "TEXT")
-    private String edgeCasesToRemind; // Các trường hợp góc cần nhắc nhở user (mảng rỗng, số âm...)
+    private String edgeCasesToRemind;
 }
