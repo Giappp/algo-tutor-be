@@ -21,5 +21,5 @@ public class Editorial extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String content;           // Markdown
 
-    private boolean isVisible;        // toggled after contest ends
+    private boolean isVisible;
 }

@@ -53,11 +53,15 @@ public class Problem extends BaseEntity {
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Testcase> testCases = new ArrayList<>();
 
+    @OneToOne(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private AIPromptContext aiPromptContext;
+
     @ManyToMany
     @JoinTable(name = "problem_tags")
     private Set<ProblemTag> tags = new HashSet<>();
 
     private Long authorId;
+
 
     public void addLanguageConfig(ProblemLanguageConfig config) {
         this.languageConfigs.add(config);

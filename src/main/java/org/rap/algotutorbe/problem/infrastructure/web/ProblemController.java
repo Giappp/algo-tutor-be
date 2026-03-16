@@ -3,28 +3,32 @@ package org.rap.algotutorbe.problem.infrastructure.web;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.rap.algotutorbe.common.api.ApiResponse;
-import org.rap.algotutorbe.problem.application.dto.CreateProblemDto;
 import org.rap.algotutorbe.problem.application.services.ProblemService;
+import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/problems")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
 public class ProblemController {
-    ProblemService problemService;
+    private final ProblemService problemService;
 
-    @PostMapping
-    public ResponseEntity<?> createProblem(CreateProblemDto dto) {
-        var result = problemService.createProblem(dto);
-        return ResponseEntity.ok(ApiResponse.builder()
-                .data(result)
-                .success(true)
-                .message("Problem created")
-                .build());
+    @GetMapping
+    public ResponseEntity<?> listProblems(
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(problemService.listPublished(pageable));
+    }
+
+    @GetMapping("/{slug}")
+    public ResponseEntity<?> getProblem(
+            @PathVariable String slug,
+            @RequestParam(defaultValue = "CPP") ProgrammingLanguage language
+    ) {
+        return ResponseEntity.ok(problemService.getPublishedBySlug(slug, language));
     }
 }
