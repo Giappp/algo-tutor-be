@@ -1,7 +1,6 @@
 package org.rap.algotutorbe.problem.domain;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,7 +11,7 @@ import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 @Table(name = "problem_language_configs")
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class ProblemLanguageConfig extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "problem_id", nullable = false)

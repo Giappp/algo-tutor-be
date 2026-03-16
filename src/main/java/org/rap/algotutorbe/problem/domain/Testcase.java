@@ -24,9 +24,9 @@ public class Testcase extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String expectedOutput;
 
-    private boolean isSample;         // shown to user vs hidden judge case
+    private boolean isSample;
 
-    private int orderIndex;           // ordering of test cases
+    private int orderIndex;
 
-    private String explanation;       // only for sample cases
+    private String explanation;
 }

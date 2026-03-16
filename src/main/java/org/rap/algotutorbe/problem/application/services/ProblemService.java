@@ -1,65 +1,57 @@
 package org.rap.algotutorbe.problem.application.services;
 
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import org.rap.algotutorbe.problem.application.dto.CreateProblemDto;
-import org.rap.algotutorbe.problem.application.dto.ProblemDto;
-import org.rap.algotutorbe.problem.application.dto.TagsDto;
-import org.rap.algotutorbe.problem.domain.Problem;
-import org.rap.algotutorbe.problem.domain.ProblemTag;
-import org.rap.algotutorbe.problem.domain.enums.Difficulty;
+import org.rap.algotutorbe.common.api.PageResponse;
+import org.rap.algotutorbe.problem.application.dto.response.ProblemDetailResponse;
+import org.rap.algotutorbe.problem.application.dto.response.ProblemSummaryResponse;
+import org.rap.algotutorbe.problem.application.exception.ProblemNotFoundException;
+import org.rap.algotutorbe.problem.application.mapper.ProblemMapper;
+import org.rap.algotutorbe.problem.domain.ProblemLanguageConfig;
 import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
+import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.problem.infrastructure.repositories.ProblemRepository;
-import org.rap.algotutorbe.problem.infrastructure.repositories.TagRepository;
+import org.rap.algotutorbe.problem.infrastructure.repositories.TestcaseRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
 public class ProblemService {
-    ProblemRepository problemRepository;
-    TagRepository tagRepository;
+    private final ProblemRepository problemRepository;
+    private final TestcaseRepository testcaseRepository;
+    private final ProblemMapper mapper;
 
-    public ProblemDto createProblem(CreateProblemDto dto) {
-        validate(dto);
-        Problem problem = mapToEntity(dto);
-        problemRepository.save(problem);
-        return new ProblemDto(problem);
+    @Transactional(readOnly = true)
+    public PageResponse<ProblemSummaryResponse> listPublished(Pageable pageable) {
+        var problemsPage = problemRepository
+                .findAllPublished(ProblemStatus.ACTIVE, pageable)
+                .map(mapper::toSummary);
+        return PageResponse.<ProblemSummaryResponse>builder()
+                .data(problemsPage.toList())
+                .currentPage(problemsPage.getNumber() + 1)
+                .totalElements(problemsPage.getTotalElements())
+                .totalPages(problemsPage.getTotalPages())
+                .build();
     }
 
-    private Problem mapToEntity(CreateProblemDto dto) {
-        Problem problem = new Problem();
-        problem.setSlug(dto.slug());
-        problem.setTitle(dto.title());
-        problem.setStatement(dto.statement());
-        problem.setDifficulty(Difficulty.valueOf(dto.difficulty()));
-        problem.setStatus(ProblemStatus.valueOf(dto.status()));
-        dto.tags().forEach(t -> {
-            var tag = mapToTagEntity(t);
-            problem.addTag(tag);
-        });
-        return problem;
-    }
+    @Transactional(readOnly = true)
+    public ProblemDetailResponse getPublishedBySlug(String slug, ProgrammingLanguage language) {
+        var problem = problemRepository.findPublishedBySlug(slug)
+                .orElseThrow(() -> new ProblemNotFoundException(slug));
 
-    private ProblemTag mapToTagEntity(TagsDto dto) {
-        return tagRepository.findById(dto.id()).orElseThrow(() -> new IllegalArgumentException("Tag not found"));
-    }
+        ProblemLanguageConfig config = problem.getLanguageConfigs().stream()
+                .filter(c -> c.getLanguage() == language)
+                .findFirst()
+                .or(() -> problem.getLanguageConfigs().stream()
+                        .filter(c -> c.getLanguage() == ProgrammingLanguage.CPP)
+                        .findFirst())
+                .orElseThrow(() -> new ProblemNotFoundException(
+                        "No language config found for " + language));
 
-    private void validate(CreateProblemDto dto) {
-        if (problemRepository.existsBySlug(dto.slug())) {
-            throw new IllegalArgumentException("Slug already exists");
-        }
-        if (dto.title() == null || dto.title().isBlank()) {
-            throw new IllegalArgumentException("Title is required");
-        }
-        if (dto.difficulty() == null || dto.difficulty().isBlank()) {
-            throw new IllegalArgumentException("Difficulty is required");
-        }
-        if (dto.status() == null || dto.status().isBlank()) {
-            throw new IllegalArgumentException("Status is required");
-        }
-        if (dto.tags() == null || dto.tags().isEmpty()) {
-            throw new IllegalArgumentException("Tags is required");
-        }
+        var sampleTestcases = testcaseRepository.findSamplesByProblemId(problem.getId())
+                .stream().map(mapper::toTestcaseSample).toList();
+
+        return mapper.toDetail(problem, config, sampleTestcases);
     }
 }
