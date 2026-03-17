@@ -1,8 +1,8 @@
 package org.rap.algotutorbe.problem.application.mapper;
 
 import org.rap.algotutorbe.problem.application.dto.response.*;
-import org.rap.algotutorbe.problem.domain.*;
 import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
+import org.rap.algotutorbe.problem.domain.models.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -124,7 +124,7 @@ public class ProblemMapper {
 
     private Set<String> tagNames(Problem p) {
         return p.getTags().stream()
-                .map(ProblemTag::getName)
+                .map(Tag::getName)
                 .collect(Collectors.toSet());
     }
 }

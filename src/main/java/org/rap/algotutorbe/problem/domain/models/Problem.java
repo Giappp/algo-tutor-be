@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.problem.domain;
+package org.rap.algotutorbe.problem.domain.models;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -58,7 +58,7 @@ public class Problem extends BaseEntity {
 
     @ManyToMany
     @JoinTable(name = "problem_tags")
-    private Set<ProblemTag> tags = new HashSet<>();
+    private Set<Tag> tags = new HashSet<>();
 
     private Long authorId;
 
@@ -72,7 +72,7 @@ public class Problem extends BaseEntity {
         this.isBenchmarked = true;
     }
 
-    public void addTag(ProblemTag tag) {
+    public void addTag(Tag tag) {
         this.tags.add(tag);
     }
 }

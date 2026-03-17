@@ -19,7 +19,7 @@ public class BaseEntity {
     private Long id;
 
     @CreatedDate
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
     @LastModifiedDate

@@ -6,9 +6,9 @@ import org.rap.algotutorbe.problem.application.dto.response.ProblemDetailRespons
 import org.rap.algotutorbe.problem.application.dto.response.ProblemSummaryResponse;
 import org.rap.algotutorbe.problem.application.exception.ProblemNotFoundException;
 import org.rap.algotutorbe.problem.application.mapper.ProblemMapper;
-import org.rap.algotutorbe.problem.domain.ProblemLanguageConfig;
 import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
 import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
+import org.rap.algotutorbe.problem.domain.models.ProblemLanguageConfig;
 import org.rap.algotutorbe.problem.infrastructure.repositories.ProblemRepository;
 import org.rap.algotutorbe.problem.infrastructure.repositories.TestcaseRepository;
 import org.springframework.data.domain.Pageable;
