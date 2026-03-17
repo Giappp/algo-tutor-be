@@ -1,5 +1,6 @@
-package org.rap.algotutorbe.problem.domain;
+package org.rap.algotutorbe.problem.domain.models;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
@@ -13,12 +14,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "problem_tags")
+@Table(name = "tags")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProblemTag extends BaseEntity {
+public class Tag extends BaseEntity {
+    @Column(unique = true)
     private String name;
     @ManyToMany(mappedBy = "tags")
     private Set<Problem> problems = new HashSet<>();

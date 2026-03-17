@@ -3,21 +3,25 @@ package org.rap.algotutorbe.problem.application.services;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.rap.algotutorbe.problem.application.dto.CreateProblemDto;
 import org.rap.algotutorbe.problem.application.dto.TagsDto;
+import org.rap.algotutorbe.problem.application.dto.request.AIContextRequest;
 import org.rap.algotutorbe.problem.application.dto.request.ModelSolutionRequest;
 import org.rap.algotutorbe.problem.application.dto.request.UpsertTestcasesRequest;
+import org.rap.algotutorbe.problem.application.dto.response.AIContextResponse;
 import org.rap.algotutorbe.problem.application.dto.response.ProblemDetailAdminResponse;
 import org.rap.algotutorbe.problem.application.dto.response.ProblemSummaryAdminResponse;
 import org.rap.algotutorbe.problem.application.dto.response.TestcaseAdminResponse;
 import org.rap.algotutorbe.problem.application.exception.DuplicateSlugException;
 import org.rap.algotutorbe.problem.application.exception.ProblemNotFoundException;
 import org.rap.algotutorbe.problem.application.mapper.ProblemMapper;
-import org.rap.algotutorbe.problem.domain.Problem;
-import org.rap.algotutorbe.problem.domain.ProblemTag;
-import org.rap.algotutorbe.problem.domain.Testcase;
 import org.rap.algotutorbe.problem.domain.enums.Difficulty;
 import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
+import org.rap.algotutorbe.problem.domain.models.AIPromptContext;
+import org.rap.algotutorbe.problem.domain.models.Problem;
+import org.rap.algotutorbe.problem.domain.models.Tag;
+import org.rap.algotutorbe.problem.domain.models.Testcase;
 import org.rap.algotutorbe.problem.infrastructure.repositories.ProblemLangConfigRepository;
 import org.rap.algotutorbe.problem.infrastructure.repositories.ProblemRepository;
 import org.rap.algotutorbe.problem.infrastructure.repositories.TagRepository;
@@ -49,46 +53,6 @@ public class AdminProblemService {
         return problemMapper.toSummaryAdmin(saved);
     }
 
-    @Transactional
-    public List<TestcaseAdminResponse> upsertTestcases(Long problemId, UpsertTestcasesRequest req) {
-        Problem problem = findProblemOrThrow(problemId);
-
-        // Replacing test cases invalidates current benchmark
-        invalidateBenchmark(problem);
-        testcaseRepository.deleteAllByProblemId(problemId);
-
-        List<Testcase> testcases = req.testcases().stream()
-                .map(r -> {
-                    Testcase tc = new Testcase();
-                    tc.setProblem(problem);
-                    tc.setInput(r.input());
-                    tc.setExpectedOutput(r.expectedOutput());
-                    tc.setSample(r.isSample());
-                    tc.setOrderIndex(r.orderIndex());
-                    tc.setExplanation(r.explanation());
-                    return tc;
-                })
-                .collect(Collectors.toList());
-
-        List<Testcase> saved = testcaseRepository.saveAll(testcases);
-        log.info("Saved {} test cases for problem={}", saved.size(), problemId);
-        return saved.stream().map(problemMapper::toTestcaseAdmin).toList();
-    }
-
-    @Transactional
-    public ProblemDetailAdminResponse updateModelSolution(Long problemId, ModelSolutionRequest req) {
-        Problem problem = findProblemOrThrow(problemId);
-
-        // Changing the model solution invalidates current benchmark
-        invalidateBenchmark(problem);
-        problem.setModelSolutionCode(req.code());
-        problem.setModelSolutionLanguage(req.language());
-
-        Problem saved = problemRepository.save(problem);
-        log.info("Updated model solution for problem={}", problemId);
-        return problemMapper.toDetailAdmin(saved);
-    }
-
     private Problem mapToEntity(CreateProblemDto dto, Long authorId) {
         Problem problem = new Problem();
         problem.setSlug(dto.slug());
@@ -103,31 +67,64 @@ public class AdminProblemService {
         return problem;
     }
 
-    private ProblemTag mapToTagEntity(TagsDto dto) {
-        return tagRepository.findById(dto.id()).orElseThrow(() -> new IllegalArgumentException("Tag not found"));
+    @Transactional
+    public List<TestcaseAdminResponse> upsertTestcases(Long problemId, UpsertTestcasesRequest testcasesRequest) {
+        Problem problem = findProblemOrThrow(problemId);
+
+        invalidateBenchmark(problem);
+        testcaseRepository.deleteAllByProblemId(problemId);
+
+        List<Testcase> testcases = getTestcases(testcasesRequest, problem);
+        List<Testcase> saved = testcaseRepository.saveAll(testcases);
+        log.info("Saved {} test cases for problem={}", saved.size(), problemId);
+        return saved.stream().map(problemMapper::toTestcaseAdmin).toList();
+    }
+
+    private static @NonNull List<Testcase> getTestcases(UpsertTestcasesRequest req, Problem problem) {
+        return req.testcases().stream()
+                .map(r -> {
+                    Testcase tc = new Testcase();
+                    tc.setProblem(problem);
+                    tc.setInput(r.input());
+                    tc.setExpectedOutput(r.expectedOutput());
+                    tc.setSample(r.isSample() != null ? r.isSample() : false);
+                    tc.setOrderIndex(r.orderIndex());
+                    tc.setExplanation(r.explanation());
+                    return tc;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ProblemDetailAdminResponse updateModelSolution(Long problemId, ModelSolutionRequest req) {
+        Problem problem = findProblemOrThrow(problemId);
+
+        // Changing the model solution invalidates current benchmark
+        invalidateBenchmark(problem); // -> Throw event to trigger invalidate benchmark
+        problem.setModelSolutionCode(req.code());
+        problem.setModelSolutionLanguage(req.language());
+
+        Problem saved = problemRepository.save(problem);
+        log.info("Updated model solution for problem={}", problemId);
+        return problemMapper.toDetailAdmin(saved);
     }
 
     private void validate(CreateProblemDto dto) {
         if (problemRepository.existsBySlug(dto.slug())) {
             throw new DuplicateSlugException("Slug already exists");
         }
-        if (dto.title() == null || dto.title().isBlank()) {
-            throw new IllegalArgumentException("Title is required");
-        }
-        if (dto.difficulty() == null || dto.difficulty().isBlank()) {
-            throw new IllegalArgumentException("Difficulty is required");
-        }
-        if (dto.tags() == null || dto.tags().isEmpty()) {
-            throw new IllegalArgumentException("Tags is required");
-        }
     }
 
-    private void resolveTags(Set<TagsDto> tagNames, Problem problem) {
-        if (tagNames == null || tagNames.isEmpty()) return;
-        tagNames.forEach(dto -> {
+    private void resolveTags(Set<TagsDto> tags, Problem problem) {
+        if (tags == null || tags.isEmpty()) return;
+        tags.forEach(dto -> {
             var tag = mapToTagEntity(dto);
             problem.addTag(tag);
         });
+    }
+
+    private Tag mapToTagEntity(TagsDto dto) {
+        return tagRepository.findById(dto.id()).orElseThrow(() -> new IllegalArgumentException("Tag not found"));
     }
 
     private Problem findProblemOrThrow(Long id) {
@@ -142,5 +139,37 @@ public class AdminProblemService {
             problemLangConfigRepository.deleteAllByProblemId(problem.getId());
             problem.getLanguageConfigs().clear();
         }
+    }
+
+    public ProblemDetailAdminResponse publishProblem(Long id) {
+        Problem problem = findProblemOrThrow(id);
+        //TODO: implement validation & run benchmark before release
+        problem.setStatus(ProblemStatus.ACTIVE);
+        problem.setBenchmarked(true);
+        problemRepository.save(problem);
+        return problemMapper.toDetailAdmin(problem);
+    }
+
+    public AIContextResponse getAIContext(Long id) {
+        Problem problem = findProblemOrThrow(id);
+
+        return problemMapper.toAIContextResponse(problem.getAiPromptContext());
+    }
+
+    public AIContextResponse updateAIContext(Long id, AIContextRequest request) {
+        Problem problem = findProblemOrThrow(id);
+        mapAIContext(request, problem);
+        var saved = problemRepository.save(problem);
+        return problemMapper.toAIContextResponse(saved.getAiPromptContext());
+    }
+
+    private void mapAIContext(AIContextRequest request, Problem problem) {
+        AIPromptContext aiPromptContext = new AIPromptContext();
+        aiPromptContext.setProblem(problem);
+        aiPromptContext.setAlgorithmicConcept(request.algorithmicConcept());
+        aiPromptContext.setPredefinedHints(request.predefinedHints());
+        aiPromptContext.setEdgeCasesToRemind(request.edgeCasesToRemind());
+
+        problem.setAiPromptContext(aiPromptContext);
     }
 }

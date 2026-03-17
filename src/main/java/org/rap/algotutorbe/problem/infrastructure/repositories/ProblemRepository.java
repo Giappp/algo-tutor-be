@@ -1,8 +1,8 @@
 package org.rap.algotutorbe.problem.infrastructure.repositories;
 
 import lombok.NonNull;
-import org.rap.algotutorbe.problem.domain.Problem;
 import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
+import org.rap.algotutorbe.problem.domain.models.Problem;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -45,7 +45,7 @@ public interface ProblemRepository extends JpaRepository<@NonNull Problem, @NonN
             LEFT JOIN FETCH p.languageConfigs lc
             WHERE p.slug = :slug
               AND p.isBenchmarked = true
-              AND p.status = 'PUBLISHED'
+              AND p.status = 'ACTIVE'
             """)
     Optional<Problem> findPublishedBySlug(@Param("slug") String slug);
 }

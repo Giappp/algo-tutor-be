@@ -18,9 +18,4 @@ public class ProblemExceptionHandler {
                         .success(false)
                         .build());
     }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleException(Exception exception) {
-        return ResponseEntity.internalServerError().body(exception.getMessage());
-    }
 }

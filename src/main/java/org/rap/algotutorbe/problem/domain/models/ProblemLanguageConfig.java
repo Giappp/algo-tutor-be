@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.problem.domain;
+package org.rap.algotutorbe.problem.domain.models;
 
 import jakarta.persistence.*;
 import lombok.Getter;

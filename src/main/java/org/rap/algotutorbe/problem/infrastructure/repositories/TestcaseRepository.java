@@ -1,6 +1,6 @@
 package org.rap.algotutorbe.problem.infrastructure.repositories;
 
-import org.rap.algotutorbe.problem.domain.Testcase;
+import org.rap.algotutorbe.problem.domain.models.Testcase;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

@@ -2,7 +2,7 @@ package org.rap.algotutorbe.problem.application.dto;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.rap.algotutorbe.problem.domain.Problem;
+import org.rap.algotutorbe.problem.domain.models.Problem;
 
 @Getter
 @Setter

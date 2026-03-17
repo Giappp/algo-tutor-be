@@ -1,6 +1,6 @@
 package org.rap.algotutorbe.problem.domain.enums;
 
-import org.rap.algotutorbe.problem.domain.Constraints;
+import org.rap.algotutorbe.problem.domain.models.Constraints;
 
 public enum ProgrammingLanguage {
     CPP {
