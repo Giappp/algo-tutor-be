@@ -1,6 +1,7 @@
 package org.rap.algotutorbe.problem.infrastructure.handler;
 
 import org.rap.algotutorbe.common.api.ApiResponse;
+import org.rap.algotutorbe.problem.application.exception.MissingFieldException;
 import org.rap.algotutorbe.problem.application.exception.ProblemNotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,8 +20,13 @@ public class ProblemExceptionHandler {
                         .build());
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleException(Exception exception) {
-        return ResponseEntity.internalServerError().body(exception.getMessage());
+    @ExceptionHandler(MissingFieldException.class)
+    public ResponseEntity<?> handleMissingFieldException(Exception exception) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse
+                        .builder()
+                        .messages(exception.getMessage())
+                        .success(false)
+                        .build());
     }
 }

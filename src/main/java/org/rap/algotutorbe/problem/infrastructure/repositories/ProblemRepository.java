@@ -45,7 +45,7 @@ public interface ProblemRepository extends JpaRepository<@NonNull Problem, @NonN
             LEFT JOIN FETCH p.languageConfigs lc
             WHERE p.slug = :slug
               AND p.isBenchmarked = true
-              AND p.status = 'PUBLISHED'
+              AND p.status = 'ACTIVE'
             """)
     Optional<Problem> findPublishedBySlug(@Param("slug") String slug);
 }

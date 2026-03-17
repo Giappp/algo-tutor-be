@@ -1,6 +1,7 @@
 package org.rap.algotutorbe.problem.application.services;
 
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.rap.algotutorbe.common.api.PageResponse;
 import org.rap.algotutorbe.problem.application.dto.response.ProblemDetailResponse;
 import org.rap.algotutorbe.problem.application.dto.response.ProblemSummaryResponse;
@@ -8,6 +9,7 @@ import org.rap.algotutorbe.problem.application.exception.ProblemNotFoundExceptio
 import org.rap.algotutorbe.problem.application.mapper.ProblemMapper;
 import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
 import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
+import org.rap.algotutorbe.problem.domain.models.Problem;
 import org.rap.algotutorbe.problem.domain.models.ProblemLanguageConfig;
 import org.rap.algotutorbe.problem.infrastructure.repositories.ProblemRepository;
 import org.rap.algotutorbe.problem.infrastructure.repositories.TestcaseRepository;
@@ -32,6 +34,7 @@ public class ProblemService {
                 .currentPage(problemsPage.getNumber() + 1)
                 .totalElements(problemsPage.getTotalElements())
                 .totalPages(problemsPage.getTotalPages())
+                .pageSize(problemsPage.getSize())
                 .build();
     }
 
@@ -40,7 +43,16 @@ public class ProblemService {
         var problem = problemRepository.findPublishedBySlug(slug)
                 .orElseThrow(() -> new ProblemNotFoundException(slug));
 
-        ProblemLanguageConfig config = problem.getLanguageConfigs().stream()
+        ProblemLanguageConfig config = getProblemLanguageConfig(language, problem);
+
+        var sampleTestcases = testcaseRepository.findSamplesByProblemId(problem.getId())
+                .stream().map(mapper::toTestcaseSample).toList();
+
+        return mapper.toDetail(problem, config, sampleTestcases);
+    }
+
+    private @NonNull ProblemLanguageConfig getProblemLanguageConfig(ProgrammingLanguage language, Problem problem) {
+        return problem.getLanguageConfigs().stream()
                 .filter(c -> c.getLanguage() == language)
                 .findFirst()
                 .or(() -> problem.getLanguageConfigs().stream()
@@ -48,10 +60,5 @@ public class ProblemService {
                         .findFirst())
                 .orElseThrow(() -> new ProblemNotFoundException(
                         "No language config found for " + language));
-
-        var sampleTestcases = testcaseRepository.findSamplesByProblemId(problem.getId())
-                .stream().map(mapper::toTestcaseSample).toList();
-
-        return mapper.toDetail(problem, config, sampleTestcases);
     }
 }

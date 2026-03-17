@@ -80,7 +80,7 @@ public class ProblemMapper {
 
 
     public AIContextResponse toAIContextResponse(AIPromptContext ctx) {
-        if (ctx == null) return null;
+        if (ctx == null) return AIContextResponse.nullContext();
         return new AIContextResponse(
                 ctx.getAlgorithmicConcept(),
                 ctx.getPredefinedHints(),

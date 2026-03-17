@@ -5,4 +5,7 @@ public record AIContextResponse(
         String predefinedHints,
         String edgeCasesToRemind
 ) {
+    public static AIContextResponse nullContext() {
+        return new AIContextResponse("", "", "");
+    }
 }
