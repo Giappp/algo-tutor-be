@@ -10,6 +10,7 @@ public class SecurityConstants {
             "/api/v1/auth/reset-password",
             "/api/v1/auth/change-password",
             "/api/v1/auth/forgot-password",
+            "/api/v1/**",
 
             // Swagger endpoints (OpenAPI 3 with springdoc)
             "/v3/api-docs/**",
