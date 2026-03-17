@@ -41,6 +41,14 @@ public class AdminProblemService {
     ProblemLangConfigRepository problemLangConfigRepository;
 //    SandboxClient sandboxClient;
 
+    public ProblemSummaryAdminResponse createProblem(CreateProblemDto dto, Long authorId) {
+        validate(dto);
+        Problem problem = mapToEntity(dto, authorId);
+        Problem saved = problemRepository.save(problem);
+        log.info("Created draft problem id={} slug={}", saved.getId(), saved.getSlug());
+        return problemMapper.toSummaryAdmin(saved);
+    }
+
     @Transactional
     public List<TestcaseAdminResponse> upsertTestcases(Long problemId, UpsertTestcasesRequest req) {
         Problem problem = findProblemOrThrow(problemId);
@@ -65,14 +73,6 @@ public class AdminProblemService {
         List<Testcase> saved = testcaseRepository.saveAll(testcases);
         log.info("Saved {} test cases for problem={}", saved.size(), problemId);
         return saved.stream().map(problemMapper::toTestcaseAdmin).toList();
-    }
-
-    public ProblemSummaryAdminResponse createProblem(CreateProblemDto dto, Long authorId) {
-        validate(dto);
-        Problem problem = mapToEntity(dto, authorId);
-        Problem saved = problemRepository.save(problem);
-        log.info("Created draft problem id={} slug={}", saved.getId(), saved.getSlug());
-        return problemMapper.toSummaryAdmin(saved);
     }
 
     @Transactional
