@@ -14,7 +14,6 @@ import org.rap.algotutorbe.problem.application.dto.response.ProblemDetailAdminRe
 import org.rap.algotutorbe.problem.application.dto.response.ProblemSummaryAdminResponse;
 import org.rap.algotutorbe.problem.application.dto.response.TestcaseAdminResponse;
 import org.rap.algotutorbe.problem.application.exception.DuplicateSlugException;
-import org.rap.algotutorbe.problem.application.exception.MissingFieldException;
 import org.rap.algotutorbe.problem.application.exception.ProblemNotFoundException;
 import org.rap.algotutorbe.problem.application.mapper.ProblemMapper;
 import org.rap.algotutorbe.problem.domain.enums.Difficulty;
@@ -113,15 +112,6 @@ public class AdminProblemService {
     private void validate(CreateProblemDto dto) {
         if (problemRepository.existsBySlug(dto.slug())) {
             throw new DuplicateSlugException("Slug already exists");
-        }
-        if (dto.title() == null || dto.title().isBlank()) {
-            throw new MissingFieldException("Title is required");
-        }
-        if (dto.difficulty() == null || dto.difficulty().isBlank()) {
-            throw new MissingFieldException("Difficulty is required");
-        }
-        if (dto.tags() == null || dto.tags().isEmpty()) {
-            throw new MissingFieldException("Tags is required");
         }
     }
 
