@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.problem.application.dto.TagsDto;
 import org.rap.algotutorbe.problem.application.dto.request.CreateTagRequest;
 import org.rap.algotutorbe.problem.domain.models.Tag;
-import org.rap.algotutorbe.problem.infrastructure.repositories.TagRepository;
+import org.rap.algotutorbe.problem.domain.repositories.TagRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

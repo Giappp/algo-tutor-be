@@ -2,13 +2,14 @@ package org.rap.algotutorbe.iam.internal.application.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.rap.algotutorbe.common.errors.ErrorCode;
+import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.iam.SecurityUser;
-import org.rap.algotutorbe.iam.internal.application.errors.ErrorCode;
-import org.rap.algotutorbe.iam.internal.domain.exception.AuthException;
 import org.rap.algotutorbe.iam.internal.domain.model.RefreshToken;
 import org.rap.algotutorbe.iam.internal.domain.model.User;
 import org.rap.algotutorbe.iam.internal.domain.repositories.RefreshTokenRepository;
 import org.rap.algotutorbe.iam.internal.domain.repositories.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +24,8 @@ public class RefreshTokenService {
 
     private final UserRepository userRepository;
 
-    private final long refreshTokenExpirationSecond = 7 * 24 * 60 * 60;
+    @Value(value = "${security.refreshTokenExpiration}")
+    private long refreshTokenExpirationSecond;
 
     public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, UserRepository userRepository) {
         this.refreshTokenRepository = refreshTokenRepository;
@@ -65,18 +67,18 @@ public class RefreshTokenService {
         SecurityUser userDetails = (SecurityUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Long userId = userDetails.user().getId();
         if (!user.getId().equals(userId)) {
-            throw new AuthException(ErrorCode.INVALID_TOKEN);
+            throw new AppException(ErrorCode.INVALID_TOKEN);
         }
     }
 
     private @NonNull RefreshToken getRefreshToken(String token) {
         UUID uuidToken = UUID.fromString(token);
         RefreshToken refreshToken = refreshTokenRepository.findByToken(uuidToken)
-                .orElseThrow(() -> new AuthException(ErrorCode.INVALID_TOKEN));
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
 
         if (refreshToken.isExpired()) {
             refreshTokenRepository.delete(refreshToken);
-            throw new AuthException(ErrorCode.TOKEN_EXPIRED);
+            throw new AppException(ErrorCode.TOKEN_EXPIRED);
         }
         return refreshToken;
     }

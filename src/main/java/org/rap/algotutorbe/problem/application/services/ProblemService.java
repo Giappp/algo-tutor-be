@@ -3,19 +3,24 @@ package org.rap.algotutorbe.problem.application.services;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.rap.algotutorbe.common.api.PageResponse;
+import org.rap.algotutorbe.problem.application.dto.TestcaseDto;
 import org.rap.algotutorbe.problem.application.dto.response.ProblemDetailResponse;
 import org.rap.algotutorbe.problem.application.dto.response.ProblemSummaryResponse;
 import org.rap.algotutorbe.problem.application.exception.ProblemNotFoundException;
+import org.rap.algotutorbe.problem.application.exception.TestcasesNotFoundException;
 import org.rap.algotutorbe.problem.application.mapper.ProblemMapper;
 import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
 import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.problem.domain.models.Problem;
 import org.rap.algotutorbe.problem.domain.models.ProblemLanguageConfig;
-import org.rap.algotutorbe.problem.infrastructure.repositories.ProblemRepository;
-import org.rap.algotutorbe.problem.infrastructure.repositories.TestcaseRepository;
+import org.rap.algotutorbe.problem.domain.models.Testcase;
+import org.rap.algotutorbe.problem.domain.repositories.ProblemRepository;
+import org.rap.algotutorbe.problem.domain.repositories.TestcaseRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +54,23 @@ public class ProblemService {
                 .stream().map(mapper::toTestcaseSample).toList();
 
         return mapper.toDetail(problem, config, sampleTestcases);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TestcaseDto> getProblemTestcase(Long problemId) {
+        var testcases = testcaseRepository.findByProblemIdOrderByOrderIndex(problemId)
+                .orElseThrow(() -> new TestcasesNotFoundException("Testcases not found for problemId: " + problemId));
+        return testcases.stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    private TestcaseDto toDto(Testcase testcase) {
+        return new TestcaseDto(
+                testcase.getInput(),
+                testcase.getExpectedOutput(),
+                testcase.getOrderIndex()
+        );
     }
 
     private @NonNull ProblemLanguageConfig getProblemLanguageConfig(ProgrammingLanguage language, Problem problem) {

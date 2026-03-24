@@ -2,7 +2,7 @@ package org.rap.algotutorbe.problem.application.dto.response;
 
 import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -21,7 +21,7 @@ public record ProblemDetailAdminResponse(
         List<TestcaseAdminResponse> testcases,
         AIContextResponse aiContext,
         Long authorId,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

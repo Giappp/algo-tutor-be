@@ -3,9 +3,9 @@ package org.rap.algotutorbe.iam.internal.application.services;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.rap.algotutorbe.common.errors.ErrorCode;
+import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.iam.SecurityUser;
-import org.rap.algotutorbe.iam.internal.application.errors.ErrorCode;
-import org.rap.algotutorbe.iam.internal.domain.exception.AuthException;
 import org.rap.algotutorbe.iam.internal.domain.model.User;
 import org.rap.algotutorbe.iam.internal.domain.repositories.UserRepository;
 import org.rap.algotutorbe.iam.internal.infrastructure.jwt.JwtProvider;
@@ -35,7 +35,7 @@ public class AuthService {
             return buildToken(securityUser.user());
         }
         log.warn("Logged in attempted fail for user {}", securityUser.user().getId());
-        throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
+        throw new AppException(ErrorCode.INVALID_CREDENTIALS);
     }
 
     public void processSignUp(SignUpRequest request) {
@@ -52,7 +52,7 @@ public class AuthService {
         return user;
     }
 
-    public TokenResponse processRefresh(RefreshTokenRequest payload, HttpServletRequest request) {
+    public TokenResponse processRefresh(RefreshTokenRequest payload) {
         String refreshToken = payload.refreshToken();
         User user = refreshTokenRepository.verify(refreshToken);
         log.info("Rotate refresh token success for user {}", user.getId());
@@ -84,13 +84,13 @@ public class AuthService {
 
     private void validate(SignUpRequest request) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
-            throw new AuthException(ErrorCode.EMAIL_ALREADY_INUSE);
+            throw new AppException(ErrorCode.EMAIL_ALREADY_INUSE);
         }
         if (userRepository.findByUserName(request.userName()).isPresent()) {
-            throw new AuthException(ErrorCode.USERNAME_TAKEN);
+            throw new AppException(ErrorCode.USERNAME_TAKEN);
         }
         if (!request.password().equals(request.confirmPassword())) {
-            throw new AuthException(ErrorCode.PASSWORD_MISMATCH);
+            throw new AppException(ErrorCode.PASSWORD_MISMATCH);
         }
     }
 }

@@ -9,7 +9,20 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
     private T data;
-    private T messages;
-    private String code;
-    private Boolean success;
+    private String message;
+    private boolean success;
+
+    public static <T> ApiResponse<T> buildSuccess(T data) {
+        return ApiResponse.<T>builder()
+                .data(data)
+                .success(true)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> buildMessage(String message) {
+        return ApiResponse.<T>builder()
+                .message(message)
+                .success(true)
+                .build();
+    }
 }

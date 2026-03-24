@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ojuser -d onlinejudge"]
+      test: [ "CMD-SHELL", "pg_isready -U ojuser -d onlinejudge" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,7 +30,7 @@ services:
       - "5672:5672"
       - "15672:15672"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,7 +44,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5

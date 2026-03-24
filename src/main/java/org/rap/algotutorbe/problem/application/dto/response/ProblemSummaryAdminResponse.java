@@ -1,6 +1,6 @@
 package org.rap.algotutorbe.problem.application.dto.response;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Set;
 
 public record ProblemSummaryAdminResponse(
@@ -11,8 +11,8 @@ public record ProblemSummaryAdminResponse(
         String status,
         boolean isBenchmarked,
         Set<String> tags,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }
 
