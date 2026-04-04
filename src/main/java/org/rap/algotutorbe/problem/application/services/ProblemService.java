@@ -1,7 +1,6 @@
 package org.rap.algotutorbe.problem.application.services;
 
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NonNull;
 import org.rap.algotutorbe.common.api.PageResponse;
 import org.rap.algotutorbe.problem.application.dto.TestcaseDto;
 import org.rap.algotutorbe.problem.application.dto.response.ProblemDetailResponse;
@@ -12,7 +11,6 @@ import org.rap.algotutorbe.problem.application.mapper.ProblemMapper;
 import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
 import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.problem.domain.models.Problem;
-import org.rap.algotutorbe.problem.domain.models.ProblemLanguageConfig;
 import org.rap.algotutorbe.problem.domain.models.Testcase;
 import org.rap.algotutorbe.problem.domain.repositories.ProblemRepository;
 import org.rap.algotutorbe.problem.domain.repositories.TestcaseRepository;
@@ -48,12 +46,10 @@ public class ProblemService {
         var problem = problemRepository.findPublishedBySlug(slug)
                 .orElseThrow(() -> new ProblemNotFoundException(slug));
 
-        ProblemLanguageConfig config = getProblemLanguageConfig(language, problem);
-
         var sampleTestcases = testcaseRepository.findSamplesByProblemId(problem.getId())
                 .stream().map(mapper::toTestcaseSample).toList();
 
-        return mapper.toDetail(problem, config, sampleTestcases);
+        return mapper.toDetail(problem, sampleTestcases);
     }
 
     @Transactional(readOnly = true)
@@ -73,14 +69,8 @@ public class ProblemService {
         );
     }
 
-    private @NonNull ProblemLanguageConfig getProblemLanguageConfig(ProgrammingLanguage language, Problem problem) {
-        return problem.getLanguageConfigs().stream()
-                .filter(c -> c.getLanguage() == language)
-                .findFirst()
-                .or(() -> problem.getLanguageConfigs().stream()
-                        .filter(c -> c.getLanguage() == ProgrammingLanguage.CPP)
-                        .findFirst())
-                .orElseThrow(() -> new ProblemNotFoundException(
-                        "No language config found for " + language));
+    public Problem findById(Long problemId) {
+        return problemRepository.findById(problemId)
+                .orElseThrow(() -> new ProblemNotFoundException("Problem not found with id: " + problemId));
     }
 }

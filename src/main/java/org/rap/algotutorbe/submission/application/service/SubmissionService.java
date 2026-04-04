@@ -2,11 +2,11 @@ package org.rap.algotutorbe.submission.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.submission.SubmissionCreatedMessage;
 import org.rap.algotutorbe.submission.application.dto.SubmissionResponse;
 import org.rap.algotutorbe.submission.application.dto.SubmitCodeRequest;
 import org.rap.algotutorbe.submission.application.publisher.SubmissionEventPublisher;
-import org.rap.algotutorbe.submission.domain.model.ProgrammingLanguage;
 import org.rap.algotutorbe.submission.domain.model.Submission;
 import org.rap.algotutorbe.submission.domain.model.Verdict;
 import org.rap.algotutorbe.submission.domain.repositories.SubmissionRepository;
@@ -36,7 +36,7 @@ public class SubmissionService {
                 submission.getId(),
                 submission.getProblemId(),
                 submission.getSourceCode(),
-                submission.getLanguage().name()
+                submission.getLanguage()
         ));
 
         return new SubmissionResponse(

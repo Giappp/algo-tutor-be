@@ -22,7 +22,6 @@ import org.rap.algotutorbe.problem.domain.models.AIPromptContext;
 import org.rap.algotutorbe.problem.domain.models.Problem;
 import org.rap.algotutorbe.problem.domain.models.Tag;
 import org.rap.algotutorbe.problem.domain.models.Testcase;
-import org.rap.algotutorbe.problem.domain.repositories.ProblemLangConfigRepository;
 import org.rap.algotutorbe.problem.domain.repositories.ProblemRepository;
 import org.rap.algotutorbe.problem.domain.repositories.TagRepository;
 import org.rap.algotutorbe.problem.domain.repositories.TestcaseRepository;
@@ -42,8 +41,6 @@ public class AdminProblemService {
     TagRepository tagRepository;
     ProblemMapper problemMapper;
     TestcaseRepository testcaseRepository;
-    ProblemLangConfigRepository problemLangConfigRepository;
-//    SandboxClient sandboxClient;
 
     private static @NonNull List<Testcase> getTestcases(UpsertTestcasesRequest req, Problem problem) {
         return req.testcases().stream()
@@ -136,8 +133,6 @@ public class AdminProblemService {
         if (problem.isBenchmarked()) {
             log.warn("Invalidating benchmark for problem={}", problem.getId());
             problem.setBenchmarked(false);
-            problemLangConfigRepository.deleteAllByProblemId(problem.getId());
-            problem.getLanguageConfigs().clear();
         }
     }
 

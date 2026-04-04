@@ -15,9 +15,6 @@ import java.util.Optional;
 @Repository
 public interface ProblemRepository extends JpaRepository<@NonNull Problem, @NonNull Long> {
 
-    @Query("SELECT p FROM Problem p LEFT JOIN FETCH p.languageConfigs WHERE p.id = :id")
-    Optional<Problem> findByIdWithConfigs(@Param("id") Long id);
-
     @Query("SELECT p FROM Problem p LEFT JOIN FETCH p.testCases WHERE p.id = :id")
     Optional<Problem> findByIdWithTestCases(@Param("id") Long id);
 
@@ -42,7 +39,6 @@ public interface ProblemRepository extends JpaRepository<@NonNull Problem, @NonN
 
     @Query("""
             SELECT p FROM Problem p
-            LEFT JOIN FETCH p.languageConfigs lc
             WHERE p.slug = :slug
               AND p.isBenchmarked = true
               AND p.status = 'ACTIVE'

@@ -14,8 +14,7 @@ public class SubmissionTestcase extends BaseEntity {
     @JoinColumn(name = "submission_id")
     private Submission submission;
 
-    private Integer testcaseIndex; // Khớp với orderIndex của TestcaseDto
-    private String judge0Token;
+    private Integer testcaseIndex;
 
     @Enumerated(EnumType.STRING)
     private Verdict verdict;

@@ -1,6 +1,5 @@
 package org.rap.algotutorbe.iam.infrastructure.jwt;
 
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,27 +19,26 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
-
     private final UserService userService;
-
     private final HandlerExceptionResolver exceptionResolver;
 
-    public JwtAuthenticationFilter(JwtProvider jwtProvider, UserService userService, @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
+    public JwtAuthenticationFilter(JwtProvider jwtProvider, UserService userService,
+                                   @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
         this.jwtProvider = jwtProvider;
         this.userService = userService;
         this.exceptionResolver = exceptionResolver;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
         String token = parseToken(request);
         try {
             if (isValidToken(token)) authenticateUser(token);
 
             filterChain.doFilter(request, response);
-        } catch (JwtException ex) {
+        } catch (Exception ex) {
             SecurityContextHolder.clearContext();
-
             exceptionResolver.resolveException(request, response, null, ex);
         }
     }
@@ -49,7 +47,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String userEmail = jwtProvider.getUserEmailFromToken(token);
         SecurityUser securityUser = userService.loadUserByUsername(userEmail);
 
-        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(securityUser, "", securityUser.getAuthorities());
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(securityUser, "", securityUser.getAuthorities());
 
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
     }

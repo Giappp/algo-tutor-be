@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
+import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 
 @Entity
 @Table(name = "submissions")

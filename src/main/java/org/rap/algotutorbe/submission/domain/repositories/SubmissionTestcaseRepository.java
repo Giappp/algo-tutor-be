@@ -11,5 +11,4 @@ public interface SubmissionTestcaseRepository extends JpaRepository<SubmissionTe
 
     List<SubmissionTestcase> findBySubmissionId(Long submissionId);
 
-    SubmissionTestcase findByJudge0Token(String judge0Token);
 }

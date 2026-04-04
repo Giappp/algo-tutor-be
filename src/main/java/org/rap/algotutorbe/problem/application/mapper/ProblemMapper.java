@@ -1,8 +1,10 @@
 package org.rap.algotutorbe.problem.application.mapper;
 
 import org.rap.algotutorbe.problem.application.dto.response.*;
-import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
-import org.rap.algotutorbe.problem.domain.models.*;
+import org.rap.algotutorbe.problem.domain.models.AIPromptContext;
+import org.rap.algotutorbe.problem.domain.models.Problem;
+import org.rap.algotutorbe.problem.domain.models.Tag;
+import org.rap.algotutorbe.problem.domain.models.Testcase;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -48,33 +50,11 @@ public class ProblemMapper {
                 p.getModelSolutionCode(),
                 p.getModelSolutionLanguage(),
                 tagNames(p),
-                p.getLanguageConfigs().stream().map(this::toLanguageConfig).toList(),
                 p.getTestCases().stream().map(this::toTestcaseAdmin).toList(),
                 p.getAiPromptContext() != null ? toAIContextResponse(p.getAiPromptContext()) : null,
                 p.getAuthorId(),
                 p.getCreatedDate(),
                 p.getUpdatedAt()
-        );
-    }
-
-    public LanguageConfigResponse toLanguageConfig(ProblemLanguageConfig c) {
-        return toLanguageConfigResponse(c.getLanguage(), c.getConstraints(), c.getCodeTemplate());
-    }
-
-    public LanguageConfigResponse toLanguageConfigResponse(
-            ProgrammingLanguage lang,
-            Constraints constraints,
-            String codeTemplate
-    ) {
-        return new LanguageConfigResponse(
-                lang,
-                new ConstraintsResponse(
-                        constraints.getTimeLimitMs(),
-                        constraints.getMemoryLimitMb(),
-                        constraints.getMaxCodeLengthBytes(),
-                        constraints.getMaxOutputSizeBytes()
-                ),
-                codeTemplate
         );
     }
 
@@ -99,7 +79,6 @@ public class ProblemMapper {
 
     public ProblemDetailResponse toDetail(
             Problem p,
-            ProblemLanguageConfig config,
             List<TestcaseSampleResponse> samples
     ) {
         return new ProblemDetailResponse(
@@ -108,7 +87,6 @@ public class ProblemMapper {
                 p.getStatement(),
                 p.getDifficulty(),
                 tagNames(p),
-                toLanguageConfig(config),
                 samples
         );
     }

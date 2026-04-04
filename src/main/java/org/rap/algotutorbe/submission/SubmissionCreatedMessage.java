@@ -1,9 +1,11 @@
 package org.rap.algotutorbe.submission;
 
+import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
+
 public record SubmissionCreatedMessage(
         Long submissionId,
         Long problemId,
         String sourceCode,
-        String language     // tên enum
+        ProgrammingLanguage programmingLanguage
 ) {
 }

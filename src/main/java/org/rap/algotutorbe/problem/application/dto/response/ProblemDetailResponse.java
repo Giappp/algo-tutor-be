@@ -11,7 +11,6 @@ public record ProblemDetailResponse(
         String statement,
         Difficulty difficulty,
         Set<String> tags,
-        LanguageConfigResponse languageConfig,
         List<TestcaseSampleResponse> sampleTestcases
 ) {
 }

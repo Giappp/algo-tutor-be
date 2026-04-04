@@ -17,7 +17,6 @@ public record ProblemDetailAdminResponse(
         String modelSolutionCode,
         ProgrammingLanguage modelSolutionLanguage,
         Set<String> tags,
-        List<LanguageConfigResponse> languageConfigs,
         List<TestcaseAdminResponse> testcases,
         AIContextResponse aiContext,
         Long authorId,
