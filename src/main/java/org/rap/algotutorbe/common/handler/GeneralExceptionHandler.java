@@ -1,36 +1,113 @@
 package org.rap.algotutorbe.common.handler;
 
-import org.rap.algotutorbe.common.api.ApiResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.rap.algotutorbe.common.api.ErrorResponse;
+import org.rap.algotutorbe.common.errors.ErrorCode;
+import org.rap.algotutorbe.common.exception.AppException;
+import org.rap.algotutorbe.judge.domain.exception.JudgeConnectionException;
+import org.rap.algotutorbe.judge.domain.exception.PistonApiException;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
+@Slf4j
 public class GeneralExceptionHandler {
+    private final MessageSource messageSource;
+
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ErrorResponse<Object>> handleAppException(AppException ex) {
+        String message = resolveMessage(ex.getError());
+        return ResponseEntity.status(ex.getError().getHttpStatus())
+                .body(ErrorResponse.buildError(message, ex.getError().getCode()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleMethodArgumentNotValid(MethodArgumentNotValidException exception) {
-        Map<String, String> errors = new LinkedHashMap<>();
-        for (var e : exception.getFieldErrors()) {
-            errors.put(e.getField(), e.getDefaultMessage());
+    public ResponseEntity<ErrorResponse<Map<String, List<String>>>> handleValidation(MethodArgumentNotValidException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Map<String, List<String>> errors = getFieldErrors(ex, locale);
+
+        return ResponseEntity.badRequest().body(ErrorResponse.buildError(errors, ErrorCode.INVALID_PAYLOAD.getCode()));
+    }
+
+    private Map<String, List<String>> getFieldErrors(MethodArgumentNotValidException ex, Locale locale) {
+        Map<String, List<String>> errors = new LinkedHashMap<>();
+
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
+            String message = resolveFieldError(fieldError, locale);
+            errors.computeIfAbsent(fieldError.getField(), k -> new java.util.ArrayList<>()).add(message);
         }
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.builder()
-                        .messages(errors)
-                        .success(false)
-                        .build());
+        return errors;
+    }
+
+    private String resolveFieldError(FieldError fieldError, Locale locale) {
+        return messageSource.getMessage(
+                fieldError,
+                locale
+        );
+    }
+
+    private String resolveMessage(ErrorCode errorCode) {
+        return messageSource.getMessage(
+                errorCode.getKey(),
+                null,
+                LocaleContextHolder.getLocale()
+        );
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<?> handleHttpMessageNotReadable(HttpMessageNotReadableException exception) {
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.builder()
-                        .messages("Invalid body")
-                        .success(false)
-                        .build());
+    public ResponseEntity<ErrorResponse<String>> handleHttpMessageNotReadable(HttpMessageNotReadableException exception) {
+        String message = resolveMessage(ErrorCode.INVALID_PAYLOAD);
+        return ResponseEntity.status(ErrorCode.INVALID_PAYLOAD.getHttpStatus())
+                .body(ErrorResponse.buildError(message, ErrorCode.INVALID_PAYLOAD.getCode()));
+    }
+
+    // Bắt lỗi từ Piston trả về (400, 404, 500 từ Piston)
+    @ExceptionHandler(PistonApiException.class)
+    public ResponseEntity<Object> handlePistonApiException(PistonApiException ex) {
+        log.warn("Handled PistonApiException: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "EXECUTION_ENGINE_ERROR", ex.getMessage(), ex.getResponseBody());
+    }
+
+    // Bắt lỗi kết nối mạng (Timeout, Piston chết)
+    @ExceptionHandler(JudgeConnectionException.class)
+    public ResponseEntity<Object> handleJudgeConnectionException(JudgeConnectionException ex) {
+        log.warn("Handled JudgeConnectionException: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "JUDGE_SERVER_UNAVAILABLE", ex.getMessage(), null);
+    }
+
+    // Bắt toàn bộ lỗi Exception khác chưa được handle
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Object> handleGlobalException(Exception ex) {
+        log.error("Handled Uncaught Exception: ", ex);
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau", null);
+    }
+
+    // Hàm tiện ích để build JSON body thống nhất
+    private ResponseEntity<Object> buildErrorResponse(HttpStatus status, String errorCode, String message, Object details) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", status.value());
+        body.put("error_code", errorCode);
+        body.put("message", message);
+        if (details != null) {
+            body.put("details", details);
+        }
+        return new ResponseEntity<>(body, status);
     }
 }

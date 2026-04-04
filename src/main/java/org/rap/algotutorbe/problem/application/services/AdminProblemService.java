@@ -22,10 +22,9 @@ import org.rap.algotutorbe.problem.domain.models.AIPromptContext;
 import org.rap.algotutorbe.problem.domain.models.Problem;
 import org.rap.algotutorbe.problem.domain.models.Tag;
 import org.rap.algotutorbe.problem.domain.models.Testcase;
-import org.rap.algotutorbe.problem.infrastructure.repositories.ProblemLangConfigRepository;
-import org.rap.algotutorbe.problem.infrastructure.repositories.ProblemRepository;
-import org.rap.algotutorbe.problem.infrastructure.repositories.TagRepository;
-import org.rap.algotutorbe.problem.infrastructure.repositories.TestcaseRepository;
+import org.rap.algotutorbe.problem.domain.repositories.ProblemRepository;
+import org.rap.algotutorbe.problem.domain.repositories.TagRepository;
+import org.rap.algotutorbe.problem.domain.repositories.TestcaseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,8 +41,21 @@ public class AdminProblemService {
     TagRepository tagRepository;
     ProblemMapper problemMapper;
     TestcaseRepository testcaseRepository;
-    ProblemLangConfigRepository problemLangConfigRepository;
-//    SandboxClient sandboxClient;
+
+    private static @NonNull List<Testcase> getTestcases(UpsertTestcasesRequest req, Problem problem) {
+        return req.testcases().stream()
+                .map(r -> {
+                    Testcase tc = new Testcase();
+                    tc.setProblem(problem);
+                    tc.setInput(r.input());
+                    tc.setExpectedOutput(r.expectedOutput());
+                    tc.setSample(r.isSample() != null ? r.isSample() : false);
+                    tc.setOrderIndex(r.orderIndex());
+                    tc.setExplanation(r.explanation());
+                    return tc;
+                })
+                .collect(Collectors.toList());
+    }
 
     public ProblemSummaryAdminResponse createProblem(CreateProblemDto dto, Long authorId) {
         validate(dto);
@@ -78,21 +90,6 @@ public class AdminProblemService {
         List<Testcase> saved = testcaseRepository.saveAll(testcases);
         log.info("Saved {} test cases for problem={}", saved.size(), problemId);
         return saved.stream().map(problemMapper::toTestcaseAdmin).toList();
-    }
-
-    private static @NonNull List<Testcase> getTestcases(UpsertTestcasesRequest req, Problem problem) {
-        return req.testcases().stream()
-                .map(r -> {
-                    Testcase tc = new Testcase();
-                    tc.setProblem(problem);
-                    tc.setInput(r.input());
-                    tc.setExpectedOutput(r.expectedOutput());
-                    tc.setSample(r.isSample() != null ? r.isSample() : false);
-                    tc.setOrderIndex(r.orderIndex());
-                    tc.setExplanation(r.explanation());
-                    return tc;
-                })
-                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -136,8 +133,6 @@ public class AdminProblemService {
         if (problem.isBenchmarked()) {
             log.warn("Invalidating benchmark for problem={}", problem.getId());
             problem.setBenchmarked(false);
-            problemLangConfigRepository.deleteAllByProblemId(problem.getId());
-            problem.getLanguageConfigs().clear();
         }
     }
 

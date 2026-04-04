@@ -37,6 +37,12 @@ public class Problem extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ProblemStatus status;
 
+    @Column(name = "base_time_limit_ms", nullable = false)
+    private Integer baseTimeLimitMs = 1000; // Mặc định 1 giây
+
+    @Column(name = "base_memory_limit_mb", nullable = false)
+    private Integer baseMemoryLimitMb = 256; // Mặc định 256 MB
+
     @Column(name = "model_solution_code", columnDefinition = "TEXT")
     private String modelSolutionCode;
 
@@ -47,8 +53,6 @@ public class Problem extends BaseEntity {
     @Column(name = "is_benchmarked", nullable = false)
     private boolean isBenchmarked = false;
 
-    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProblemLanguageConfig> languageConfigs = new ArrayList<>();
 
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Testcase> testCases = new ArrayList<>();
@@ -62,11 +66,6 @@ public class Problem extends BaseEntity {
 
     private Long authorId;
 
-
-    public void addLanguageConfig(ProblemLanguageConfig config) {
-        this.languageConfigs.add(config);
-        config.setProblem(this);
-    }
 
     public void markAsBenchmarked() {
         this.isBenchmarked = true;
