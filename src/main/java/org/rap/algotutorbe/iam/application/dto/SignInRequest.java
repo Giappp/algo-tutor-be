@@ -1,10 +1,9 @@
 package org.rap.algotutorbe.iam.application.dto;
 
-import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.NonNull;
-import org.rap.algotutorbe.iam.infrastructure.config.Messages;
-import org.rap.algotutorbe.iam.infrastructure.config.Password;
+import org.rap.algotutorbe.iam.infrastructure.annotations.Password;
 
-public record SignInRequest(@NonNull @Email(message = Messages.Validation.EMAIL) String email,
+public record SignInRequest(@NonNull @NotBlank String userName,
                             @NonNull @Password String password) {
 }

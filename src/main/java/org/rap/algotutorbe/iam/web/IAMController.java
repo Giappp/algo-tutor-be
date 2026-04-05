@@ -4,13 +4,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
-import org.rap.algotutorbe.iam.application.dto.*;
+import org.rap.algotutorbe.iam.application.dto.SignInRequest;
+import org.rap.algotutorbe.iam.application.dto.SignUpRequest;
 import org.rap.algotutorbe.iam.application.services.AuthService;
+import org.rap.algotutorbe.iam.application.services.CookieService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 
@@ -19,29 +19,50 @@ import java.net.URI;
 @RequiredArgsConstructor
 public class IAMController {
     private final AuthService authService;
+    private final CookieService cookieService;
 
     @PostMapping("/signin")
-    public ResponseEntity<ApiResponse<TokenResponse>> signIn(@RequestBody @Valid SignInRequest payload, HttpServletRequest request) {
-        var token = authService.processSignIn(payload, request);
-        return ResponseEntity.ok(ApiResponse.buildSuccess(token));
+    public ResponseEntity<ApiResponse<String>> signIn(@RequestBody @Valid SignInRequest payload, HttpServletRequest request) {
+        var token = authService.processSignIn(payload);
+
+        var accessTokenCookie = cookieService.createAccessTokenCookie(token.accessToken());
+        var refreshTokenCookie = cookieService.createRefreshTokenCookie(token.refreshToken());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(ApiResponse.buildSuccess("Login success"));
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signUp(@RequestBody @Valid SignUpRequest payload, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<String>> signUp(@RequestBody @Valid SignUpRequest payload, HttpServletRequest request) {
         authService.processSignUp(payload);
         return ResponseEntity.created(URI.create(request.getRequestURI()))
-                .body(ApiResponse.buildMessage("User registered successfully"));
+                .body(ApiResponse.buildMessage("Sign up success"));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody @Valid RefreshTokenRequest payload, HttpServletRequest request) {
-        var result = authService.processRefresh(payload);
-        return ResponseEntity.ok(ApiResponse.buildSuccess(result));
+    public ResponseEntity<ApiResponse<String>> refresh(@CookieValue(name = "refresh-token", required = false) String refreshToken, HttpServletRequest request) {
+        var token = authService.processRefresh(refreshToken);
+        var accessTokenCookie = cookieService.createAccessTokenCookie(token.accessToken());
+        var refreshTokenCookie = cookieService.createRefreshTokenCookie(token.refreshToken());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(ApiResponse.buildMessage("Refresh success"));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody LogoutRequest logoutRequest) {
-        authService.logout(logoutRequest.refreshToken());
-        return ResponseEntity.ok(ApiResponse.buildMessage("Logged out successfully"));
+    public ResponseEntity<ApiResponse<String>> logout(
+            @CookieValue(name = "refresh-token", required = true) String refreshToken
+    ) {
+        authService.logout(refreshToken);
+        var cleanAccessTokenCookie = cookieService.cleanAccessTokenCookie();
+        var cleanRefreshTokenCookie = cookieService.cleanRefreshTokenCookie();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cleanAccessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, cleanRefreshTokenCookie.toString())
+                .body(ApiResponse.buildMessage("Logout success"));
     }
+
 }

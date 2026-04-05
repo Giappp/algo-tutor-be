@@ -5,8 +5,8 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.rap.algotutorbe.iam.domain.model.User;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -17,7 +17,7 @@ import java.util.Base64;
 import java.util.Date;
 
 @Component
-public class JwtProvider {
+public class JwtUtil {
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -35,14 +35,14 @@ public class JwtProvider {
         return secretKey;
     }
 
-    public String generateAccessToken(User user) {
+    public String generateAccessToken(UserDetails userDetails, Instant now) {
         try {
             JWSSigner signer = new MACSigner(key());
 
             JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                    .subject(user.getEmail())
+                    .subject(userDetails.getUsername())
                     .issueTime(new Date())
-                    .expirationTime(Date.from(Instant.now().plusMillis(accessTokenExpirationMs)))
+                    .expirationTime(Date.from(now.plusMillis(accessTokenExpirationMs)))
                     .build();
 
             SignedJWT signedJWT = new SignedJWT(
@@ -73,7 +73,7 @@ public class JwtProvider {
         }
     }
 
-    public String getUserEmailFromToken(String token) {
+    public String getUserNameFromToken(String token) {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
             return signedJWT.getJWTClaimsSet().getSubject();

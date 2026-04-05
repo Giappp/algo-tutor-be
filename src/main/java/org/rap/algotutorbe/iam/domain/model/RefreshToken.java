@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -18,11 +18,11 @@ public class RefreshToken extends BaseEntity {
     private User user;
     @Column(nullable = false, unique = true)
     private UUID token;
-    private LocalDateTime expiryDate;
+    private Instant expiryDate;
     private String ipv4Address;
     private String deviceInfo;
 
     public boolean isExpired() {
-        return expiryDate.isBefore(LocalDateTime.now());
+        return expiryDate.isBefore(Instant.now());
     }
 }

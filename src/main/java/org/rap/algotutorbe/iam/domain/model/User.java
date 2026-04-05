@@ -21,6 +21,8 @@ public class User extends BaseEntity {
     private String email;
     private String passwordHashed;
     private Integer totalSolved;
+
+    private boolean isEnabled;
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;

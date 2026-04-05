@@ -1,9 +1,10 @@
-package org.rap.algotutorbe.iam.infrastructure.config;
+package org.rap.algotutorbe.iam.infrastructure.annotations;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 import jakarta.validation.ReportAsSingleViolation;
 import jakarta.validation.constraints.Pattern;
+import org.rap.algotutorbe.iam.infrastructure.config.Messages;
 
 import java.lang.annotation.*;
 

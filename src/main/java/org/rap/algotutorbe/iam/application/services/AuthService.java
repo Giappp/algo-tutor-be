@@ -1,41 +1,50 @@
 package org.rap.algotutorbe.iam.application.services;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
-import org.rap.algotutorbe.iam.application.dto.RefreshTokenRequest;
 import org.rap.algotutorbe.iam.application.dto.SignInRequest;
 import org.rap.algotutorbe.iam.application.dto.SignUpRequest;
 import org.rap.algotutorbe.iam.application.dto.TokenResponse;
 import org.rap.algotutorbe.iam.domain.model.User;
 import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
-import org.rap.algotutorbe.iam.infrastructure.jwt.JwtProvider;
+import org.rap.algotutorbe.iam.infrastructure.jwt.JwtUtil;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
 
 @RequiredArgsConstructor
 @Service
 @Slf4j
 public class AuthService {
     private final UserService userService;
-    private final JwtProvider jwtProvider;
+    private final JwtUtil jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private final RefreshTokenService refreshTokenRepository;
+    private final RefreshTokenService refreshTokenService;
+    private final AuthenticationManager authenticationManager;
 
-    public TokenResponse processSignIn(SignInRequest payload, HttpServletRequest request) {
-        var securityUser = userService.loadUserByUsername(payload.email());
-        log.info("Sign in request attempt for account ${} with Ip: ${}", securityUser.getUsername(), request.getRemoteAddr());
-        if (isMatchesPassword(payload, securityUser)) {
-            log.info("User {} successfully logged in}", securityUser.user().getId());
-            return buildToken(securityUser.user());
+    public TokenResponse processSignIn(SignInRequest payload) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(payload.userName(), payload.password())
+            );
+
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            return buildToken(userDetails);
+        } catch (AuthenticationException e) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
-        log.warn("Logged in attempted fail for user {}", securityUser.user().getId());
-        throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+
     }
 
     public void processSignUp(SignUpRequest request) {
@@ -52,35 +61,34 @@ public class AuthService {
         return user;
     }
 
-    public TokenResponse processRefresh(RefreshTokenRequest payload) {
-        String refreshToken = payload.refreshToken();
-        User user = refreshTokenRepository.verify(refreshToken);
+    public TokenResponse processRefresh(String refreshToken) {
+        User user = refreshTokenService.verify(refreshToken);
+        SecurityUser securityUser = new SecurityUser(user);
         log.info("Rotate refresh token success for user {}", user.getId());
-        return rotateToken(refreshToken, user);
+        return rotateToken(refreshToken, securityUser);
     }
 
     public void logout(String refreshToken) {
-        refreshTokenRepository.invalidate(refreshToken);
+        refreshTokenService.invalidate(refreshToken);
         SecurityContextHolder.clearContext();
     }
 
-    private TokenResponse rotateToken(String refreshToken, User user) {
+    private TokenResponse rotateToken(String refreshToken, UserDetails userDetails) {
+        Instant now = Instant.now();
         return TokenResponse.builder()
-                .accessToken(jwtProvider.generateAccessToken(user))
-                .refreshToken(refreshTokenRepository.rotate(refreshToken))
+                .accessToken(jwtProvider.generateAccessToken(userDetails, now))
+                .refreshToken(refreshTokenService.rotate(refreshToken))
                 .build();
     }
 
-    private TokenResponse buildToken(User user) {
+    private TokenResponse buildToken(UserDetails userDetails) {
+        Instant now = Instant.now();
         return TokenResponse.builder()
-                .accessToken(jwtProvider.generateAccessToken(user))
-                .refreshToken(refreshTokenRepository.createRefreshToken(user.getId()))
+                .accessToken(jwtProvider.generateAccessToken(userDetails, now))
+                .refreshToken(refreshTokenService.createRefreshToken(userDetails, now))
                 .build();
     }
 
-    private boolean isMatchesPassword(SignInRequest request, SecurityUser user) {
-        return passwordEncoder.matches(request.password(), user.getPassword());
-    }
 
     private void validate(SignUpRequest request) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
