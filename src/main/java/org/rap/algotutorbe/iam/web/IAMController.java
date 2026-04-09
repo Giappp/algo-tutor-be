@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.iam.application.dto.SignInRequest;
 import org.rap.algotutorbe.iam.application.dto.SignUpRequest;
+import org.rap.algotutorbe.iam.application.dto.UserResponse;
 import org.rap.algotutorbe.iam.application.services.AuthService;
 import org.rap.algotutorbe.iam.application.services.CookieService;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +23,7 @@ public class IAMController {
     private final CookieService cookieService;
 
     @PostMapping("/signin")
-    public ResponseEntity<ApiResponse<String>> signIn(@RequestBody @Valid SignInRequest payload, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<String>> signIn(@RequestBody @Valid SignInRequest payload) {
         var token = authService.processSignIn(payload);
 
         var accessTokenCookie = cookieService.createAccessTokenCookie(token.accessToken());
@@ -41,7 +42,7 @@ public class IAMController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<String>> refresh(@CookieValue(name = "refresh-token", required = false) String refreshToken, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<String>> refresh(@CookieValue(name = "refresh-token", required = false) String refreshToken) {
         var token = authService.processRefresh(refreshToken);
         var accessTokenCookie = cookieService.createAccessTokenCookie(token.accessToken());
         var refreshTokenCookie = cookieService.createRefreshTokenCookie(token.refreshToken());
@@ -54,7 +55,7 @@ public class IAMController {
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(
-            @CookieValue(name = "refresh-token", required = true) String refreshToken
+            @CookieValue(name = "refresh-token") String refreshToken
     ) {
         authService.logout(refreshToken);
         var cleanAccessTokenCookie = cookieService.cleanAccessTokenCookie();
@@ -63,6 +64,12 @@ public class IAMController {
                 .header(HttpHeaders.SET_COOKIE, cleanAccessTokenCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, cleanRefreshTokenCookie.toString())
                 .body(ApiResponse.buildMessage("Logout success"));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
+        var user = authService.getUserInfo();
+        return ResponseEntity.ok(ApiResponse.buildSuccess(user));
     }
 
 }

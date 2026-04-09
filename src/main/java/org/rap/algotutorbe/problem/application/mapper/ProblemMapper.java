@@ -20,7 +20,6 @@ public class ProblemMapper {
                 p.getTitle(),
                 p.getDifficulty().name(),
                 p.getStatus().name(),
-                p.isBenchmarked(),
                 tagNames(p),
                 p.getCreatedDate(),
                 p.getUpdatedAt()
@@ -46,7 +45,6 @@ public class ProblemMapper {
                 p.getStatement(),
                 p.getDifficulty().name(),
                 p.getStatus().name(),
-                p.isBenchmarked(),
                 p.getModelSolutionCode(),
                 p.getModelSolutionLanguage(),
                 tagNames(p),

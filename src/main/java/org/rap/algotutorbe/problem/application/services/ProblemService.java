@@ -30,7 +30,7 @@ public class ProblemService {
     @Transactional(readOnly = true)
     public PageResponse<ProblemSummaryResponse> listPublished(Pageable pageable) {
         var problemsPage = problemRepository
-                .findAllPublished(ProblemStatus.ACTIVE, pageable)
+                .findAllPublished(ProblemStatus.PUBLISHED, pageable)
                 .map(mapper::toSummary);
         return PageResponse.<ProblemSummaryResponse>builder()
                 .data(problemsPage.toList())

@@ -1,6 +1,7 @@
 package org.rap.algotutorbe.iam.application.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
@@ -14,14 +15,15 @@ public class CookieService {
     private static final String COOKIE_NAME_ACCESS_TOKEN = "access-token";
     private static final String COOKIE_NAME_REFRESH_TOKEN = "refresh-token";
 
-    private static final String PATH_API_V1 = "/api/v1";
-    private static final String PATH_REFRESH_TOKEN = "/api/v1/iam/refresh";
+    private static final String PATH_API_V1 = "/";
 
     private static final String SAME_SITE_STRICT = "Strict";
     // --- KẾT THÚC PHẦN KHAI BÁO HẰNG SỐ ---
-
+    @Value(value = "${app.security.jwt.accessTokenExpirationMs}")
     private long accessTokenExpirationMs;
+    @Value(value = "${app.security.jwt.refreshTokenExpirationMs}")
     private long refreshTokenExpirationMs;
+    @Value(value = "${app.security.securedCookie}")
     private boolean isSecured;
 
     public ResponseCookie createAccessTokenCookie(String accessToken) {
@@ -38,7 +40,7 @@ public class CookieService {
         return buildCookieToken(
                 COOKIE_NAME_REFRESH_TOKEN,
                 refreshToken,
-                PATH_REFRESH_TOKEN,
+                PATH_API_V1,
                 refreshTokenExpirationMs,
                 SAME_SITE_STRICT
         );
@@ -50,7 +52,7 @@ public class CookieService {
     }
 
     public ResponseCookie cleanRefreshTokenCookie() {
-        return buildCleanCookie(COOKIE_NAME_REFRESH_TOKEN, PATH_REFRESH_TOKEN);
+        return buildCleanCookie(COOKIE_NAME_REFRESH_TOKEN, PATH_API_V1);
     }
 
     private ResponseCookie buildCookieToken(String cookieName, String value, String path, long maxAgeMs, String sameSite) {

@@ -50,10 +50,6 @@ public class Problem extends BaseEntity {
     @Column(name = "model_solution_language")
     private ProgrammingLanguage modelSolutionLanguage;
 
-    @Column(name = "is_benchmarked", nullable = false)
-    private boolean isBenchmarked = false;
-
-
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Testcase> testCases = new ArrayList<>();
 
@@ -65,11 +61,6 @@ public class Problem extends BaseEntity {
     private Set<Tag> tags = new HashSet<>();
 
     private Long authorId;
-
-
-    public void markAsBenchmarked() {
-        this.isBenchmarked = true;
-    }
 
     public void addTag(Tag tag) {
         this.tags.add(tag);

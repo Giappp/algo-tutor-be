@@ -32,16 +32,14 @@ public interface ProblemRepository extends JpaRepository<@NonNull Problem, @NonN
     @Query("""
             SELECT p FROM Problem p
             LEFT JOIN FETCH p.tags
-            WHERE p.isBenchmarked = true
-              AND p.status = :status
+            WHERE p.status = :status
             """)
     Page<Problem> findAllPublished(@Param("status") ProblemStatus status, Pageable pageable);
 
     @Query("""
             SELECT p FROM Problem p
             WHERE p.slug = :slug
-              AND p.isBenchmarked = true
-              AND p.status = 'ACTIVE'
+              AND p.status = 'PUBLISHED'
             """)
     Optional<Problem> findPublishedBySlug(@Param("slug") String slug);
 }

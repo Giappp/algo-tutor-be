@@ -28,4 +28,11 @@ public class TagService {
     public void batchCreate(List<CreateTagRequest> batch) {
 
     }
+
+    public List<TagsDto> getTags() {
+        return tagRepository.findAll()
+                .stream()
+                .map(t -> new TagsDto(t.getId(), t.getName()))
+                .toList();
+    }
 }

@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum ErrorCode {
     INVALID_PAYLOAD(1, "errors.invalid-payload", HttpStatus.BAD_REQUEST),
+    ACCESS_DENIED(2, "errors.access-denied", HttpStatus.UNAUTHORIZED),
     INVALID_CREDENTIALS(1000, "error.invalid-credential", HttpStatus.NOT_FOUND),
     EMAIL_ALREADY_INUSE(1001, "Email already used", HttpStatus.BAD_REQUEST),
     USERNAME_TAKEN(1002, "Username already taken", HttpStatus.BAD_REQUEST),

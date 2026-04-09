@@ -13,7 +13,6 @@ public record ProblemDetailAdminResponse(
         String statement,
         String difficulty,
         String status,
-        boolean isBenchmarked,
         String modelSolutionCode,
         ProgrammingLanguage modelSolutionLanguage,
         Set<String> tags,

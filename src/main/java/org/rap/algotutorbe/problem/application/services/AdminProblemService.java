@@ -73,7 +73,6 @@ public class AdminProblemService {
         problem.setDifficulty(Difficulty.valueOf(dto.difficulty()));
         problem.setStatus(ProblemStatus.DRAFT);
         problem.setAuthorId(authorId);
-        problem.setBenchmarked(false);
 
         resolveTags(dto.tags(), problem);
         return problem;
@@ -82,8 +81,6 @@ public class AdminProblemService {
     @Transactional
     public List<TestcaseAdminResponse> upsertTestcases(Long problemId, UpsertTestcasesRequest testcasesRequest) {
         Problem problem = findProblemOrThrow(problemId);
-
-        invalidateBenchmark(problem);
         testcaseRepository.deleteAllByProblemId(problemId);
 
         List<Testcase> testcases = getTestcases(testcasesRequest, problem);
@@ -96,8 +93,6 @@ public class AdminProblemService {
     public ProblemDetailAdminResponse updateModelSolution(Long problemId, ModelSolutionRequest req) {
         Problem problem = findProblemOrThrow(problemId);
 
-        // Changing the model solution invalidates current benchmark
-        invalidateBenchmark(problem); // -> Throw event to trigger invalidate benchmark
         problem.setModelSolutionCode(req.code());
         problem.setModelSolutionLanguage(req.language());
 
@@ -129,18 +124,10 @@ public class AdminProblemService {
                 .orElseThrow(() -> new ProblemNotFoundException(id.toString()));
     }
 
-    private void invalidateBenchmark(Problem problem) {
-        if (problem.isBenchmarked()) {
-            log.warn("Invalidating benchmark for problem={}", problem.getId());
-            problem.setBenchmarked(false);
-        }
-    }
-
     public ProblemDetailAdminResponse publishProblem(Long id) {
         Problem problem = findProblemOrThrow(id);
         //TODO: implement validation & run benchmark before release
-        problem.setStatus(ProblemStatus.ACTIVE);
-        problem.setBenchmarked(true);
+        problem.setStatus(ProblemStatus.PUBLISHED);
         problemRepository.save(problem);
         return problemMapper.toDetailAdmin(problem);
     }

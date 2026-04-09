@@ -4,9 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
+import org.rap.algotutorbe.common.services.BaseService;
 import org.rap.algotutorbe.iam.application.dto.SignInRequest;
 import org.rap.algotutorbe.iam.application.dto.SignUpRequest;
 import org.rap.algotutorbe.iam.application.dto.TokenResponse;
+import org.rap.algotutorbe.iam.application.dto.UserResponse;
+import org.rap.algotutorbe.iam.application.mapper.UserMapper;
 import org.rap.algotutorbe.iam.domain.model.User;
 import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
@@ -25,13 +28,14 @@ import java.time.Instant;
 @RequiredArgsConstructor
 @Service
 @Slf4j
-public class AuthService {
+public class AuthService extends BaseService {
     private final UserService userService;
     private final JwtUtil jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
+    private final UserMapper userMapper;
 
     public TokenResponse processSignIn(SignInRequest payload) {
         try {
@@ -101,4 +105,16 @@ public class AuthService {
             throw new AppException(ErrorCode.PASSWORD_MISMATCH);
         }
     }
+
+    public UserResponse getUserInfo() {
+        User user = getCurrentUserOrThrow();
+        return userMapper.toResponse(user);
+    }
+
+    private User getCurrentUserOrThrow() {
+        return userRepository.findById(getCurrentUserIdOrThrow())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
+
+
 }

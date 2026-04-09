@@ -9,7 +9,6 @@ public record ProblemSummaryAdminResponse(
         String title,
         String difficulty,
         String status,
-        boolean isBenchmarked,
         Set<String> tags,
         Instant createdAt,
         Instant updatedAt
