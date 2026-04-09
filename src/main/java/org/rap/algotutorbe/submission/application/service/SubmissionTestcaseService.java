@@ -2,7 +2,7 @@ package org.rap.algotutorbe.submission.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.rap.algotutorbe.judge.application.dto.JudgeResult;
+import org.rap.algotutorbe.judge.dto.JudgeResult;
 import org.rap.algotutorbe.submission.application.mapper.SubmissionTestcaseMapper;
 import org.rap.algotutorbe.submission.domain.model.Submission;
 import org.rap.algotutorbe.submission.domain.model.SubmissionTestcase;

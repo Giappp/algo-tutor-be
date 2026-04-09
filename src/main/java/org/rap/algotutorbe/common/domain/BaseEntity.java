@@ -16,12 +16,12 @@ import java.time.Instant;
 public abstract class BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    protected Long id;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
-    private Instant createdDate;
+    protected Instant createdDate;
 
     @LastModifiedDate
-    private Instant updatedAt;
+    protected Instant updatedAt;
 }

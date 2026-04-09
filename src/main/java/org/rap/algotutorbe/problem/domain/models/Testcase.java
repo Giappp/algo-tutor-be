@@ -8,7 +8,7 @@ import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
 
 @Entity
-@Table(name = "testcases")
+@Table(name = "testCases")
 @Getter
 @Setter
 @NoArgsConstructor

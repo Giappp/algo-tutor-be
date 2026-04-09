@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.problem.infrastructure.web;
+package org.rap.algotutorbe.problem.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ public class AdminTagController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody @Valid CreateTagRequest request) {
+    public ResponseEntity<ApiResponse<Object>> create(@RequestBody @Valid CreateTagRequest request) {
         var saved = tagService.create(request);
         return ResponseEntity.ok().body(ApiResponse
                 .builder()

@@ -1,12 +1,14 @@
-package org.rap.algotutorbe.judge.application.services;
+package org.rap.algotutorbe.judge;
 
 import lombok.extern.slf4j.Slf4j;
-import org.rap.algotutorbe.judge.application.dto.PistonExecutionResponse;
-import org.rap.algotutorbe.judge.application.dto.PistonFile;
-import org.rap.algotutorbe.judge.application.dto.PistonRequest;
-import org.rap.algotutorbe.judge.domain.exception.JudgeConnectionException;
-import org.rap.algotutorbe.judge.domain.exception.JudgeException;
-import org.rap.algotutorbe.judge.domain.exception.PistonApiException;
+import org.rap.algotutorbe.judge.dto.PistonFile;
+import org.rap.algotutorbe.judge.dto.PistonRequest;
+import org.rap.algotutorbe.judge.dto.PistonResponse;
+import org.rap.algotutorbe.judge.dto.ValidationDetail;
+import org.rap.algotutorbe.judge.exception.JudgeConnectionException;
+import org.rap.algotutorbe.judge.exception.JudgeException;
+import org.rap.algotutorbe.judge.exception.PistonApiException;
+import org.rap.algotutorbe.problem.application.dto.request.TestcaseRequest;
 import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -47,16 +49,51 @@ public class PistonClient {
                 .build();
     }
 
-    public PistonExecutionResponse executeCode(
+    public ValidationDetail executeCode(
+            int index,
             ProgrammingLanguage language,
-            String sourceCode,
-            String stdin,
+            String code,
+            TestcaseRequest testCase,
             int runTimeoutMs,
+            int compileTimeoutMs,
             int memoryLimitMb
     ) {
-        PistonRequest request = buildRequest(language, sourceCode, stdin, runTimeoutMs, memoryLimitMb);
+        PistonRequest request = buildRequest(language, code, testCase.input(), runTimeoutMs, compileTimeoutMs, memoryLimitMb);
         log.info("Sending execution request to Piston. Language: {}", language);
-        return sendRequest(request);
+        PistonResponse response = sendRequest(request);
+
+        if (response == null) {
+            return createErrorDetail(index, testCase, "SYSTEM_ERROR", "Không nhận được phản hồi từ Piston");
+        }
+
+        if (response.compile() != null && response.compile().code() != 0) {
+            return createErrorDetail(index, testCase, "COMPILE_ERROR", response.compile().stderr());
+        }
+
+        if (response.run().code() != 0) {
+            String errorMsg = response.run().stderr() != null ? response.run().stderr() : response.run().signal();
+            return createErrorDetail(index, testCase, "RUNTIME_ERROR_OR_TLE", errorMsg);
+        }
+
+        String actualOutput = response.run().stdout();
+        boolean isMatch = normalizeOutput(actualOutput).equals(normalizeOutput(testCase.expectedOutput()));
+
+        if (isMatch) {
+            return new ValidationDetail(index, "ACCEPTED", testCase.input(), testCase.expectedOutput(), actualOutput, null);
+        } else {
+            return new ValidationDetail(index, "WRONG_ANSWER", testCase.input(), testCase.expectedOutput(), actualOutput, "Output không khớp");
+        }
+    }
+
+    private ValidationDetail createErrorDetail(int index, TestcaseRequest testCase, String status, String errorMsg) {
+        return new ValidationDetail(index, status, testCase.input(), testCase.expectedOutput(), null, errorMsg);
+    }
+
+    private String normalizeOutput(String output) {
+        if (output == null) return "";
+        return output
+                .replace("\\r\\n", "\n")
+                .trim();
     }
 
     private PistonRequest buildRequest(
@@ -64,6 +101,7 @@ public class PistonClient {
             String sourceCode,
             String stdin,
             int runTimeoutMs,
+            int compileTimeoutMs,
             int memoryLimitMb
     ) {
         PistonFile file = new PistonFile(language.getFileName(), sourceCode);
@@ -73,18 +111,19 @@ public class PistonClient {
                 List.of(file),
                 stdin != null ? stdin : "",
                 runTimeoutMs,
+                compileTimeoutMs,
                 memoryLimitMb
         );
     }
 
-    private PistonExecutionResponse sendRequest(PistonRequest request) {
+    private PistonResponse sendRequest(PistonRequest request) {
         try {
             return restClient.post()
                     .uri(EXECUTE_ENDPOINT)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
-                    .body(PistonExecutionResponse.class);
+                    .body(PistonResponse.class);
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             log.error("Piston API error — status: {}, body: {}",

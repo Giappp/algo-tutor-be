@@ -1,8 +1,10 @@
-package org.rap.algotutorbe.problem.infrastructure.web;
+package org.rap.algotutorbe.problem.controller;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.rap.algotutorbe.common.api.ApiResponse;
+import org.rap.algotutorbe.common.api.PageResponse;
 import org.rap.algotutorbe.problem.application.services.ProblemService;
 import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 import org.springframework.data.domain.Pageable;
@@ -18,14 +20,14 @@ public class ProblemController {
     private final ProblemService problemService;
 
     @GetMapping
-    public ResponseEntity<?> listProblems(
+    public ResponseEntity<PageResponse<Object>> listProblems(
             @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(problemService.listPublished(pageable));
     }
 
     @GetMapping("/{slug}")
-    public ResponseEntity<?> getProblem(
+    public ResponseEntity<ApiResponse<Object>> getProblem(
             @PathVariable String slug,
             @RequestParam(defaultValue = "CPP") ProgrammingLanguage language
     ) {

@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.problem.infrastructure.web;
+package org.rap.algotutorbe.problem.controller;
 
 import org.springframework.web.bind.annotation.RestController;
 

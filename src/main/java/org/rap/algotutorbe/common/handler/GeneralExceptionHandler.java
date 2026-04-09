@@ -5,8 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.api.ErrorResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
-import org.rap.algotutorbe.judge.domain.exception.JudgeConnectionException;
-import org.rap.algotutorbe.judge.domain.exception.PistonApiException;
+import org.rap.algotutorbe.judge.exception.JudgeConnectionException;
+import org.rap.algotutorbe.judge.exception.PistonApiException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -84,14 +84,12 @@ public class GeneralExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "EXECUTION_ENGINE_ERROR", ex.getMessage(), ex.getResponseBody());
     }
 
-    // Bắt lỗi kết nối mạng (Timeout, Piston chết)
     @ExceptionHandler(JudgeConnectionException.class)
     public ResponseEntity<Object> handleJudgeConnectionException(JudgeConnectionException ex) {
         log.warn("Handled JudgeConnectionException: {}", ex.getMessage());
         return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "JUDGE_SERVER_UNAVAILABLE", ex.getMessage(), null);
     }
-
-    // Bắt toàn bộ lỗi Exception khác chưa được handle
+    
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGlobalException(Exception ex) {
         log.error("Handled Uncaught Exception: ", ex);

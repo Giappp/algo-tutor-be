@@ -8,7 +8,6 @@ import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
 import org.rap.algotutorbe.problem.domain.enums.Difficulty;
 import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
-import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,6 +30,8 @@ public class Problem extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String statement;
 
+    private Long authorId;
+
     @Enumerated(EnumType.STRING)
     private Difficulty difficulty;
 
@@ -43,13 +44,6 @@ public class Problem extends BaseEntity {
     @Column(name = "base_memory_limit_mb", nullable = false)
     private Integer baseMemoryLimitMb = 256; // Mặc định 256 MB
 
-    @Column(name = "model_solution_code", columnDefinition = "TEXT")
-    private String modelSolutionCode;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "model_solution_language")
-    private ProgrammingLanguage modelSolutionLanguage;
-
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Testcase> testCases = new ArrayList<>();
 
@@ -59,10 +53,21 @@ public class Problem extends BaseEntity {
     @ManyToMany
     @JoinTable(name = "problem_tags")
     private Set<Tag> tags = new HashSet<>();
+    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Editorial> editorials = new ArrayList<>();
 
-    private Long authorId;
 
     public void addTag(Tag tag) {
         this.tags.add(tag);
+    }
+
+    public void addEditorial(Editorial editorial) {
+        editorials.add(editorial);
+        editorial.setProblem(this);
+    }
+
+    public void removeEditorial(Editorial editorial) {
+        editorials.remove(editorial);
+        editorial.setProblem(null);
     }
 }

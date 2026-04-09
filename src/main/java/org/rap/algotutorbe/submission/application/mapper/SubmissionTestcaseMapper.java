@@ -1,6 +1,6 @@
 package org.rap.algotutorbe.submission.application.mapper;
 
-import org.rap.algotutorbe.judge.application.dto.TestcaseResultDto;
+import org.rap.algotutorbe.judge.dto.TestcaseResultDto;
 import org.rap.algotutorbe.submission.domain.model.Submission;
 import org.rap.algotutorbe.submission.domain.model.SubmissionTestcase;
 import org.rap.algotutorbe.submission.domain.model.Verdict;

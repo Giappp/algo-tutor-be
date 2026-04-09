@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.judge.application.dto;
+package org.rap.algotutorbe.judge.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

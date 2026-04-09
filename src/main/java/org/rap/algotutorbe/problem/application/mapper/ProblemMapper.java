@@ -1,10 +1,7 @@
 package org.rap.algotutorbe.problem.application.mapper;
 
 import org.rap.algotutorbe.problem.application.dto.response.*;
-import org.rap.algotutorbe.problem.domain.models.AIPromptContext;
-import org.rap.algotutorbe.problem.domain.models.Problem;
-import org.rap.algotutorbe.problem.domain.models.Tag;
-import org.rap.algotutorbe.problem.domain.models.Testcase;
+import org.rap.algotutorbe.problem.domain.models.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -38,6 +35,9 @@ public class ProblemMapper {
     }
 
     public ProblemDetailAdminResponse toDetailAdmin(Problem p) {
+        // Lấy lời giải chuẩn đầu tiên từ editorials (nếu có)
+        Editorial firstEditorial = p.getEditorials().isEmpty() ? null : p.getEditorials().get(0);
+
         return new ProblemDetailAdminResponse(
                 p.getId(),
                 p.getSlug(),
@@ -45,8 +45,8 @@ public class ProblemMapper {
                 p.getStatement(),
                 p.getDifficulty().name(),
                 p.getStatus().name(),
-                p.getModelSolutionCode(),
-                p.getModelSolutionLanguage(),
+                firstEditorial != null ? firstEditorial.getSourceCode() : null,
+                firstEditorial != null ? firstEditorial.getLanguage() : null,
                 tagNames(p),
                 p.getTestCases().stream().map(this::toTestcaseAdmin).toList(),
                 p.getAiPromptContext() != null ? toAIContextResponse(p.getAiPromptContext()) : null,

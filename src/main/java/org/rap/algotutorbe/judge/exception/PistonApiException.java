@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.judge.domain.exception;
+package org.rap.algotutorbe.judge.exception;
 
 import lombok.Getter;
 
