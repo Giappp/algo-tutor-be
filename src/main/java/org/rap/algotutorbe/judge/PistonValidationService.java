@@ -22,7 +22,7 @@ public class PistonValidationService {
     public ValidationResult validateSolution(ProgrammingLanguage language, String solutionCode, List<TestcaseRequest> testCases) {
         List<CompletableFuture<ValidationDetail>> futures = IntStream.range(0, testCases.size())
                 .mapToObj(index -> CompletableFuture.supplyAsync(
-                        () -> pistonClient.executeCode(index, language, solutionCode, testCases.get(index), 5000, 5000, 256),
+                        () -> pistonClient.executeCode(index, language, solutionCode, testCases.get(index), 3000, 5000, 256),
                         executorService
                 ))
                 .toList();

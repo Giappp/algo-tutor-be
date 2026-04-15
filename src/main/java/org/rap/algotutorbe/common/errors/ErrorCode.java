@@ -7,14 +7,26 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     INVALID_PAYLOAD(1, "errors.invalid-payload", HttpStatus.BAD_REQUEST),
     ACCESS_DENIED(2, "errors.access-denied", HttpStatus.UNAUTHORIZED),
+    NEED_AUTHENTICATION(3, "errors.need-authentication", HttpStatus.UNAUTHORIZED),
+    CONFLICT_RESOURCE(4, "errors.conflict-resource", HttpStatus.CONFLICT),
     INVALID_CREDENTIALS(1000, "error.invalid-credential", HttpStatus.NOT_FOUND),
-    EMAIL_ALREADY_INUSE(1001, "Email already used", HttpStatus.BAD_REQUEST),
-    USERNAME_TAKEN(1002, "Username already taken", HttpStatus.BAD_REQUEST),
-    PASSWORD_MISMATCH(1003, "Password and confirm password does not match", HttpStatus.NOT_FOUND),
-    TOKEN_EXPIRED(1004, "Token expired", HttpStatus.UNAUTHORIZED),
-    INVALID_TOKEN(1005, "Invalid Token or Already logout", HttpStatus.UNAUTHORIZED),
-    USER_NOT_FOUND(1006, "User not found", HttpStatus.NOT_FOUND),
+    EMAIL_ALREADY_INUSE(1001, "errors.email-already-in-use", HttpStatus.BAD_REQUEST),
+    USERNAME_TAKEN(1002, "errors.username-taken", HttpStatus.BAD_REQUEST),
+    PASSWORD_MISMATCH(1003, "errors.password-mismatch", HttpStatus.NOT_FOUND),
+    TOKEN_EXPIRED(1004, "errors.token-expired", HttpStatus.UNAUTHORIZED),
+    INVALID_TOKEN(1005, "errors.invalid-token", HttpStatus.UNAUTHORIZED),
+    USER_NOT_FOUND(1006, "errors.user-not-found", HttpStatus.NOT_FOUND),
+
+    // Problem Errors
+    PROBLEM_NOT_FOUND(2000, "errors.problem-not-found", HttpStatus.NOT_FOUND),
+    PROBLEM_ALREADY_EXISTS(2001, "errors.problem-already-exists", HttpStatus.BAD_REQUEST),
+    PROBLEM_NOT_PUBLISHED(2002, "errors.problem-not-published", HttpStatus.BAD_REQUEST),
+    PROBLEM_TESTCASE_FAILED(2003, "errors.problem-testcase-failed", HttpStatus.BAD_REQUEST),
+    EDITORIAL_NOT_FOUND(2004, "errors.editorial-not-found", HttpStatus.NOT_FOUND),
+    EDITORIAL_TESTCASE_MISSING(2005, "errors.editorial-testcase-missing", HttpStatus.BAD_REQUEST),
+
     INTERNAL_SERVER_ERROR(9999, "errors.server-error", HttpStatus.INTERNAL_SERVER_ERROR);
+
     private final int code;
     private final String key;
     private final HttpStatus httpStatus;

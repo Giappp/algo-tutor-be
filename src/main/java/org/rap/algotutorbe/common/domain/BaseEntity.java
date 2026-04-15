@@ -20,7 +20,7 @@ public abstract class BaseEntity {
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
-    protected Instant createdDate;
+    protected Instant createdAt;
 
     @LastModifiedDate
     protected Instant updatedAt;

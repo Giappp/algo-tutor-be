@@ -3,16 +3,16 @@ package org.rap.algotutorbe.problem.application.services;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.rap.algotutorbe.common.api.PageResponse;
+import org.rap.algotutorbe.common.errors.ErrorCode;
+import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.common.services.BaseService;
 import org.rap.algotutorbe.judge.PistonValidationService;
 import org.rap.algotutorbe.judge.dto.ValidationResult;
 import org.rap.algotutorbe.judge.exception.SolutionValidationException;
 import org.rap.algotutorbe.problem.application.dto.CreateProblemDto;
-import org.rap.algotutorbe.problem.application.dto.TagsDto;
-import org.rap.algotutorbe.problem.application.dto.request.AIContextRequest;
-import org.rap.algotutorbe.problem.application.dto.request.ModelSolutionRequest;
-import org.rap.algotutorbe.problem.application.dto.request.RunTestcasesRequest;
-import org.rap.algotutorbe.problem.application.dto.request.TestcaseRequest;
+import org.rap.algotutorbe.problem.application.dto.TagDto;
+import org.rap.algotutorbe.problem.application.dto.request.*;
 import org.rap.algotutorbe.problem.application.dto.response.AIContextResponse;
 import org.rap.algotutorbe.problem.application.dto.response.ProblemDetailAdminResponse;
 import org.rap.algotutorbe.problem.application.dto.response.ProblemSummaryAdminResponse;
@@ -21,17 +21,19 @@ import org.rap.algotutorbe.problem.application.exception.ProblemNotFoundExceptio
 import org.rap.algotutorbe.problem.application.mapper.ProblemMapper;
 import org.rap.algotutorbe.problem.domain.enums.Difficulty;
 import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
-import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
-import org.rap.algotutorbe.problem.domain.models.*;
-import org.rap.algotutorbe.problem.domain.repositories.EditorialRepository;
+import org.rap.algotutorbe.problem.domain.models.AIPromptContext;
+import org.rap.algotutorbe.problem.domain.models.Problem;
+import org.rap.algotutorbe.problem.domain.models.Tag;
+import org.rap.algotutorbe.problem.domain.models.Testcase;
 import org.rap.algotutorbe.problem.domain.repositories.ProblemRepository;
 import org.rap.algotutorbe.problem.domain.repositories.TagRepository;
 import org.rap.algotutorbe.problem.domain.repositories.TestcaseRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -44,7 +46,7 @@ public class AdminProblemService extends BaseService {
     ProblemMapper problemMapper;
     TestcaseRepository testcaseRepository;
     PistonValidationService pistonValidationService;
-    EditorialRepository editorialRepository;
+    TestcasePersistenceService testcasePersistenceService;
 
     public ProblemSummaryAdminResponse createProblem(CreateProblemDto dto) {
         validate(dto);
@@ -52,6 +54,58 @@ public class AdminProblemService extends BaseService {
         Problem saved = problemRepository.save(problem);
         log.info("Created draft problem id={} slug={}", saved.getId(), saved.getSlug());
         return problemMapper.toSummaryAdmin(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ProblemSummaryAdminResponse> listProblems(Pageable pageable) {
+        Page<ProblemSummaryAdminResponse> page = problemRepository.findAllForAdmin(pageable)
+                .map(problemMapper::toSummaryAdmin);
+        return PageResponse.<ProblemSummaryAdminResponse>builder()
+                .data(page.toList())
+                .currentPage(page.getNumber() + 1)
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .pageSize(page.getSize())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ProblemDetailAdminResponse getProblemDetail(Long id) {
+        Problem problem = findProblemOrThrow(id);
+        return problemMapper.toDetailAdmin(problem);
+    }
+
+    @Transactional
+    public ProblemDetailAdminResponse updateProblem(Long id, UpdateProblemRequest request) {
+        Problem problem = findProblemOrThrow(id);
+
+        problem.setTitle(request.title());
+        problem.setStatement(request.statement());
+        problem.setDifficulty(Difficulty.valueOf(request.difficulty()));
+
+        // Replace tags entirely
+        problem.getTags().clear();
+        resolveTags(request.tags(), problem);
+
+        Problem saved = problemRepository.save(problem);
+        log.info("Updated problem id={}", saved.getId());
+        return problemMapper.toDetailAdmin(saved);
+    }
+
+    @Transactional
+    public void archiveProblem(Long id) {
+        Problem problem = findProblemOrThrow(id);
+        problem.setStatus(ProblemStatus.ARCHIVED);
+        problemRepository.save(problem);
+        log.info("Archived problem id={}", id);
+    }
+
+    @Transactional
+    public void unarchiveProblem(Long id) {
+        Problem problem = findProblemOrThrow(id);
+        problem.setStatus(ProblemStatus.DRAFT);
+        problemRepository.save(problem);
+        log.info("Unarchived problem id={}", id);
     }
 
     public void upsertTestcases(Long problemId, RunTestcasesRequest request) {
@@ -69,29 +123,7 @@ public class AdminProblemService extends BaseService {
         }
 
         // 2. Pass thì mới lưu xuống DB
-        saveValidatedTestcasesTransactionally(problem, request);
-    }
-
-    @Transactional
-    protected void saveValidatedTestcasesTransactionally(Problem problem, RunTestcasesRequest request) {
-        // Chỉ xóa testcase cũ, KHÔNG xóa các Editorials (để bảo toàn ngôn ngữ khác)
-        testcaseRepository.deleteAllByProblemId(problem.getId());
-
-        // Map và lưu list testcases mới
-        List<Testcase> testcaseEntities = request.testCases().stream()
-                .map(tc -> new Testcase(problem, tc.input(), tc.expectedOutput(), tc.isSample(), tc.orderIndex(), tc.explanation()))
-                .toList();
-        testcaseRepository.saveAll(testcaseEntities);
-
-        // Upsert lời giải chuẩn (Validator Solution)
-        upsertEditorialSafe(problem, request.language(), request.authorSolution());
-
-        // Bật cờ PUBLISHED nếu đang là DRAFT
-        if (problem.getStatus() == ProblemStatus.DRAFT) {
-            problem.setStatus(ProblemStatus.PUBLISHED);
-        }
-        problemRepository.save(problem);
-        log.info("Upserted testcases and validator solution for problem={}", problem.getId());
+        testcasePersistenceService.saveValidatedTestcasesTransactionally(problem, request);
     }
 
     /**
@@ -102,7 +134,7 @@ public class AdminProblemService extends BaseService {
 
         List<Testcase> existingTestcases = testcaseRepository.findByProblemId(problemId);
         if (existingTestcases.isEmpty()) {
-            throw new IllegalStateException("Không thể thêm lời giải phụ khi bài tập chưa có testcase.");
+            throw new AppException(ErrorCode.EDITORIAL_TESTCASE_MISSING);
         }
 
         // Map Entity sang DTO để ném vào Piston
@@ -128,38 +160,12 @@ public class AdminProblemService extends BaseService {
         }
 
         // 3. Nếu Pass, lưu Editorial an toàn
-        saveEditorialTransactionally(problem, req.language(), req.code());
+        testcasePersistenceService.saveEditorialTransactionally(problem, req.language(), req.code());
         return problemMapper.toDetailAdmin(problem);
     }
 
-    @Transactional
-    protected void saveEditorialTransactionally(Problem problem, ProgrammingLanguage language, String code) {
-        upsertEditorialSafe(problem, language, code);
-        problemRepository.save(problem);
-        log.info("Upserted additional solution ({}) for problem={}", language, problem.getId());
-    }
-
-    /**
-     * Hàm Helper quan trọng: Update code nếu ngôn ngữ đã tồn tại, hoặc thêm mới nếu chưa có.
-     * Ngăn chặn việc sinh ra 2 lời giải Java trùng lặp.
-     */
-    private void upsertEditorialSafe(Problem problem, ProgrammingLanguage language, String code) {
-        Optional<Editorial> existingEditorial = problem.getEditorials().stream()
-                .filter(ed -> ed.getLanguage().equals(language))
-                .findFirst();
-
-        if (existingEditorial.isPresent()) {
-            // Update code nếu đã có
-            existingEditorial.get().setSourceCode(code);
-        } else {
-            // Tạo mới nếu chưa có
-            Editorial newEditorial = new Editorial(problem, language, code);
-            problem.addEditorial(newEditorial);
-        }
-    }
-
     // ====================================================================================
-    // CÁC HÀM TIỆN ÍCH KHÁC (GIỮ NGUYÊN)
+    // CÁC HÀM TIỆN ÍCH
     // ====================================================================================
 
     private void validate(CreateProblemDto dto) {
@@ -182,7 +188,7 @@ public class AdminProblemService extends BaseService {
         return problem;
     }
 
-    private void resolveTags(Set<TagsDto> tags, Problem problem) {
+    private void resolveTags(Set<TagDto> tags, Problem problem) {
         if (tags == null || tags.isEmpty()) return;
         tags.forEach(dto -> {
             var tag = mapToTagEntity(dto);
@@ -190,7 +196,7 @@ public class AdminProblemService extends BaseService {
         });
     }
 
-    private Tag mapToTagEntity(TagsDto dto) {
+    private Tag mapToTagEntity(TagDto dto) {
         return tagRepository.findById(dto.id()).orElseThrow(() -> new IllegalArgumentException("Tag not found"));
     }
 

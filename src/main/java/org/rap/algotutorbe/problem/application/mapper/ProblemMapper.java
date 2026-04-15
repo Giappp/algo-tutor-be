@@ -18,7 +18,7 @@ public class ProblemMapper {
                 p.getDifficulty().name(),
                 p.getStatus().name(),
                 tagNames(p),
-                p.getCreatedDate(),
+                p.getCreatedAt(),
                 p.getUpdatedAt()
         );
     }
@@ -35,7 +35,6 @@ public class ProblemMapper {
     }
 
     public ProblemDetailAdminResponse toDetailAdmin(Problem p) {
-        // Lấy lời giải chuẩn đầu tiên từ editorials (nếu có)
         Editorial firstEditorial = p.getEditorials().isEmpty() ? null : p.getEditorials().get(0);
 
         return new ProblemDetailAdminResponse(
@@ -51,7 +50,7 @@ public class ProblemMapper {
                 p.getTestCases().stream().map(this::toTestcaseAdmin).toList(),
                 p.getAiPromptContext() != null ? toAIContextResponse(p.getAiPromptContext()) : null,
                 p.getAuthorId(),
-                p.getCreatedDate(),
+                p.getCreatedAt(),
                 p.getUpdatedAt()
         );
     }

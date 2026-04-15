@@ -7,11 +7,13 @@ import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.judge.exception.JudgeConnectionException;
 import org.rap.algotutorbe.judge.exception.PistonApiException;
+import org.rap.algotutorbe.judge.exception.SolutionValidationException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,6 +45,13 @@ public class GeneralExceptionHandler {
         Map<String, List<String>> errors = getFieldErrors(ex, locale);
 
         return ResponseEntity.badRequest().body(ErrorResponse.buildError(errors, ErrorCode.INVALID_PAYLOAD.getCode()));
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ErrorResponse<Object>> handleAuthorizationDenied(AuthorizationDeniedException ex) {
+        String message = resolveMessage(ErrorCode.NEED_AUTHENTICATION);
+        return ResponseEntity.status(ErrorCode.NEED_AUTHENTICATION.getHttpStatus())
+                .body(ErrorResponse.buildError(message, ErrorCode.ACCESS_DENIED.getCode()));
     }
 
     private Map<String, List<String>> getFieldErrors(MethodArgumentNotValidException ex, Locale locale) {
@@ -89,7 +98,13 @@ public class GeneralExceptionHandler {
         log.warn("Handled JudgeConnectionException: {}", ex.getMessage());
         return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "JUDGE_SERVER_UNAVAILABLE", ex.getMessage(), null);
     }
-    
+
+    @ExceptionHandler(SolutionValidationException.class)
+    public ResponseEntity<Object> handleSolutionValidationException(SolutionValidationException ex) {
+        log.warn("Handled SolutionValidationException: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "TESTCASE_VALIDATION_FAILED", ex.getMessage(), ex.getDetails());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGlobalException(Exception ex) {
         log.error("Handled Uncaught Exception: ", ex);

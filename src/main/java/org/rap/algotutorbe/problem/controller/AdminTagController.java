@@ -4,8 +4,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.api.ApiResponse;
-import org.rap.algotutorbe.problem.application.dto.TagsDto;
-import org.rap.algotutorbe.problem.application.dto.request.CreateTagRequest;
+import org.rap.algotutorbe.problem.application.dto.TagDto;
+import org.rap.algotutorbe.problem.application.dto.request.UpdateOrCreateTagRequest;
 import org.rap.algotutorbe.problem.application.services.TagService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,18 +20,26 @@ public class AdminTagController {
     private final TagService tagService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<TagsDto>>> getTags() {
-        var tags = tagService.getTags();
+    public ResponseEntity<ApiResponse<List<TagDto>>> getTags(@RequestParam(required = false) String keyword) {
+        var tags = tagService.getTags(keyword);
         return ResponseEntity.ok(ApiResponse.buildSuccess(tags));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Object>> create(@RequestBody @Valid CreateTagRequest request) {
+    public ResponseEntity<ApiResponse<Object>> create(@RequestBody @Valid UpdateOrCreateTagRequest request) {
         var saved = tagService.create(request);
         return ResponseEntity.ok().body(ApiResponse
                 .builder()
                 .success(true)
                 .data(saved)
                 .build());
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<TagDto>> update(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateOrCreateTagRequest request) {
+        var updated = tagService.update(id, request);
+        return ResponseEntity.ok().body(ApiResponse.buildSuccess(updated));
     }
 }

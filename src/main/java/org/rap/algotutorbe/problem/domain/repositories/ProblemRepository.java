@@ -23,7 +23,6 @@ public interface ProblemRepository extends JpaRepository<@NonNull Problem, @NonN
     @Query("""
             SELECT p FROM Problem p
             LEFT JOIN FETCH p.tags
-            WHERE p.status <> 'DELETED'
             """)
     Page<Problem> findAllForAdmin(Pageable pageable);
 
