@@ -9,12 +9,21 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
     private T data;
+    private Object meta;
     private String message;
     private boolean success;
 
     public static <T> ApiResponse<T> buildSuccess(T data) {
         return ApiResponse.<T>builder()
                 .data(data)
+                .success(true)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> buildSuccess(T data, Object meta) {
+        return ApiResponse.<T>builder()
+                .data(data)
+                .meta(meta)
                 .success(true)
                 .build();
     }

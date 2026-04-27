@@ -5,29 +5,25 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.api.PageResponse;
-import org.rap.algotutorbe.problem.application.dto.CreateProblemDto;
-import org.rap.algotutorbe.problem.application.dto.request.AIContextRequest;
-import org.rap.algotutorbe.problem.application.dto.request.ModelSolutionRequest;
-import org.rap.algotutorbe.problem.application.dto.request.RunTestcasesRequest;
-import org.rap.algotutorbe.problem.application.dto.request.UpdateProblemRequest;
-import org.rap.algotutorbe.problem.application.dto.response.AIContextResponse;
-import org.rap.algotutorbe.problem.application.dto.response.ProblemDetailAdminResponse;
-import org.rap.algotutorbe.problem.application.dto.response.ProblemSummaryAdminResponse;
-import org.rap.algotutorbe.problem.application.services.AdminProblemService;
+import org.rap.algotutorbe.problem.dto.request.*;
+import org.rap.algotutorbe.problem.dto.response.EditorialResponse;
+import org.rap.algotutorbe.problem.dto.response.ProblemDetailAdminResponse;
+import org.rap.algotutorbe.problem.dto.response.ProblemSummaryAdminResponse;
+import org.rap.algotutorbe.problem.dto.response.testcase.TestcasesResponse;
+import org.rap.algotutorbe.problem.services.AdminProblemService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/v1/admin/problems")
+@RequestMapping("/admin/problems")
 @Slf4j
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminProblemController {
     private final AdminProblemService adminService;
-
 
     @GetMapping
     public ResponseEntity<PageResponse<ProblemSummaryAdminResponse>> listProblems(
@@ -43,20 +39,32 @@ public class AdminProblemController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ProblemSummaryAdminResponse>> createProblem(@RequestBody @Valid CreateProblemDto dto) {
-        log.info("Creating problem {}", dto);
-        var result = adminService.createProblem(dto);
+    public ResponseEntity<ApiResponse<ProblemSummaryAdminResponse>> createProblem(
+            @RequestBody @Valid CreateProblemAdminRequest request
+    ) {
+        log.info("Creating problem {}", request);
+        var result = adminService.createProblem(request);
         return ResponseEntity.ok(ApiResponse.buildSuccess(result));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ProblemDetailAdminResponse>> updateProblem(
             @PathVariable Long id,
-            @RequestBody @Valid UpdateProblemRequest request
+            @RequestBody @Valid UpdateProblemAdminRequest request
     ) {
         var result = adminService.updateProblem(id, request);
         return ResponseEntity.ok(ApiResponse.buildSuccess(result));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteProblem(@PathVariable Long id) {
+        adminService.archiveProblem(id);
+        return ResponseEntity.ok(ApiResponse.buildSuccess("Problem archived successfully"));
+    }
+
+    // ====================================================================================
+    // STATUS MANAGEMENT
+    // ====================================================================================
 
     @PutMapping("/{id}/archive")
     public ResponseEntity<ApiResponse<String>> archiveProblem(@PathVariable Long id) {
@@ -70,15 +78,60 @@ public class AdminProblemController {
         return ResponseEntity.ok(ApiResponse.buildSuccess("Problem unarchived (status set to DRAFT)"));
     }
 
+    // ====================================================================================
+    // TESTCASES
+    // ====================================================================================
 
     @PostMapping("/{id}/testcases")
-    public ResponseEntity<ApiResponse<String>> upsertTestcases(
+    public ResponseEntity<ApiResponse<TestcasesResponse>> insertTestcases(
             @PathVariable Long id,
-            @Valid @RequestBody RunTestcasesRequest req
+            @Valid @RequestBody TestcasesRequest request
     ) {
-        adminService.upsertTestcases(id, req);
-        return ResponseEntity.ok(ApiResponse.buildSuccess("All test cases passed"));
+        var result = adminService.insertTestcases(id, request);
+        return ResponseEntity.ok(ApiResponse.buildSuccess(result));
     }
+
+    // ====================================================================================
+    // EDITORIALS
+    // ====================================================================================
+
+    @GetMapping("/{id}/editorials")
+    public ResponseEntity<ApiResponse<List<EditorialResponse>>> getEditorials(@PathVariable Long id) {
+        var result = adminService.getEditorials(id);
+        return ResponseEntity.ok(ApiResponse.buildSuccess(result));
+    }
+
+    @PostMapping("/{id}/editorials")
+    public ResponseEntity<ApiResponse<EditorialResponse>> createEditorial(
+            @PathVariable Long id,
+            @RequestBody @Valid CreateEditorialRequest request
+    ) {
+        var result = adminService.createEditorial(id, request);
+        return ResponseEntity.ok(ApiResponse.buildSuccess(result));
+    }
+
+    @PutMapping("/{id}/editorials/{editorialId}")
+    public ResponseEntity<ApiResponse<EditorialResponse>> updateEditorial(
+            @PathVariable Long id,
+            @PathVariable Long editorialId,
+            @RequestBody @Valid UpdateEditorialRequest request
+    ) {
+        var result = adminService.updateEditorial(id, editorialId, request);
+        return ResponseEntity.ok(ApiResponse.buildSuccess(result));
+    }
+
+    @DeleteMapping("/{id}/editorials/{editorialId}")
+    public ResponseEntity<ApiResponse<String>> deleteEditorial(
+            @PathVariable Long id,
+            @PathVariable Long editorialId
+    ) {
+        adminService.deleteEditorial(id, editorialId);
+        return ResponseEntity.ok(ApiResponse.buildSuccess("Editorial deleted"));
+    }
+
+    // ====================================================================================
+    // MODEL SOLUTION (with validation)
+    // ====================================================================================
 
     @PostMapping("/{id}/model-solution")
     public ResponseEntity<ApiResponse<ProblemDetailAdminResponse>> updateSolution(
@@ -86,28 +139,6 @@ public class AdminProblemController {
             @Valid @RequestBody ModelSolutionRequest request
     ) {
         var result = adminService.updateModelSolution(id, request);
-        return ResponseEntity.ok(ApiResponse.buildSuccess(result));
-    }
-
-    @PutMapping("/{id}/publish")
-    public ResponseEntity<ApiResponse<ProblemDetailAdminResponse>> publishProblem(@PathVariable Long id) {
-        var result = adminService.publishProblem(id);
-        return ResponseEntity.ok(ApiResponse.buildSuccess(result));
-    }
-
-
-    @GetMapping("/{id}/ai-context")
-    public ResponseEntity<ApiResponse<AIContextResponse>> getProblemAIContext(@PathVariable Long id) {
-        var result = adminService.getAIContext(id);
-        return ResponseEntity.ok(ApiResponse.buildSuccess(result));
-    }
-
-    @PutMapping("/{id}/ai-context")
-    public ResponseEntity<ApiResponse<AIContextResponse>> updateAIContext(
-            @PathVariable Long id,
-            @RequestBody @Valid AIContextRequest request
-    ) {
-        var result = adminService.updateAIContext(id, request);
         return ResponseEntity.ok(ApiResponse.buildSuccess(result));
     }
 }

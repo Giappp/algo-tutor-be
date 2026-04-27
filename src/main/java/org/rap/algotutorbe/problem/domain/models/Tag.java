@@ -22,6 +22,9 @@ import java.util.Set;
 public class Tag extends BaseEntity {
     @Column(unique = true)
     private String name;
+
+    @Column(unique = true, nullable = false)
+    private String slug;
     @ManyToMany(mappedBy = "tags")
     private Set<Problem> problems = new HashSet<>();
 }

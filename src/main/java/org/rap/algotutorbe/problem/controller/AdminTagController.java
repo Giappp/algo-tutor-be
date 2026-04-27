@@ -4,16 +4,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.api.ApiResponse;
-import org.rap.algotutorbe.problem.application.dto.TagDto;
-import org.rap.algotutorbe.problem.application.dto.request.UpdateOrCreateTagRequest;
-import org.rap.algotutorbe.problem.application.services.TagService;
+import org.rap.algotutorbe.problem.dto.TagDto;
+import org.rap.algotutorbe.problem.dto.request.UpdateOrCreateTagRequest;
+import org.rap.algotutorbe.problem.services.TagService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/admin/tags")
+@RequestMapping("/admin/tags")
 @Slf4j
 @RequiredArgsConstructor
 public class AdminTagController {

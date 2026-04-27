@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -30,10 +31,14 @@ public class BaseService {
 
     }
 
-    protected Long getCurrentUserIdOrThrow() {
+    protected UUID getCurrentUserIdOrThrow() {
         return getCurrentUser()
                 .map(SecurityUser::getId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCESS_DENIED));
+    }
+
+    protected Optional<UUID> getCurrentUserId() {
+        return getCurrentUser().map(SecurityUser::getId);
     }
 
     protected String getCurrentUserNameOrThrow() {

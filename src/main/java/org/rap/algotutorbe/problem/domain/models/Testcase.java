@@ -8,25 +8,32 @@ import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
 
 @Entity
-@Table(name = "testCases")
+@Table(name = "test_cases")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Testcase extends BaseEntity {
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "problem_id", nullable = false)
     private Problem problem;
 
-    @Column(columnDefinition = "TEXT")
-    private String input;
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String stdin;
 
-    @Column(columnDefinition = "TEXT")
-    private String expectedOutput;
+    @Column(name = "expected_stdout", columnDefinition = "TEXT", nullable = false)
+    private String expectedStdout;
 
-    private boolean isSample;
+    @Column(name = "is_hidden")
+    private boolean hidden;
 
+    @Column(name = "sort_order")
     private int orderIndex;
 
     private String explanation;
+
+    @Transient
+    public boolean isSample() {
+        return !hidden;
+    }
 }

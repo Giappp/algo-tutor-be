@@ -4,12 +4,11 @@ import lombok.Getter;
 
 @Getter
 public enum ProgrammingLanguage {
-    CPP("c++", "main.cpp", 1.0, 0),
     JAVA("java", "Main.java", 2.0, 256),
     PYTHON("python", "main.py", 3.0, 64);
 
     private final String pistonAlias;
-    private final String fileName;      // <-- thêm field
+    private final String fileName;
     private final double timeMultiplier;
     private final int extraMemoryMb;
 
@@ -28,5 +27,18 @@ public enum ProgrammingLanguage {
 
     public int calculateMemoryLimit(int baseMemoryLimitMb) {
         return baseMemoryLimitMb + extraMemoryMb;
+    }
+
+    public String toApiValue() {
+        return pistonAlias;
+    }
+
+    public static ProgrammingLanguage fromApiValue(String value) {
+        if (value == null) return null;
+        String normalized = value.trim().toLowerCase();
+        for (ProgrammingLanguage lang : values()) {
+            if (lang.pistonAlias.equals(normalized)) return lang;
+        }
+        throw new IllegalArgumentException("Unsupported programming language: " + value);
     }
 }

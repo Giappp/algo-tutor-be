@@ -1,64 +1,103 @@
 package org.rap.algotutorbe.problem.domain.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.rap.algotutorbe.common.domain.BaseEntity;
+import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.problem.domain.enums.Difficulty;
-import org.rap.algotutorbe.problem.domain.enums.ProblemStatus;
+import org.rap.algotutorbe.problem.domain.enums.DifficultyConverter;
+import org.rap.algotutorbe.submission.entities.Submission;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Table(name = "problems")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Problem extends BaseEntity {
-    @Column(nullable = false, unique = true)
-    private String slug;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "lesson_id", nullable = false)
+    private Lesson lesson;
 
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT", nullable = false)
     private String statement;
 
-    private Long authorId;
-
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = DifficultyConverter.class)
     private Difficulty difficulty;
 
-    @Enumerated(EnumType.STRING)
-    private ProblemStatus status;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb", nullable = false)
+    private List<ProblemExample> examples = new ArrayList<>();
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb", nullable = false)
+    private List<String> constraints = new ArrayList<>();
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "starter_code", columnDefinition = "jsonb", nullable = false)
+    private Map<String, String> starterCode = new HashMap<>();
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb", nullable = false)
+    private List<String> hints = new ArrayList<>();
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "key_insights", columnDefinition = "jsonb", nullable = false)
+    private List<String> keyInsights = new ArrayList<>();
 
     @Column(name = "base_time_limit_ms", nullable = false)
-    private Integer baseTimeLimitMs = 1000; // Mặc định 1 giây
+    private Integer baseTimeLimitMs = 1000;
 
     @Column(name = "base_memory_limit_mb", nullable = false)
-    private Integer baseMemoryLimitMb = 256; // Mặc định 256 MB
+    private Integer baseMemoryLimitMb = 256;
 
+    @Setter(lombok.AccessLevel.NONE)
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Testcase> testCases = new ArrayList<>();
 
-    @OneToOne(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private AIPromptContext aiPromptContext;
-
+    @Setter(lombok.AccessLevel.NONE)
     @ManyToMany
-    @JoinTable(name = "problem_tags")
+    @JoinTable(
+            name = "problem_tags",
+            joinColumns = @JoinColumn(name = "problem_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
     private Set<Tag> tags = new HashSet<>();
+
+    @Setter(lombok.AccessLevel.NONE)
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Editorial> editorials = new ArrayList<>();
 
+    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Submission> submissions = new ArrayList<>();
 
     public void addTag(Tag tag) {
         this.tags.add(tag);
+        tag.getProblems().add(this); // Nếu Tag cũng có mappedBy = "tags"
+    }
+
+    public void removeTag(Tag tag) {
+        this.tags.remove(tag);
+        tag.getProblems().remove(this);
+    }
+
+    public void addTestCase(Testcase testCase) {
+        testCases.add(testCase);
+        testCase.setProblem(this);
+    }
+
+    public void removeTestCase(Testcase testCase) {
+        testCases.remove(testCase);
+        testCase.setProblem(null);
     }
 
     public void addEditorial(Editorial editorial) {

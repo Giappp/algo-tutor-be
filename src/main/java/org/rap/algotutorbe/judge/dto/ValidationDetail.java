@@ -1,10 +1,12 @@
 package org.rap.algotutorbe.judge.dto;
 
+import org.rap.algotutorbe.submission.entities.Verdict;
+
 public record ValidationDetail(
         int testcaseIndex,
-        String status,
-        String input,
-        String expectedOutput,
+        Verdict verdict,
+        String stdin,
+        String expectedStdout,
         String actualOutput,
         String errorMessage
 ) {

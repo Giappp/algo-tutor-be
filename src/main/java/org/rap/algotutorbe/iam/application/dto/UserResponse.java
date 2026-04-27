@@ -1,4 +1,6 @@
 package org.rap.algotutorbe.iam.application.dto;
 
-public record UserResponse(Long id, String userName, String email, Integer totalSolved) {
+import java.util.UUID;
+
+public record UserResponse(UUID id, String userName, String email, Integer totalSolved) {
 }
