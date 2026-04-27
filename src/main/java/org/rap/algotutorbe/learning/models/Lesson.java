@@ -5,11 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
-import org.rap.algotutorbe.problem.domain.models.Problem;
-import org.rap.algotutorbe.quiz.domain.models.Quiz;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "lessons")
@@ -17,10 +12,6 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class Lesson extends BaseEntity {
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "topic_id", nullable = false)
-    private Topic topic;
-
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -36,10 +27,7 @@ public class Lesson extends BaseEntity {
     @Column(name = "is_published", nullable = false)
     private Boolean isPublished = false;
 
-    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Problem> problems;
-
-    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Quiz> quizzes = new ArrayList<>();
-
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "topic_id", nullable = false)
+    private Topic topic;
 }

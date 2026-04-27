@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseUuidEntity;
 import org.rap.algotutorbe.learning.models.Enrollment;
-import org.rap.algotutorbe.quiz.domain.models.QuizAttempt;
+import org.rap.algotutorbe.learning.models.QuizAttempt;
 import org.rap.algotutorbe.submission.entities.Submission;
 
 import java.util.ArrayList;

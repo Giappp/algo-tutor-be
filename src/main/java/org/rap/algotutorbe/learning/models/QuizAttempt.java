@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.quiz.domain.models;
+package org.rap.algotutorbe.learning.models;
 
 import jakarta.persistence.*;
 import lombok.Getter;

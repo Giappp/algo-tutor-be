@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
+import org.rap.algotutorbe.learning.models.CodingLesson;
 
 @Entity
 @Table(name = "test_cases")
@@ -15,8 +16,8 @@ import org.rap.algotutorbe.common.domain.BaseEntity;
 @AllArgsConstructor
 public class Testcase extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "problem_id", nullable = false)
-    private Problem problem;
+    @JoinColumn(name = "lesson_id", nullable = false)
+    private CodingLesson codingLesson;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String stdin;
@@ -25,15 +26,10 @@ public class Testcase extends BaseEntity {
     private String expectedStdout;
 
     @Column(name = "is_hidden")
-    private boolean hidden;
+    private boolean isHidden;
 
     @Column(name = "sort_order")
     private int orderIndex;
 
     private String explanation;
-
-    @Transient
-    public boolean isSample() {
-        return !hidden;
-    }
 }

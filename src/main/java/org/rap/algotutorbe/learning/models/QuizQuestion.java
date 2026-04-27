@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.quiz.domain.models;
+package org.rap.algotutorbe.learning.models;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -16,8 +16,8 @@ import java.util.List;
 @NoArgsConstructor
 public class QuizQuestion extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "quiz_id", nullable = false)
-    private Quiz quiz;
+    @JoinColumn(name = "lesson_id", nullable = false)
+    private QuizLesson quiz;
 
     @Column(nullable = false)
     private String question;

@@ -1,8 +1,6 @@
-package org.rap.algotutorbe.quiz.domain.models;
+package org.rap.algotutorbe.learning.models;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,5 +23,9 @@ public class QuizChoice {
      */
     @Column(name = "explanation", columnDefinition = "TEXT")
     private String explanation;
+
+    @ManyToOne
+    @JoinColumn(name = "question_id")
+    private QuizQuestion question;
 }
 

@@ -15,11 +15,6 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class Topic extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "learning_path_id", nullable = false)
-    private LearningPath learningPath;
-
     @Column(nullable = false, length = 100)
     private String name;
 
@@ -37,6 +32,10 @@ public class Topic extends BaseEntity {
      */
     @Column(name = "is_locked", nullable = false)
     private Boolean isLocked = true;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "learning_path_id", nullable = false)
+    private LearningPath learningPath;
 
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")

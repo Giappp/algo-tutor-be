@@ -7,14 +7,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.rap.algotutorbe.common.api.ApiResponse;
-import org.rap.algotutorbe.learning.models.LearningPath;
-import org.rap.algotutorbe.learning.models.Lesson;
+import org.rap.algotutorbe.learning.models.*;
 import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
-import org.rap.algotutorbe.quiz.domain.models.QuestionType;
-import org.rap.algotutorbe.quiz.domain.models.Quiz;
-import org.rap.algotutorbe.quiz.domain.models.QuizChoice;
-import org.rap.algotutorbe.quiz.domain.models.QuizQuestion;
 import org.rap.algotutorbe.quiz.domain.repositories.QuizAttemptRepository;
 import org.rap.algotutorbe.quiz.domain.repositories.QuizRepository;
 import org.rap.algotutorbe.quiz.dto.QuizResponse;
@@ -23,7 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
