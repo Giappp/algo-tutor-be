@@ -36,4 +36,9 @@ public class LearningPath extends BaseEntity {
     @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Enrollment> enrollments = new ArrayList<>();
 
+    public void addTopic(Topic topic) {
+        topic.setLearningPath(this);
+        topic.setOrderIndex(topics.size() + 1);
+        topics.add(topic);
+    }
 }

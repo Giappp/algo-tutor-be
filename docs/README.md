@@ -7,7 +7,8 @@ learning roadmaps. It guides learners systematically from foundational concepts 
 
 ## Specialized Roadmaps & Knowledge Isolation
 
-- Lessons are clearly divided into core topics (Arrays, Strings, Linked Lists, Trees, Graphs, Dynamic Programming,
+- Lessons are clearly divided into core topics based on Data Structure and Algorithm (Arrays, Strings, Linked Lists,
+  Trees, Graphs, Dynamic Programming,
   etc.).
 
 - Coding exercises are strictly isolated to the current topic, preventing confusion from advanced concepts the user
