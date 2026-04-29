@@ -6,8 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseUuidEntity;
 import org.rap.algotutorbe.iam.domain.model.User;
-import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
-import org.rap.algotutorbe.problem.domain.models.Problem;
+import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
+import org.rap.algotutorbe.learning.models.CodingLesson;
 
 import java.util.List;
 
@@ -25,8 +25,8 @@ public class Submission extends BaseUuidEntity {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "problem_id", nullable = false)
-    private Problem problem;
+    @JoinColumn(name = "coding_lesson_id", nullable = false)
+    private CodingLesson codingLesson;
 
     @Column(name = "code", columnDefinition = "TEXT", nullable = false)
     private String sourceCode;
@@ -45,7 +45,7 @@ public class Submission extends BaseUuidEntity {
 
     @Column(name = "memory_used_kb")
     private Integer maxMemory;
-    
+
     @Column(columnDefinition = "TEXT")
     private String compileOutput;
 

@@ -9,10 +9,21 @@ import org.rap.algotutorbe.learning.models.LearningPath;
 
 @Mapper(config = GlobalMapperConfig.class)
 public interface LearningPathMapper {
-    @Mapping(target = "slug", expression = "java(slugGenerator.generateFrom(request.name()))")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "topics", ignore = true)
+    @Mapping(target = "enrollments", ignore = true)
+    @Mapping(target = "slug", ignore = true)
     LearningPath toEntity(LearningPathRequestDTO request);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "slug", expression = "java(slugGenerator.generateFrom(request.name()))")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "topics", ignore = true)
+    @Mapping(target = "enrollments", ignore = true)
+    @Mapping(target = "slug", ignore = true)
     void updateEntity(@MappingTarget LearningPath entity, LearningPathRequestDTO request);
 }

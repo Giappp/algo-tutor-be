@@ -40,4 +40,10 @@ public class Topic extends BaseEntity {
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<Lesson> lessons = new ArrayList<>();
+
+    public void addLesson(Lesson lesson) {
+        lesson.setTopic(this);
+        lesson.setOrderIndex(lessons.size() + 1);
+        lessons.add(lesson);
+    }
 }

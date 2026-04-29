@@ -8,8 +8,9 @@ import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.common.services.BaseService;
 import org.rap.algotutorbe.iam.domain.model.User;
 import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
-import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
-import org.rap.algotutorbe.problem.repositories.ProblemRepository;
+import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
+import org.rap.algotutorbe.learning.models.CodingLesson;
+import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.rap.algotutorbe.submission.dto.*;
 import org.rap.algotutorbe.submission.entities.Submission;
 import org.rap.algotutorbe.submission.entities.SubmissionTestcase;
@@ -32,7 +33,7 @@ public class SubmissionService extends BaseService {
     private final SubmissionMapper submissionMapper;
     private final SubmissionTestcaseMapper submissionTestcaseMapper;
     private final SubmissionEventPublisher eventPublisher;
-    private final ProblemRepository problemRepository;
+    private final LessonRepository lessonRepository;
     private final UserRepository userRepository;
     private final SubmissionTestcaseRepository submissionTestcaseRepository;
 
@@ -48,24 +49,29 @@ public class SubmissionService extends BaseService {
         User user = userRepository.findById(getCurrentUserIdOrThrow())
                 .orElseThrow(() -> new AppException(ErrorCode.ACCESS_DENIED));
 
+        CodingLesson codingLesson = lessonRepository.findBySlug(request.problemSlug())
+                .filter(CodingLesson.class::isInstance)
+                .map(l -> (CodingLesson) l)
+                .orElseThrow(() -> new AppException(ErrorCode.PROBLEM_NOT_FOUND));
+
         Submission submission = new Submission();
         submission.setLanguage(language);
         submission.setSourceCode(request.code());
         submission.setUser(user);
+        submission.setCodingLesson(codingLesson);
         submission.setVerdict(Verdict.PENDING);
 
-        submissionRepository.save(submission);
-        log.info("Submission [{}] da luu DB, trang thai PENDING", submission.getId());
-
+        Submission saved = submissionRepository.save(submission);
+        log.info("Submission [{}] da luu DB, trang thai PENDING", saved.getId());
 
         eventPublisher.publishSubmissionCreated(new SubmissionCreatedMessage(
-                submission.getId(),
-                submission.getProblem().getId(),
-                submission.getSourceCode(),
-                submission.getLanguage()
+                saved.getId(),
+                codingLesson.getId(),
+                saved.getSourceCode(),
+                saved.getLanguage()
         ));
 
-        return submissionMapper.toResponse(submission);
+        return submissionMapper.toResponse(saved);
     }
 
     public Submission getOrThrowSubmission(UUID submissionId) {
@@ -104,7 +110,7 @@ public class SubmissionService extends BaseService {
 
     @Transactional(readOnly = true)
     public SubmissionDetailResponse getSubmissionDetail(UUID id) {
-        Submission submission = submissionRepository.findByIdWithProblem(id)
+        Submission submission = submissionRepository.findByIdWithLesson(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SUBMISSION_NOT_FOUND));
 
         List<SubmissionTestcase> testcases = submissionTestcaseRepository.findBySubmissionId(id);
@@ -115,7 +121,7 @@ public class SubmissionService extends BaseService {
 
     @Transactional(readOnly = true)
     public PageResponse<SubmissionResponse> listMySubmissions(
-            String problemSlug,
+            String lessonSlug,
             String status,
             String language,
             Integer page,
@@ -129,7 +135,7 @@ public class SubmissionService extends BaseService {
         ProgrammingLanguage lang = language != null && !language.isBlank() ? ProgrammingLanguage.fromApiValue(language.trim()) : null;
 
         var pageable = org.springframework.data.domain.PageRequest.of(pageNum - 1, size);
-        var submissionsPage = submissionRepository.findMySubmissions(userId, problemSlug, verdict, lang, pageable);
+        var submissionsPage = submissionRepository.findMySubmissions(userId, lessonSlug, verdict, lang, pageable);
 
         List<SubmissionResponse> data = submissionsPage.getContent().stream()
                 .map(submissionMapper::toResponse)

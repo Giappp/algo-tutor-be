@@ -4,10 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.judge.dto.JudgeResult;
 import org.rap.algotutorbe.judge.dto.TestcaseJudgeResult;
-import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
-import org.rap.algotutorbe.problem.domain.models.Problem;
-import org.rap.algotutorbe.problem.domain.models.Testcase;
-import org.rap.algotutorbe.problem.repositories.ProblemRepository;
+import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
+import org.rap.algotutorbe.learning.models.CodingLesson;
+import org.rap.algotutorbe.learning.models.Testcase;
+import org.rap.algotutorbe.learning.repositories.CodingLessonRepository;
 import org.rap.algotutorbe.submission.dto.SubmissionCreatedMessage;
 import org.rap.algotutorbe.submission.entities.Verdict;
 import org.rap.algotutorbe.submission.service.SubmissionService;
@@ -26,25 +26,25 @@ public class JudgeService {
 
     private final SubmissionService submissionService;
     private final SubmissionTestcaseService submissionTestcaseService;
-    private final ProblemRepository problemRepository;
+    private final CodingLessonRepository codingLessonRepository;
     private final PistonClient pistonClient;
 
     public JudgeResult processSubmission(SubmissionCreatedMessage message) {
         UUID submissionId = message.submissionId();
-        log.info("Processing submission: submissionId={}, problemId={}, language={}",
-                submissionId, message.problemId(), message.programmingLanguage());
+        log.info("Processing submission: submissionId={}, codingLessonId={}, language={}",
+                submissionId, message.codingLessonId(), message.programmingLanguage());
 
         submissionService.markAsProcessing(submissionId);
 
-        Problem problem = loadProblemWithTestcases(message.problemId());
-        List<TestcaseJudgeResult> results = judgeAllTestcases(problem, message);
-        Verdict finalVerdict = computeFinalVerdict(results, problem.getTestCases().size());
+        CodingLesson lesson = loadLessonWithTestcases(message.codingLessonId());
+        List<TestcaseJudgeResult> results = judgeAllTestcases(lesson, message);
+        Verdict finalVerdict = computeFinalVerdict(results, lesson.getTestCases().size());
         int passedCount = countPassed(results);
 
         JudgeResult judgeResult = new JudgeResult(
                 finalVerdict,
                 passedCount,
-                problem.getTestCases().size(),
+                lesson.getTestCases().size(),
                 maxCpuTime(results),
                 maxMemory(results),
                 extractCompilationOutput(results),
@@ -54,27 +54,27 @@ public class JudgeService {
         persistResults(judgeResult, submissionId, finalVerdict, passedCount, results);
 
         log.info("Submission [{}] judged: verdict={}, passed={}/{}",
-                submissionId, finalVerdict, passedCount, problem.getTestCases().size());
+                submissionId, finalVerdict, passedCount, lesson.getTestCases().size());
 
         return judgeResult;
     }
 
     // ── Private helpers ────────────────────────────────────────────
 
-    private Problem loadProblemWithTestcases(Long problemId) {
-        return problemRepository.findByIdWithTestCases(problemId)
-                .orElseThrow(() -> new IllegalStateException("Problem not found: " + problemId));
+    private CodingLesson loadLessonWithTestcases(Long lessonId) {
+        return codingLessonRepository.findByIdWithTestCases(lessonId)
+                .orElseThrow(() -> new IllegalStateException("CodingLesson not found: " + lessonId));
     }
 
-    private List<TestcaseJudgeResult> judgeAllTestcases(Problem problem, SubmissionCreatedMessage message) {
-        List<Testcase> testcases = problem.getTestCases();
+    private List<TestcaseJudgeResult> judgeAllTestcases(CodingLesson lesson, SubmissionCreatedMessage message) {
+        List<Testcase> testcases = lesson.getTestCases();
         if (testcases == null || testcases.isEmpty()) {
-            throw new IllegalStateException("No testcases found for problem: " + problem.getId());
+            throw new IllegalStateException("No testcases found for coding lesson: " + lesson.getId());
         }
 
         ProgrammingLanguage language = message.programmingLanguage();
-        int baseTimeLimitMs = problem.getBaseTimeLimitMs();
-        int baseMemoryLimitMb = problem.getBaseMemoryLimitMb();
+        int baseTimeLimitMs = lesson.getBaseTimeLimitMs();
+        int baseMemoryLimitMb = lesson.getBaseMemoryLimitMb();
         String sourceCode = message.sourceCode();
 
         List<TestcaseJudgeResult> results = new ArrayList<>();
@@ -145,7 +145,7 @@ public class JudgeService {
     }
 
     private void persistResults(JudgeResult judgeResult, UUID submissionId, Verdict verdict,
-                               int passedCount, List<TestcaseJudgeResult> results) {
+                                int passedCount, List<TestcaseJudgeResult> results) {
         submissionTestcaseService.saveAll(judgeResult,
                 submissionService.getOrThrowSubmission(submissionId));
 

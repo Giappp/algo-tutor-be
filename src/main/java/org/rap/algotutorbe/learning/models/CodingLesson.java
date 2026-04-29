@@ -8,9 +8,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.rap.algotutorbe.problem.domain.models.Editorial;
-import org.rap.algotutorbe.problem.domain.models.ProblemExample;
-import org.rap.algotutorbe.problem.domain.models.Testcase;
 import org.rap.algotutorbe.submission.entities.Submission;
 
 import java.util.ArrayList;
@@ -45,11 +42,25 @@ public class CodingLesson extends Lesson {
     private List<ProblemExample> examples = new ArrayList<>();
 
     @OneToMany(mappedBy = "codingLesson", cascade = CascadeType.ALL)
-    private List<Testcase> testCases;
+    private List<Testcase> testCases = new ArrayList<>();
 
-    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "codingLesson", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Editorial> editorials = new ArrayList<>();
 
-    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "codingLesson", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Submission> submissions = new ArrayList<>();
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "key_insights", columnDefinition = "jsonb", nullable = false)
+    private List<String> keyInsights = new ArrayList<>();
+
+    public void addTestCase(Testcase testCase) {
+        testCases.add(testCase);
+        testCase.setCodingLesson(this);
+    }
+
+    public void removeTestCase(Testcase testCase) {
+        testCases.remove(testCase);
+        testCase.setCodingLesson(null);
+    }
 }

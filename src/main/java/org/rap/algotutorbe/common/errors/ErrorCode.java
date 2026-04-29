@@ -38,6 +38,10 @@ public enum ErrorCode {
 
     LEARNING_PATH_NOT_FOUND(4000, "errors.learning-path-not-found", HttpStatus.NOT_FOUND),
     LEARNING_PATH_SLUG_ALREADY_EXISTS(4001, "errors.learning-path-slug-already-exists", HttpStatus.CONFLICT),
+    TOPIC_NOT_FOUND(4002, "errors.topic.not-found", HttpStatus.NOT_FOUND),
+    INVALID_LESSON_TYPE(4003, "errors.lesson-type.invalid", HttpStatus.BAD_REQUEST),
+    LESSON_NOT_FOUND(4004, "errors.lesson-not-found", HttpStatus.NOT_FOUND),
+    LESSON_SLUG_ALREADY_EXISTS(4005, "errors.lesson-slug-already-exists", HttpStatus.CONFLICT),
 
     INTERNAL_SERVER_ERROR(9999, "errors.server-error", HttpStatus.INTERNAL_SERVER_ERROR);
 

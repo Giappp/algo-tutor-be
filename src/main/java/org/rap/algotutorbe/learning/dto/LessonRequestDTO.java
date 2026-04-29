@@ -3,6 +3,8 @@ package org.rap.algotutorbe.learning.dto;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.Data;
+import org.rap.algotutorbe.learning.enums.Difficulty;
+import org.rap.algotutorbe.learning.enums.LessonType;
 
 @Data
 @JsonTypeInfo(
@@ -20,5 +22,6 @@ public abstract class LessonRequestDTO {
     private String title;
     private String content;
     private int orderIndex;
-    private String type;
+    private LessonType type;
+    private Difficulty difficulty;
 }

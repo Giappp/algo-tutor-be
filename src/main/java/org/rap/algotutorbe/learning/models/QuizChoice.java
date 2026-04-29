@@ -4,13 +4,15 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.rap.algotutorbe.common.domain.BaseEntity;
 
-@Embeddable
-@Table(name = "quiz_answers")
+@Entity
+@Table(name = "quiz_choices") // Đổi tên bảng cho hợp lý
 @Getter
 @Setter
 @NoArgsConstructor
-public class QuizChoice {
+public class QuizChoice extends BaseEntity {
+    // Giả sử BaseEntity đã có sẵn trường ID
 
     @Column(name = "choice_text", nullable = false, columnDefinition = "TEXT")
     private String text;
@@ -18,14 +20,11 @@ public class QuizChoice {
     @Column(name = "is_correct", nullable = false)
     private Boolean isCorrect;
 
-    /**
-     * Explanation shown to user after submitting — only for the correct answer.
-     */
     @Column(name = "explanation", columnDefinition = "TEXT")
     private String explanation;
 
-    @ManyToOne
-    @JoinColumn(name = "question_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "question_id", nullable = false)
     private QuizQuestion question;
 }
 

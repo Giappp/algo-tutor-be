@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
+import org.rap.algotutorbe.learning.mapper.QuestionType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,9 +36,7 @@ public class QuizQuestion extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String explanation;
 
-    @ElementCollection
-    @CollectionTable(name = "quiz_question_choices",
-            joinColumns = @JoinColumn(name = "question_id"))
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderColumn(name = "choice_order")
     private List<QuizChoice> choices = new ArrayList<>();
 

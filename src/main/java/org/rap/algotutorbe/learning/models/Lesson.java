@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
+import org.rap.algotutorbe.learning.enums.Difficulty;
+import org.rap.algotutorbe.learning.enums.LessonType;
 
 @Entity
 @Table(name = "lessons")
@@ -27,7 +29,14 @@ public class Lesson extends BaseEntity {
     @Column(name = "is_published", nullable = false)
     private Boolean isPublished = false;
 
+    @Convert(converter = DifficultyConverter.class)
+    @Column(columnDefinition = "varchar(20)")
+    private Difficulty difficulty;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "topic_id", nullable = false)
     private Topic topic;
+
+    @Column(unique = true)
+    private String slug;
 }

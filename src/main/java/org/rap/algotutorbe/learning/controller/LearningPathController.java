@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.learning.dto.LearningPathRequestDTO;
+import org.rap.algotutorbe.learning.dto.LessonRequestDTO;
 import org.rap.algotutorbe.learning.dto.TopicRequestDTO;
 import org.rap.algotutorbe.learning.services.LearningPathService;
 import org.springframework.http.ResponseEntity;
@@ -31,5 +32,10 @@ public class LearningPathController {
     @PostMapping("/{id}/topics")
     public ResponseEntity<ApiResponse<Object>> addTopicToLearningPath(@PathVariable Long id, @RequestBody @Valid TopicRequestDTO request) {
         return ResponseEntity.ok(learningPathService.addTopic(id, request));
+    }
+
+    @PostMapping("/topics/{topicId}/lessons")
+    public ResponseEntity<ApiResponse<Object>> addLessonToTopic(@PathVariable Long topicId, @RequestBody @Valid LessonRequestDTO request) {
+        return ResponseEntity.ok(learningPathService.createLesson(topicId, request));
     }
 }

@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseUuidEntity;
 import org.rap.algotutorbe.iam.domain.model.User;
+import org.rap.algotutorbe.learning.enums.EnrollmentStatus;
 
 import java.time.Instant;
 

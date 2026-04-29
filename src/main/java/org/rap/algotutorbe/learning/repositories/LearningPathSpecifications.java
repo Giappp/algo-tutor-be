@@ -1,12 +1,13 @@
 package org.rap.algotutorbe.learning.repositories;
 
+import org.rap.algotutorbe.learning.enums.Level;
 import org.rap.algotutorbe.learning.models.LearningPath;
-import org.rap.algotutorbe.learning.models.Level;
 import org.springframework.data.jpa.domain.Specification;
 
 public final class LearningPathSpecifications {
 
-    private LearningPathSpecifications() {}
+    private LearningPathSpecifications() {
+    }
 
     public static Specification<LearningPath> isActive() {
         return (root, query, cb) -> cb.equal(root.get("deleted"), false);

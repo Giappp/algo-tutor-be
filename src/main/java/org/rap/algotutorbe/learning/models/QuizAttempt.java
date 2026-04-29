@@ -21,7 +21,7 @@ public class QuizAttempt extends BaseUuidEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "quiz_id", nullable = false)
-    private Quiz quiz;
+    private QuizLesson quiz;
 
     @Column(name = "score")
     private Float score;

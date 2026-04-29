@@ -1,7 +1,7 @@
 package org.rap.algotutorbe.learning.repositories;
 
+import org.rap.algotutorbe.learning.enums.Level;
 import org.rap.algotutorbe.learning.models.LearningPath;
-import org.rap.algotutorbe.learning.models.Level;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;

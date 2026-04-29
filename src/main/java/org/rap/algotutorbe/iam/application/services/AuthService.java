@@ -15,8 +15,6 @@ import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
 import org.rap.algotutorbe.iam.dto.UserProfileResponse;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
 import org.rap.algotutorbe.iam.infrastructure.jwt.JwtUtil;
-import org.rap.algotutorbe.problem.repositories.ProblemRepository;
-import org.rap.algotutorbe.submission.repositories.SubmissionRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -39,8 +37,6 @@ public class AuthService extends BaseService {
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
     private final UserMapper userMapper;
-    private final ProblemRepository problemRepository;
-    private final SubmissionRepository submissionRepository;
 
     public TokenResponse processSignIn(SignInRequest payload) {
         try {

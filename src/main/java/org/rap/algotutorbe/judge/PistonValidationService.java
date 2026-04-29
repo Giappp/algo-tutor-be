@@ -4,8 +4,8 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.judge.dto.ValidationDetail;
 import org.rap.algotutorbe.judge.dto.ValidationResult;
-import org.rap.algotutorbe.problem.domain.enums.ProgrammingLanguage;
-import org.rap.algotutorbe.problem.domain.models.Testcase;
+import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
+import org.rap.algotutorbe.learning.models.Testcase;
 import org.rap.algotutorbe.submission.entities.Verdict;
 import org.springframework.stereotype.Service;
 

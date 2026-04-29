@@ -9,4 +9,6 @@ import java.util.List;
 @Data
 public class QuizLessonRequestDTO extends LessonRequestDTO {
     private List<QuizQuestionDTO> questions;
+    private Integer passingScore;
+    private Integer timeLimitMinutes;
 }
