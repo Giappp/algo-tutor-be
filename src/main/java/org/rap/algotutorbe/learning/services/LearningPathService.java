@@ -164,7 +164,7 @@ public class LearningPathService extends BaseService {
         String baseSlug = slugGenerator.generateFrom(title);
         String candidate = baseSlug;
         int counter = 1;
-        while (lessonRepository.findBySlug(candidate).isPresent()) {
+        while (lessonRepository.existsBySlug(candidate) || learningPathRepository.existsBySlug(candidate)) {
             candidate = baseSlug + "-" + counter++;
         }
         return candidate;

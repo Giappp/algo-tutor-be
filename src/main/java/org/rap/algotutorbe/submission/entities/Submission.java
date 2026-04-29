@@ -17,6 +17,8 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class Submission extends BaseUuidEntity {
+    @Version
+    private Long version;
     @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SubmissionTestcase> submissionTestcases;
 
@@ -41,10 +43,10 @@ public class Submission extends BaseUuidEntity {
     private Integer passedTestcases = 0;
 
     @Column(name = "execution_time_ms")
-    private Integer maxTime;
+    private Integer executionTime;
 
     @Column(name = "memory_used_kb")
-    private Integer maxMemory;
+    private Integer memoryUsed;
 
     @Column(columnDefinition = "TEXT")
     private String compileOutput;

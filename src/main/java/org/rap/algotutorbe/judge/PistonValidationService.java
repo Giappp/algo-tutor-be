@@ -1,29 +1,47 @@
 package org.rap.algotutorbe.judge;
 
-import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.judge.dto.ValidationDetail;
 import org.rap.algotutorbe.judge.dto.ValidationResult;
 import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.learning.models.Testcase;
 import org.rap.algotutorbe.submission.entities.Verdict;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 import java.util.stream.IntStream;
 
+@Slf4j
 @Service
-@RequiredArgsConstructor
+@EnableAsync
+@Configuration
 public class PistonValidationService {
     private static final int DEFAULT_TIMEOUT_MS = 3000;
     private static final int COMPILE_TIMEOUT_MS = 5000;
     private static final int MEMORY_LIMIT_MB = 256;
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(10);
     private final PistonClient pistonClient;
+
+    public PistonValidationService(PistonClient pistonClient) {
+        this.pistonClient = pistonClient;
+    }
+
+    @Bean(name = "pistonValidationExecutor")
+    public Executor pistonValidationExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("piston-validate-");
+        executor.initialize();
+        return executor;
+    }
 
     public ValidationResult validateSolution(
             ProgrammingLanguage language,
@@ -36,8 +54,7 @@ public class PistonValidationService {
                                 index, language, solutionCode,
                                 testCases.get(index),
                                 DEFAULT_TIMEOUT_MS, COMPILE_TIMEOUT_MS, MEMORY_LIMIT_MB
-                        ),
-                        executor
+                        )
                 ))
                 .toList();
 
@@ -51,10 +68,5 @@ public class PistonValidationService {
                 .allMatch(d -> d.verdict() == Verdict.ACCEPTED);
 
         return new ValidationResult(allPassed, details);
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        executor.shutdown();
     }
 }

@@ -6,8 +6,8 @@ public record SubmissionResponse(
         String id,
         String language,
         String status,
-        Integer passedTestCases,
-        Integer totalTestCases,
+        Integer passedTestcases,
+        Integer totalTestcases,
         Integer executionTime,
         Integer memoryUsed,
         Instant submittedAt

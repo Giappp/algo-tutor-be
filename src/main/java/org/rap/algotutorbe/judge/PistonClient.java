@@ -40,7 +40,7 @@ public class PistonClient {
                 .build();
 
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(jdkHttpClient);
-        factory.setReadTimeout(Duration.ofSeconds(15));
+        factory.setReadTimeout(Duration.ofSeconds(60));
 
         this.restClient = builder
                 .baseUrl(pistonApiUrl)
@@ -81,12 +81,16 @@ public class PistonClient {
         if (response.compile() != null && response.compile().code() != 0) {
             return createErrorDetail(index, testCase, COMPILATION_ERROR, response.compile().stderr());
         }
-        if (response.run().code() != 0) {
-            String errorMsg = response.run().stderr() != null ? response.run().stderr() : response.run().signal();
+        PistonStage run = response.run();
+        if (run == null) {
+            return createErrorDetail(index, testCase, SYSTEM_ERROR, "Piston tra ve phan hoi khong hop le (khong co run output)");
+        }
+        if (run.code() != 0) {
+            String errorMsg = run.stderr() != null ? run.stderr() : run.signal();
             return createErrorDetail(index, testCase, RUNTIME_ERROR, errorMsg);
         }
 
-        String actualOutput = response.run().stdout();
+        String actualOutput = run.stdout();
         boolean isMatch = normalizeOutput(actualOutput).equals(normalizeOutput(testCase.getExpectedStdout()));
 
         return isMatch
@@ -115,6 +119,9 @@ public class PistonClient {
         }
 
         PistonStage run = response.run();
+        if (run == null) {
+            return new TestcaseJudgeResult(index, SYSTEM_ERROR, 0, 0, null, "No run output from Piston");
+        }
         Integer cpuTime = run.cpuTime() != null ? run.cpuTime() : 0;
         Integer memory = run.memory() != null ? run.memory() : 0;
 
@@ -181,9 +188,9 @@ public class PistonClient {
             throw new JudgeConnectionException(
                     "Không thể kết nối đến máy chủ chấm bài, vui lòng thử lại sau.", e
             );
-        } catch (Exception e) {
-            log.error("Unexpected error in PistonClient: {}", e.getMessage(), e);
-            throw new JudgeException("Lỗi hệ thống bất ngờ trong quá trình chấm bài", e);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid piston request configuration: {}", e.getMessage());
+            throw new JudgeException("Cấu hình yêu cầu không hợp lệ: " + e.getMessage(), e);
         }
     }
 }

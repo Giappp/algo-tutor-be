@@ -13,4 +13,6 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     @Query("SELECT l FROM Lesson l WHERE l.slug = :slug")
     Optional<Lesson> findBySlug(@Param("slug") String slug);
+
+    boolean existsBySlug(String slug);
 }

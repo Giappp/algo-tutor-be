@@ -51,7 +51,7 @@ public class SubmissionService extends BaseService {
 
         CodingLesson codingLesson = lessonRepository.findBySlug(request.problemSlug())
                 .filter(CodingLesson.class::isInstance)
-                .map(l -> (CodingLesson) l)
+                .map(cl -> (CodingLesson) cl)
                 .orElseThrow(() -> new AppException(ErrorCode.PROBLEM_NOT_FOUND));
 
         Submission submission = new Submission();
@@ -83,7 +83,6 @@ public class SubmissionService extends BaseService {
     public void markAsProcessing(UUID id) {
         Submission submission = getOrThrowSubmission(id);
         submission.setVerdict(Verdict.PROCESSING);
-        submissionRepository.save(submission);
         log.info("Submission [{}] marked as PROCESSING", id);
     }
 
@@ -91,7 +90,6 @@ public class SubmissionService extends BaseService {
     public void markAsSystemError(UUID id, String message) {
         Submission submission = getOrThrowSubmission(id);
         submission.setVerdict(Verdict.SYSTEM_ERROR);
-        submissionRepository.save(submission);
         log.error("Submission [{}] marked as SYSTEM_ERROR: {}", id, message);
     }
 
@@ -101,10 +99,9 @@ public class SubmissionService extends BaseService {
         Submission submission = getOrThrowSubmission(id);
         submission.setVerdict(verdict);
         submission.setPassedTestcases(passedTestcases);
-        submission.setMaxTime(maxTime);
-        submission.setMaxMemory(maxMemory);
+        submission.setExecutionTime(maxTime);
+        submission.setMemoryUsed(maxMemory);
         submission.setCompileOutput(compileOutput);
-        submissionRepository.save(submission);
         log.info("Submission [{}] updated with verdict={}, passed={}", id, verdict, passedTestcases);
     }
 
@@ -112,6 +109,11 @@ public class SubmissionService extends BaseService {
     public SubmissionDetailResponse getSubmissionDetail(UUID id) {
         Submission submission = submissionRepository.findByIdWithLesson(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SUBMISSION_NOT_FOUND));
+
+        UUID currentUserId = getCurrentUserIdOrThrow();
+        if (!submission.getUser().getId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.SUBMISSION_ACCESS_DENIED);
+        }
 
         List<SubmissionTestcase> testcases = submissionTestcaseRepository.findBySubmissionId(id);
         List<SubmissionTestcaseResultResponse> testcaseResponses = submissionTestcaseMapper.toResponses(testcases);

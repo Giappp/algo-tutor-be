@@ -11,7 +11,7 @@ public enum ErrorCode {
     CONFLICT_RESOURCE(4, "errors.conflict-resource", HttpStatus.CONFLICT),
     NOT_FOUND(5, "errors.not-found", HttpStatus.NOT_FOUND),
     FORBIDDEN(6, "errors.forbidden", HttpStatus.FORBIDDEN),
-    INVALID_CREDENTIALS(1000, "error.invalid-credential", HttpStatus.NOT_FOUND),
+    INVALID_CREDENTIALS(1000, "errors.invalid-credential", HttpStatus.NOT_FOUND),
     EMAIL_ALREADY_INUSE(1001, "errors.email-already-in-use", HttpStatus.BAD_REQUEST),
     USERNAME_TAKEN(1002, "errors.username-taken", HttpStatus.BAD_REQUEST),
     PASSWORD_MISMATCH(1003, "errors.password-mismatch", HttpStatus.NOT_FOUND),

@@ -15,7 +15,7 @@ import org.rap.algotutorbe.common.domain.BaseEntity;
 @AllArgsConstructor
 public class Testcase extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "lesson_id", nullable = false)
+    @JoinColumn(name = "coding_lesson_id", nullable = false)
     private CodingLesson codingLesson;
 
     @Column(columnDefinition = "TEXT", nullable = false)

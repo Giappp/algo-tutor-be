@@ -34,13 +34,9 @@ public class SecurityConfig {
             "/auth/refresh",
             "/swagger-resources",
             "/swagger-resources/**",
-            "/api/v1/admin/problems/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/api/v1/learning-paths/**",
-            "/api/v1/problems/**",
-            "/api/v1/tags/**",
-            "/api/v1/execution/**"
     };
     private static final String[] IGNORE_CSRF_ENDPOINTS = {
             "/api/v1/iam/**",
@@ -48,9 +44,7 @@ public class SecurityConfig {
             "/auth/signup",
             "/auth/refresh",
             "/auth/logout",
-            "/api/v1/problems/**",
             "/api/v1/learning-paths/**",
-            "/api/v1/execution/**",
             "/api/v1/users/me/**"
     };
     private final UserDetailsService userDetailsService;
