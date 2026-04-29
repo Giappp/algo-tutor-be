@@ -5,5 +5,5 @@ import org.rap.algotutorbe.learning.mapper.QuestionType;
 import java.util.List;
 
 public record QuizQuestionDTO(String question, QuestionType type, Integer points, String explanation,
-                              List<QuestionChoiceDTO> choices) {
+                              List<QuizChoiceRequestDTO> choices) {
 }

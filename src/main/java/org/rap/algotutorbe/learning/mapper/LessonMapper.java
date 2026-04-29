@@ -5,10 +5,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.rap.algotutorbe.common.config.GlobalMapperConfig;
-import org.rap.algotutorbe.learning.dto.CodingLessonRequestDTO;
-import org.rap.algotutorbe.learning.dto.LessonRequestDTO;
-import org.rap.algotutorbe.learning.dto.QuizLessonRequestDTO;
-import org.rap.algotutorbe.learning.dto.TheoryLessonRequestDTO;
+import org.rap.algotutorbe.learning.dto.*;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.learning.models.QuizLesson;
@@ -83,4 +80,29 @@ public interface LessonMapper {
     @Mapping(target = "content", ignore = true)
     @Mapping(target = "orderIndex", ignore = true)
     void updateFromRequest(TheoryLessonRequestDTO request, @MappingTarget TheoryLesson lesson);
+
+    default LessonResponseDTO toResponse(Lesson lesson) {
+        if (lesson == null) return null;
+        return new LessonResponseDTO(
+                lesson.getId(),
+                lesson.getTitle(),
+                lesson.getSlug(),
+                lesson.getType(),
+                lesson.getContent(),
+                lesson.getOrderIndex(),
+                lesson.getIsPublished(),
+                lesson.getDifficulty(),
+                lesson.getCreatedAt(),
+                lesson.getUpdatedAt()
+        );
+    }
+
+    default Lesson toEntity(LessonRequestDTO request) {
+        if (request == null) return null;
+        return switch (request.getType()) {
+            case THEORY -> new TheoryLesson();
+            case QUIZ -> new QuizLesson();
+            case CODING -> new CodingLesson();
+        };
+    }
 }

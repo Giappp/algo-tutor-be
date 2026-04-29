@@ -19,6 +19,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import javax.naming.AuthenticationException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,6 +50,15 @@ public class GeneralExceptionHandler {
 
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<ErrorResponse<Object>> handleAuthorizationDenied(AuthorizationDeniedException ex) {
+        log.error(ex.getMessage(), ex);
+        String message = resolveMessage(ErrorCode.NEED_AUTHENTICATION);
+        return ResponseEntity.status(ErrorCode.NEED_AUTHENTICATION.getHttpStatus())
+                .body(ErrorResponse.buildError(message, ErrorCode.ACCESS_DENIED.getCode()));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse<Object>> handleAuthenticationException(AuthenticationException ex) {
+        log.error(ex.getMessage(), ex);
         String message = resolveMessage(ErrorCode.NEED_AUTHENTICATION);
         return ResponseEntity.status(ErrorCode.NEED_AUTHENTICATION.getHttpStatus())
                 .body(ErrorResponse.buildError(message, ErrorCode.ACCESS_DENIED.getCode()));
@@ -81,6 +91,7 @@ public class GeneralExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse<String>> handleHttpMessageNotReadable(HttpMessageNotReadableException exception) {
+        log.error(exception.getMessage(), exception);
         String message = resolveMessage(ErrorCode.INVALID_PAYLOAD);
         return ResponseEntity.status(ErrorCode.INVALID_PAYLOAD.getHttpStatus())
                 .body(ErrorResponse.buildError(message, ErrorCode.INVALID_PAYLOAD.getCode()));

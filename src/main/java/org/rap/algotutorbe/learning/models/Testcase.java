@@ -25,10 +25,10 @@ public class Testcase extends BaseEntity {
     private String expectedStdout;
 
     @Column(name = "is_hidden")
-    private boolean isHidden;
+    private Boolean isHidden;
 
     @Column(name = "sort_order")
-    private int orderIndex;
+    private Integer orderIndex;
 
     private String explanation;
 }

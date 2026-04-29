@@ -2,6 +2,8 @@ package org.rap.algotutorbe.learning.repositories;
 
 import org.rap.algotutorbe.learning.enums.Level;
 import org.rap.algotutorbe.learning.models.LearningPath;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -26,4 +28,18 @@ public interface LearningPathRepository extends
 
     @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.slug = :slug")
     Optional<LearningPath> findBySlug(@Param("slug") String slug);
+
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.id = :id")
+    Optional<LearningPath> findByIdAndDeletedFalse(@Param("id") Long id);
+
+    Page<LearningPath> findByDeletedFalse(Pageable pageable);
+
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.level = :level")
+    Page<LearningPath> findByDeletedFalseAndLevel(@Param("level") Level level, Pageable pageable);
+
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
+    Page<LearningPath> findByDeletedFalseAndSearch(@Param("search") String search, Pageable pageable);
+
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.level = :level AND LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
+    Page<LearningPath> findByDeletedFalseAndLevelAndSearch(@Param("level") Level level, @Param("search") String search, Pageable pageable);
 }

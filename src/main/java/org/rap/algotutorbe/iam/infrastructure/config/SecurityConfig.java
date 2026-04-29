@@ -29,14 +29,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
-            "/api/v1/iam/**",
-            "/auth/signup",
-            "/auth/refresh",
+            "/iam/**",
             "/swagger-resources",
             "/swagger-resources/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/api/v1/learning-paths/**",
+            "/api/v1/topics/**",
+            "/api/v1/lessons/**",
+            "/api/v1/questions/**",
+            "/api/v1/editorials/**",
+            "/api/v1/testcases/lessons/**",
     };
     private static final String[] IGNORE_CSRF_ENDPOINTS = {
             "/api/v1/iam/**",
@@ -45,6 +48,11 @@ public class SecurityConfig {
             "/auth/refresh",
             "/auth/logout",
             "/api/v1/learning-paths/**",
+            "/api/v1/topics/**",
+            "/api/v1/lessons/**",
+            "/api/v1/questions/**",
+            "/api/v1/editorials/**",
+            "/api/v1/testcases/**",
             "/api/v1/users/me/**"
     };
     private final UserDetailsService userDetailsService;
