@@ -1,5 +1,12 @@
 package org.rap.algotutorbe.learning.dto;
 
-public record TestCaseDTO(String stdin, String expectedStdout, Boolean isHidden, Integer orderIndex,
-                          String explanation) {
+import jakarta.validation.constraints.NotBlank;
+
+public record TestCaseDTO(
+        @NotBlank String stdin,
+        @NotBlank String expectedStdout,
+        Boolean isHidden,
+        Integer orderIndex,
+        String explanation
+) {
 }

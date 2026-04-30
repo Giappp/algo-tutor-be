@@ -19,26 +19,26 @@ import java.util.Map;
 @Getter
 @Setter
 public class CodingLesson extends Lesson {
-    @Column(name = "base_time_limit_ms", nullable = false)
+    @Column(name = "base_time_limit_ms")
     private Integer baseTimeLimitMs = 1000;
 
-    @Column(name = "base_memory_limit_mb", nullable = false)
+    @Column(name = "base_memory_limit_mb")
     private Integer baseMemoryLimitMb = 256;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "starter_code", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "starter_code", columnDefinition = "jsonb")
     private Map<String, String> starterCode = new HashMap<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb", nullable = false)
+    @Column(columnDefinition = "jsonb")
     private List<String> constraints = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb", nullable = false)
+    @Column(columnDefinition = "jsonb")
     private List<String> hints = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb", nullable = false)
+    @Column(columnDefinition = "jsonb")
     private List<ProblemExample> examples = new ArrayList<>();
 
     @OneToMany(mappedBy = "codingLesson", cascade = CascadeType.ALL)
