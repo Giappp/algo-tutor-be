@@ -11,6 +11,8 @@ import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.learning.models.QuizLesson;
 import org.rap.algotutorbe.learning.models.TheoryLesson;
 
+import java.util.List;
+
 @Mapper(config = GlobalMapperConfig.class,
         uses = {TestCaseMapper.class, QuizQuestionMapper.class},
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -25,42 +27,40 @@ public interface LessonMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true) // topic is set separately in the service layer
+    @Mapping(target = "topic", ignore = true)
     @Mapping(target = "slug", ignore = true)
-    // slug is generated from title in the service layer
     @Mapping(target = "isPublished", ignore = true)
-        // isPublished is managed separately in the service layer
+    @Mapping(target = "orderIndex", ignore = true)
     void updateFromRequest(LessonRequestDTO request, @MappingTarget Lesson lesson);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true) // topic is set separately in the service layer
+    @Mapping(target = "topic", ignore = true)
     @Mapping(target = "slug", ignore = true)
-    // slug is generated from title in the service layer
-    @Mapping(target = "isPublished", ignore = true) // isPublished is managed separately in the service layer
-    @Mapping(target = "editorials", ignore = true) // editorials are managed separately in the service layer
+    @Mapping(target = "isPublished", ignore = true)
+    @Mapping(target = "editorials", ignore = true)
     @Mapping(target = "submissions", ignore = true)
-        // submissions are managed separately in the service layer
+    @Mapping(target = "orderIndex", ignore = true)
     void updateFromRequest(CodingLessonRequestDTO request, @MappingTarget CodingLesson lesson);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true) // topic is set separately in the service layer
-    @Mapping(target = "slug", ignore = true)  // slug is generated from title in the service layer
-    @Mapping(target = "isPublished", ignore = true) // isPublished is managed separately in the service layer
+    @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "attempts", ignore = true)
-        // attempts are managed separately
+    @Mapping(target = "orderIndex", ignore = true)
     void updateFromRequest(QuizLessonRequestDTO request, @MappingTarget QuizLesson lesson);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true) // topic is set separately in the service layer
-    @Mapping(target = "slug", ignore = true) // slug is generated from title in the service layer
+    @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "slug", ignore = true)
     @Mapping(target = "isPublished", ignore = true)
-        // isPublished is managed separately in the service layer
+    @Mapping(target = "orderIndex", ignore = true)
     void updateFromRequest(TheoryLessonRequestDTO request, @MappingTarget TheoryLesson lesson);
 
     default LessonResponseDTO toResponse(Lesson lesson) {
@@ -86,6 +86,38 @@ public interface LessonMapper {
             case CodingLesson coding -> toCodingResponse(coding);
             default -> throw new IllegalStateException("Unknown lesson type: " + lesson.getClass().getSimpleName());
         };
+    }
+
+    default PublicCodingLessonResponseDTO toPublicCodingResponse(CodingLesson lesson) {
+        if (lesson == null) return null;
+        List<PublicTestCaseResponseDTO> publicTestCases = lesson.getTestCases() == null
+                ? List.of()
+                : lesson.getTestCases().stream()
+                .map(tc -> new PublicTestCaseResponseDTO(
+                        tc.getId(),
+                        tc.getStdin(),
+                        tc.getExpectedStdout(),
+                        tc.getIsHidden(),
+                        tc.getOrderIndex(),
+                        tc.getExplanation()))
+                .toList();
+        return new PublicCodingLessonResponseDTO(
+                lesson.getId(),
+                lesson.getTitle(),
+                lesson.getStatement(),
+                lesson.getOrderIndex(),
+                lesson.getIsPublished(),
+                lesson.getDifficulty() != null ? lesson.getDifficulty().name() : null,
+                lesson.getBaseTimeLimitMs(),
+                lesson.getBaseMemoryLimitMb(),
+                lesson.getConstraints(),
+                lesson.getStarterCode(),
+                lesson.getHints(),
+                lesson.getExamples(),
+                lesson.getKeyInsights(),
+                publicTestCases,
+                null
+        );
     }
 
     default Lesson toEntity(LessonRequestDTO request) {

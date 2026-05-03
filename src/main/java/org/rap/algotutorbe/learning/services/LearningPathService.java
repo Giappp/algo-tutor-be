@@ -32,7 +32,7 @@ public class LearningPathService extends BaseService {
     @Transactional
     public @Nullable ApiResponse<LearningPathResponseDTO> create(@Valid LearningPathRequestDTO request) {
         LearningPath learningPath = learningPathMapper.toEntity(request);
-        String slug = generateUniqueSlug(request.name());
+        String slug = slugGenerator.generateUniqueForLearningPath(request.name());
         learningPath.setSlug(slug);
         LearningPath saved = learningPathRepository.save(learningPath);
         return ApiResponse.buildSuccess(learningPathMapper.toResponse(saved));
@@ -58,8 +58,7 @@ public class LearningPathService extends BaseService {
         } else {
             page = learningPathRepository.findByDeletedFalse(pageable);
         }
-        return PageResponse.of(page
-                .map(learningPathMapper::toResponse));
+        return PageResponse.of(page.map(learningPathMapper::toResponse));
     }
 
     @Transactional(readOnly = true)
@@ -71,7 +70,7 @@ public class LearningPathService extends BaseService {
 
     @Transactional(readOnly = true)
     public @Nullable ApiResponse<LearningPathResponseDTO> getById(Long id) {
-        LearningPath learningPath = learningPathRepository.findById(id)
+        LearningPath learningPath = learningPathRepository.findByIdWithTopicsAndLessons(id)
                 .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
         return ApiResponse.buildSuccess(learningPathMapper.toResponse(learningPath));
     }
@@ -90,16 +89,6 @@ public class LearningPathService extends BaseService {
         learningPath.setIsPublished(!Boolean.TRUE.equals(learningPath.getIsPublished()));
         learningPathRepository.save(learningPath);
         return ApiResponse.buildSuccess(learningPathMapper.toResponse(learningPath));
-    }
-
-    private String generateUniqueSlug(String title) {
-        String baseSlug = slugGenerator.generateFrom(title);
-        String candidate = baseSlug;
-        int counter = 1;
-        while (learningPathRepository.existsBySlug(candidate)) {
-            candidate = baseSlug + "-" + counter++;
-        }
-        return candidate;
     }
 
     private LearningPath getOrThrow(Long id) {

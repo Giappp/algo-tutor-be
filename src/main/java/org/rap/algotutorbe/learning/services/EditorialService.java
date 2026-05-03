@@ -28,7 +28,7 @@ public class EditorialService {
     private final EditorialMapper editorialMapper;
 
     @Transactional
-    public @Nullable ApiResponse<Object> create(Long lessonId, @Valid EditorialRequestDTO dto) {
+    public @Nullable ApiResponse<EditorialResponseDTO> create(Long lessonId, @Valid EditorialRequestDTO dto) {
         CodingLesson lesson = getCodingLessonOrThrow(lessonId);
 
         Editorial editorial = editorialMapper.toEntity(dto);
@@ -40,7 +40,7 @@ public class EditorialService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<Object> update(Long editorialId, @Valid EditorialRequestDTO dto) {
+    public @Nullable ApiResponse<EditorialResponseDTO> update(Long editorialId, @Valid EditorialRequestDTO dto) {
         Editorial editorial = getOrThrow(editorialId);
         editorialMapper.updateEntity(editorial, dto);
         Editorial saved = editorialRepository.save(editorial);
@@ -48,14 +48,13 @@ public class EditorialService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<Object> delete(Long editorialId) {
-        Editorial editorial = getOrThrow(editorialId);
-        editorialRepository.delete(editorial);
+    public @Nullable ApiResponse<String> delete(Long editorialId) {
+        editorialRepository.deleteById(editorialId);
         return ApiResponse.buildMessage("Editorial deleted successfully");
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getByLessonId(Long lessonId) {
+    public @Nullable ApiResponse<List<EditorialResponseDTO>> getByLessonId(Long lessonId) {
         getCodingLessonOrThrow(lessonId);
         List<Editorial> editorials = editorialRepository.findByCodingLessonId(lessonId);
         List<EditorialResponseDTO> responses = editorials.stream()

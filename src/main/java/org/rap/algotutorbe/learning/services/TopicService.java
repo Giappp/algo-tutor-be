@@ -31,8 +31,7 @@ public class TopicService {
                 .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
 
         Topic topic = topicMapper.toEntity(request);
-        int nextOrder = learningPath.getTopics().size() + 1;
-        topic.setOrderIndex(nextOrder);
+        topic.setOrderIndex(topicRepository.getNextOrderIndex(learningPathId));
         topic.setLearningPath(learningPath);
         learningPath.getTopics().add(topic);
 

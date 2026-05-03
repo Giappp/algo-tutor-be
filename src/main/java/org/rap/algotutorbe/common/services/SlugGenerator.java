@@ -1,5 +1,7 @@
 package org.rap.algotutorbe.common.services;
 
+import org.rap.algotutorbe.learning.repositories.LearningPathRepository;
+import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.springframework.stereotype.Component;
 
 import java.text.Normalizer;
@@ -13,6 +15,14 @@ public class SlugGenerator {
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
     private static final Pattern EDGES_DASHES = Pattern.compile("(^-|-$)");
     private static final Pattern MULTIPLE_DASHES = Pattern.compile("-{2,}");
+
+    private final LearningPathRepository learningPathRepository;
+    private final LessonRepository lessonRepository;
+
+    public SlugGenerator(LearningPathRepository learningPathRepository, LessonRepository lessonRepository) {
+        this.learningPathRepository = learningPathRepository;
+        this.lessonRepository = lessonRepository;
+    }
 
     /**
      * Tạo slug từ một chuỗi bất kỳ. Hỗ trợ tốt tiếng Việt.
@@ -45,5 +55,33 @@ public class SlugGenerator {
         slug = EDGES_DASHES.matcher(slug).replaceAll("");
 
         return slug;
+    }
+
+    /**
+     * Tạo slug unique cho LearningPath.
+     * Nếu slug đã tồn tại, thêm suffix "-1", "-2", v.v.
+     */
+    public String generateUniqueForLearningPath(String title) {
+        String baseSlug = generateFrom(title);
+        String candidate = baseSlug;
+        int counter = 1;
+        while (learningPathRepository.existsBySlug(candidate)) {
+            candidate = baseSlug + "-" + counter++;
+        }
+        return candidate;
+    }
+
+    /**
+     * Tạo slug unique cho Lesson.
+     * Nếu slug đã tồn tại, thêm suffix "-1", "-2", v.v.
+     */
+    public String generateUniqueForLesson(String title) {
+        String baseSlug = generateFrom(title);
+        String candidate = baseSlug;
+        int counter = 1;
+        while (lessonRepository.existsBySlug(candidate)) {
+            candidate = baseSlug + "-" + counter++;
+        }
+        return candidate;
     }
 }

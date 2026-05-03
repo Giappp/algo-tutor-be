@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.learning.dto.LessonRequestDTO;
 import org.rap.algotutorbe.learning.services.LessonService;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +32,7 @@ public class LessonController {
     }
 
     @GetMapping("/slug/{slug}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getLessonBySlug(@PathVariable String slug) {
         return ResponseEntity.ok(lessonService.getBySlug(slug));
     }
@@ -37,8 +40,9 @@ public class LessonController {
     @GetMapping("/topics/{topicId}")
     public ResponseEntity<ApiResponse<Object>> getLessonsByTopic(
             @PathVariable Long topicId,
-            @RequestParam(defaultValue = "false") boolean publishedOnly) {
-        return ResponseEntity.ok(lessonService.getByTopicId(topicId, publishedOnly));
+            @RequestParam(defaultValue = "false") boolean publishedOnly,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(lessonService.getByTopicId(topicId, publishedOnly, pageable));
     }
 
     @PutMapping("/{lessonId}")
@@ -51,7 +55,7 @@ public class LessonController {
 
     @DeleteMapping("/{lessonId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Object>> deleteLesson(@PathVariable Long lessonId) {
+    public ResponseEntity<ApiResponse<String>> deleteLesson(@PathVariable Long lessonId) {
         return ResponseEntity.ok(lessonService.delete(lessonId));
     }
 
@@ -59,5 +63,15 @@ public class LessonController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> togglePublish(@PathVariable Long lessonId) {
         return ResponseEntity.ok(lessonService.togglePublish(lessonId));
+    }
+
+    @GetMapping("/public/{lessonId}")
+    public ResponseEntity<ApiResponse<Object>> getPublishedLessonById(@PathVariable Long lessonId) {
+        return ResponseEntity.ok(lessonService.getPublishedById(lessonId));
+    }
+
+    @GetMapping("/public/slug/{slug}")
+    public ResponseEntity<ApiResponse<Object>> getPublishedLessonBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(lessonService.getPublishedBySlug(slug));
     }
 }

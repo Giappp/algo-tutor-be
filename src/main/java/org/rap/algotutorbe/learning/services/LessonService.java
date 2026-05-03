@@ -13,6 +13,8 @@ import org.rap.algotutorbe.learning.mapper.QuestionType;
 import org.rap.algotutorbe.learning.models.*;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.rap.algotutorbe.learning.repositories.TopicRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,11 +33,15 @@ public class LessonService {
     public @Nullable ApiResponse<Object> create(Long topicId, @Valid LessonRequestDTO request) {
         Topic topic = getOrThrowTopic(topicId);
 
-        Lesson lesson = buildLesson(request);
-        topic.getLessons().add(lesson);
-        lesson.setTopic(topic);
-        lesson.setOrderIndex(topic.getLessons().size());
+        if (request.getType() == null) {
+            throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
+        }
 
+        Lesson lesson = buildLesson(request);
+        lesson.setTopic(topic);
+        lesson.setOrderIndex(lessonRepository.getNextOrderIndex(topicId));
+
+        topic.getLessons().add(lesson);
         topicRepository.save(topic);
         return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(lesson));
     }
@@ -48,6 +54,10 @@ public class LessonService {
     @Transactional
     public @Nullable ApiResponse<Object> update(Long lessonId, @Valid LessonRequestDTO request) {
         Lesson lesson = getOrThrow(lessonId);
+
+        if (request.getType() == null) {
+            throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
+        }
 
         switch (request.getType()) {
             case THEORY -> {
@@ -70,8 +80,9 @@ public class LessonService {
             }
         }
 
-        if (request.getTitle() != null) {
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
             lesson.setTitle(request.getTitle());
+            lesson.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
         }
         if (request.getDifficulty() != null) {
             lesson.setDifficulty(request.getDifficulty());
@@ -82,7 +93,7 @@ public class LessonService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<Object> delete(Long lessonId) {
+    public @Nullable ApiResponse<String> delete(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
         lessonRepository.delete(lesson);
         return ApiResponse.buildMessage("Lesson deleted successfully");
@@ -95,6 +106,32 @@ public class LessonService {
     }
 
     @Transactional(readOnly = true)
+    public @Nullable ApiResponse<Object> getPublishedById(Long lessonId) {
+        Lesson lesson = getOrThrow(lessonId);
+        if (!Boolean.TRUE.equals(lesson.getIsPublished())) {
+            throw new AppException(ErrorCode.LESSON_NOT_FOUND);
+        }
+        return ApiResponse.buildSuccess(buildPublicResponse(lesson));
+    }
+
+    @Transactional(readOnly = true)
+    public @Nullable ApiResponse<Object> getPublishedBySlug(String slug) {
+        Lesson lesson = lessonRepository.findBySlug(slug)
+                .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
+        if (!Boolean.TRUE.equals(lesson.getIsPublished())) {
+            throw new AppException(ErrorCode.LESSON_NOT_FOUND);
+        }
+        return ApiResponse.buildSuccess(buildPublicResponse(lesson));
+    }
+
+    private Object buildPublicResponse(Lesson lesson) {
+        if (lesson instanceof CodingLesson coding) {
+            return lessonMapper.toPublicCodingResponse(coding);
+        }
+        return lessonMapper.toDetailedResponse(lesson);
+    }
+
+    @Transactional(readOnly = true)
     public @Nullable ApiResponse<Object> getBySlug(String slug) {
         Lesson lesson = lessonRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
@@ -102,14 +139,16 @@ public class LessonService {
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getByTopicId(Long topicId, boolean publishedOnly) {
+    public @Nullable ApiResponse<Object> getByTopicId(Long topicId, boolean publishedOnly, Pageable pageable) {
         if (!topicRepository.existsById(topicId)) {
             throw new AppException(ErrorCode.TOPIC_NOT_FOUND);
         }
-        List<Lesson> lessons = publishedOnly
-                ? lessonRepository.findByTopicIdAndPublishedTrueOrderByOrderIndex(topicId)
-                : lessonRepository.findByTopicIdOrderByOrderIndex(topicId);
-        List<LessonResponseDTO> responses = lessons.stream()
+
+        Page<Lesson> lessonPage = publishedOnly
+                ? lessonRepository.findByTopicIdAndPublishedTrueOrderByOrderIndex(topicId, pageable)
+                : lessonRepository.findByTopicIdOrderByOrderIndex(topicId, pageable);
+
+        List<LessonResponseDTO> responses = lessonPage.getContent().stream()
                 .map(lessonMapper::toResponse)
                 .toList();
         return ApiResponse.buildSuccess(responses);
@@ -137,9 +176,8 @@ public class LessonService {
     private CodingLesson createCodingLesson(CodingLessonRequestDTO request) {
         CodingLesson lesson = new CodingLesson();
         lesson.setTitle(request.getTitle());
-        lesson.setSlug(generateUniqueSlug(request.getTitle()));
+        lesson.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
         lesson.setStatement(request.getStatement());
-        lesson.setOrderIndex(request.getOrderIndex());
         lesson.setType(request.getType());
         lesson.setDifficulty(request.getDifficulty());
         lesson.setStarterCode(request.getStarterCode());
@@ -172,8 +210,7 @@ public class LessonService {
     private QuizLesson createQuizLesson(QuizLessonRequestDTO request) {
         QuizLesson quiz = new QuizLesson();
         quiz.setTitle(request.getTitle());
-        quiz.setSlug(generateUniqueSlug(request.getTitle()));
-        quiz.setOrderIndex(request.getOrderIndex());
+        quiz.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
         quiz.setType(request.getType());
         quiz.setDifficulty(request.getDifficulty());
         quiz.setPassingScore(request.getPassingScore() != null ? request.getPassingScore() : 70);
@@ -209,22 +246,11 @@ public class LessonService {
     private TheoryLesson createTheoryLesson(TheoryLessonRequestDTO request) {
         TheoryLesson theoryLesson = new TheoryLesson();
         theoryLesson.setTitle(request.getTitle());
-        theoryLesson.setSlug(generateUniqueSlug(request.getTitle()));
+        theoryLesson.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
         theoryLesson.setContent(request.getContent());
-        theoryLesson.setOrderIndex(request.getOrderIndex());
         theoryLesson.setType(request.getType());
         theoryLesson.setDifficulty(request.getDifficulty());
         return theoryLesson;
-    }
-
-    private String generateUniqueSlug(String title) {
-        String baseSlug = slugGenerator.generateFrom(title);
-        String candidate = baseSlug;
-        int counter = 1;
-        while (lessonRepository.existsBySlug(candidate)) {
-            candidate = baseSlug + "-" + counter++;
-        }
-        return candidate;
     }
 
     public Lesson getOrThrow(Long id) {
