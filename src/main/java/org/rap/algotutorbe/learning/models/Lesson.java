@@ -13,6 +13,7 @@ import org.rap.algotutorbe.learning.enums.LessonType;
 @Getter
 @Setter
 @NoArgsConstructor
+@Inheritance(strategy = InheritanceType.JOINED)
 public class Lesson extends BaseEntity {
     @Column(nullable = false, length = 200)
     private String title;
@@ -20,8 +21,6 @@ public class Lesson extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private LessonType type;
-
-    private String content;
 
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex;

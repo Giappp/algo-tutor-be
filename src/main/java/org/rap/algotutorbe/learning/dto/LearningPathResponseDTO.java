@@ -18,6 +18,7 @@ public record LearningPathResponseDTO(
         int totalLessonCount,
         int publishedLessonCount,
         int enrollmentCount,
+        Boolean isPublished,
         Instant createdAt,
         Instant updatedAt,
         List<TopicResponseDTO> topics

@@ -30,6 +30,9 @@ public class LearningPath extends BaseEntity {
 
     private boolean deleted = false;
 
+    @Column(name = "is_published", nullable = false)
+    private Boolean isPublished = false;
+
     @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<Topic> topics = new ArrayList<>();

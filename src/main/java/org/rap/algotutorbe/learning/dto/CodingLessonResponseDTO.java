@@ -8,20 +8,17 @@ import java.util.Map;
 public record CodingLessonResponseDTO(
         Long id,
         String title,
-        String slug,
-        String content,
+        String statement,
         Integer orderIndex,
         Boolean isPublished,
         String difficulty,
-        Integer timeLimitMs,
-        Integer memoryLimitMb,
+        Integer baseTimeLimitMs,
+        Integer baseMemoryLimitMb,
         List<String> constraints,
         Map<String, String> starterCode,
         List<String> hints,
         List<ProblemExample> examples,
         List<String> keyInsights,
-        Long topicId,
-        Long learningPathId,
         List<TestCaseResponseDTO> testCases,
         List<EditorialResponseDTO> editorials
 ) {

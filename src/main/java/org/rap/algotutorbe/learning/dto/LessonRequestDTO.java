@@ -20,7 +20,6 @@ import org.rap.algotutorbe.learning.enums.LessonType;
 })
 public abstract class LessonRequestDTO {
     private String title;
-    private String content;
     private int orderIndex;
     private LessonType type;
     private Difficulty difficulty;

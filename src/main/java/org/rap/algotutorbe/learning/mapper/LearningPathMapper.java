@@ -37,6 +37,7 @@ public interface LearningPathMapper {
     @Mapping(target = "topics", ignore = true)
     @Mapping(target = "enrollments", ignore = true)
     @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
     LearningPath toEntity(LearningPathRequestDTO request);
 
     @Mapping(target = "id", ignore = true)
@@ -46,12 +47,14 @@ public interface LearningPathMapper {
     @Mapping(target = "topics", ignore = true)
     @Mapping(target = "enrollments", ignore = true)
     @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
     void updateEntity(@MappingTarget LearningPath entity, LearningPathRequestDTO request);
 
     @Mapping(target = "topicCount", expression = "java(entity.getTopics() != null ? entity.getTopics().size() : 0)")
     @Mapping(target = "totalLessonCount", source = ".", qualifiedByName = "countTotalLessons")
     @Mapping(target = "publishedLessonCount", source = ".", qualifiedByName = "countPublishedLessons")
     @Mapping(target = "enrollmentCount", expression = "java(entity.getEnrollments() != null ? entity.getEnrollments().size() : 0)")
+    @Mapping(target = "isPublished", source = "isPublished")
     @Mapping(target = "topics", source = "topics")
     LearningPathResponseDTO toResponse(LearningPath entity);
 }

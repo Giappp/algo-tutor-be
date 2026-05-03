@@ -1,8 +1,6 @@
 package org.rap.algotutorbe.learning.dto;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.rap.algotutorbe.learning.models.ProblemExample;
@@ -13,15 +11,18 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class CodingLessonRequestDTO extends LessonRequestDTO {
+    @NotNull
+    @NotBlank
+    private String statement;
     @Min(1)
     @Max(300000)
-    private Integer timeLimit;
+    private Integer baseTimeLimitMs;
 
     @Min(1)
     @Max(1024)
-    private Integer memoryLimit;
+    private Integer baseMemoryLimitMb;
 
-    private String constraints;
+    private List<String> constraints;
 
     @Size(max = 10)
     private Map<String, String> starterCode;

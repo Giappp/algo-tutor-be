@@ -24,6 +24,7 @@ public class LessonController {
     }
 
     @GetMapping("/{lessonId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getLessonById(@PathVariable Long lessonId) {
         return ResponseEntity.ok(lessonService.getById(lessonId));
     }

@@ -5,15 +5,11 @@ import java.util.List;
 public record QuizLessonResponseDTO(
         Long id,
         String title,
-        String slug,
-        String content,
         Integer orderIndex,
         Boolean isPublished,
         String difficulty,
         Integer passingScore,
         Integer timeLimitMinutes,
-        Long topicId,
-        Long learningPathId,
         List<QuizQuestionResponseDTO> questions
 ) {
 }

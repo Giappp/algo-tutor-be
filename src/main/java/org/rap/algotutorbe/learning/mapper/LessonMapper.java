@@ -12,73 +12,55 @@ import org.rap.algotutorbe.learning.models.QuizLesson;
 import org.rap.algotutorbe.learning.models.TheoryLesson;
 
 @Mapper(config = GlobalMapperConfig.class,
+        uses = {TestCaseMapper.class, QuizQuestionMapper.class},
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface LessonMapper {
+
+    TheoryLessonResponseDTO toTheoryResponse(TheoryLesson lesson);
+
+    QuizLessonResponseDTO toQuizResponse(QuizLesson lesson);
+
+    CodingLessonResponseDTO toCodingResponse(CodingLesson lesson);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true)
-    @Mapping(target = "isPublished", ignore = true)
+    @Mapping(target = "topic", ignore = true) // topic is set separately in the service layer
     @Mapping(target = "slug", ignore = true)
-    @Mapping(target = "difficulty", ignore = true)
-    @Mapping(target = "title", ignore = true)
-    @Mapping(target = "type", ignore = true)
-    @Mapping(target = "content", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
+    // slug is generated from title in the service layer
+    @Mapping(target = "isPublished", ignore = true)
+        // isPublished is managed separately in the service layer
     void updateFromRequest(LessonRequestDTO request, @MappingTarget Lesson lesson);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true)
-    @Mapping(target = "isPublished", ignore = true)
+    @Mapping(target = "topic", ignore = true) // topic is set separately in the service layer
     @Mapping(target = "slug", ignore = true)
-    @Mapping(target = "difficulty", ignore = true)
-    @Mapping(target = "title", ignore = true)
-    @Mapping(target = "type", ignore = true)
-    @Mapping(target = "content", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
-    @Mapping(target = "testCases", ignore = true)
-    @Mapping(target = "editorials", ignore = true)
+    // slug is generated from title in the service layer
+    @Mapping(target = "isPublished", ignore = true) // isPublished is managed separately in the service layer
+    @Mapping(target = "editorials", ignore = true) // editorials are managed separately in the service layer
     @Mapping(target = "submissions", ignore = true)
-    @Mapping(target = "baseTimeLimitMs", ignore = true)
-    @Mapping(target = "baseMemoryLimitMb", ignore = true)
-    @Mapping(target = "starterCode", ignore = true)
-    @Mapping(target = "constraints", ignore = true)
-    @Mapping(target = "hints", ignore = true)
-    @Mapping(target = "examples", ignore = true)
-    @Mapping(target = "keyInsights", ignore = true)
+        // submissions are managed separately in the service layer
     void updateFromRequest(CodingLessonRequestDTO request, @MappingTarget CodingLesson lesson);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true)
-    @Mapping(target = "isPublished", ignore = true)
-    @Mapping(target = "slug", ignore = true)
-    @Mapping(target = "difficulty", ignore = true)
-    @Mapping(target = "title", ignore = true)
-    @Mapping(target = "type", ignore = true)
-    @Mapping(target = "content", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
-    @Mapping(target = "passingScore", ignore = true)
-    @Mapping(target = "timeLimitMinutes", ignore = true)
-    @Mapping(target = "questions", ignore = true)
+    @Mapping(target = "topic", ignore = true) // topic is set separately in the service layer
+    @Mapping(target = "slug", ignore = true)  // slug is generated from title in the service layer
+    @Mapping(target = "isPublished", ignore = true) // isPublished is managed separately in the service layer
     @Mapping(target = "attempts", ignore = true)
+        // attempts are managed separately
     void updateFromRequest(QuizLessonRequestDTO request, @MappingTarget QuizLesson lesson);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "topic", ignore = true) // topic is set separately in the service layer
+    @Mapping(target = "slug", ignore = true) // slug is generated from title in the service layer
     @Mapping(target = "isPublished", ignore = true)
-    @Mapping(target = "slug", ignore = true)
-    @Mapping(target = "difficulty", ignore = true)
-    @Mapping(target = "title", ignore = true)
-    @Mapping(target = "type", ignore = true)
-    @Mapping(target = "content", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
+        // isPublished is managed separately in the service layer
     void updateFromRequest(TheoryLessonRequestDTO request, @MappingTarget TheoryLesson lesson);
 
     default LessonResponseDTO toResponse(Lesson lesson) {
@@ -88,13 +70,22 @@ public interface LessonMapper {
                 lesson.getTitle(),
                 lesson.getSlug(),
                 lesson.getType(),
-                lesson.getContent(),
                 lesson.getOrderIndex(),
                 lesson.getIsPublished(),
                 lesson.getDifficulty(),
                 lesson.getCreatedAt(),
                 lesson.getUpdatedAt()
         );
+    }
+
+    default Object toDetailedResponse(Lesson lesson) {
+        if (lesson == null) return null;
+        return switch (lesson) {
+            case TheoryLesson theory -> toTheoryResponse(theory);
+            case QuizLesson quiz -> toQuizResponse(quiz);
+            case CodingLesson coding -> toCodingResponse(coding);
+            default -> throw new IllegalStateException("Unknown lesson type: " + lesson.getClass().getSimpleName());
+        };
     }
 
     default Lesson toEntity(LessonRequestDTO request) {

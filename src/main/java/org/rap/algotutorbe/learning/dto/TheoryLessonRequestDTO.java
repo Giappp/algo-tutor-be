@@ -6,4 +6,5 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class TheoryLessonRequestDTO extends LessonRequestDTO {
+    private String content;
 }

@@ -21,6 +21,4 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     @Query("SELECT l FROM Lesson l WHERE l.topic.id = :topicId AND l.isPublished = true ORDER BY l.orderIndex")
     List<Lesson> findByTopicIdAndPublishedTrueOrderByOrderIndex(@Param("topicId") Long topicId);
-
-    Optional<Lesson> findByIdAndTopicId(Long id, Long topicId);
 }

@@ -32,7 +32,7 @@ public class QuizService {
     private final QuizChoiceMapper quizChoiceMapper;
 
     @Transactional
-    public @Nullable ApiResponse<Object> addQuestion(Long quizLessonId, @Valid QuizQuestionDTO request) {
+    public @Nullable ApiResponse<QuizQuestionResponseDTO> addQuestion(Long quizLessonId, @Valid QuizQuestionDTO request) {
         QuizLesson quiz = getQuizLessonOrThrow(quizLessonId);
 
         QuizQuestion question = quizQuestionMapper.toEntity(request);
@@ -53,7 +53,7 @@ public class QuizService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<Object> updateQuestion(Long questionId, @Valid QuizQuestionDTO request) {
+    public @Nullable ApiResponse<QuizQuestionResponseDTO> updateQuestion(Long questionId, @Valid QuizQuestionDTO request) {
         QuizQuestion question = getOrThrow(questionId);
         quizQuestionMapper.updateEntity(question, request);
 
@@ -71,14 +71,14 @@ public class QuizService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<Object> deleteQuestion(Long questionId) {
+    public @Nullable ApiResponse<String> deleteQuestion(Long questionId) {
         QuizQuestion question = getOrThrow(questionId);
         quizQuestionRepository.delete(question);
         return ApiResponse.buildMessage("Question deleted successfully");
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getQuestionsByQuizLessonId(Long quizLessonId) {
+    public @Nullable ApiResponse<List<QuizQuestionResponseDTO>> getQuestionsByQuizLessonId(Long quizLessonId) {
         getQuizLessonOrThrow(quizLessonId);
         List<QuizQuestion> questions = quizQuestionRepository.findByQuizIdOrderByOrderIndex(quizLessonId);
         List<QuizQuestionResponseDTO> responses = questions.stream()

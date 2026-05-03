@@ -37,7 +37,7 @@ public class LessonService {
         lesson.setOrderIndex(topic.getLessons().size());
 
         topicRepository.save(topic);
-        return ApiResponse.buildSuccess(lessonMapper.toResponse(lesson));
+        return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(lesson));
     }
 
     private Topic getOrThrowTopic(Long topicId) {
@@ -73,15 +73,12 @@ public class LessonService {
         if (request.getTitle() != null) {
             lesson.setTitle(request.getTitle());
         }
-        if (request.getContent() != null) {
-            lesson.setContent(request.getContent());
-        }
         if (request.getDifficulty() != null) {
             lesson.setDifficulty(request.getDifficulty());
         }
 
         Lesson saved = lessonRepository.save(lesson);
-        return ApiResponse.buildSuccess(lessonMapper.toResponse(saved));
+        return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(saved));
     }
 
     @Transactional
@@ -94,14 +91,14 @@ public class LessonService {
     @Transactional(readOnly = true)
     public @Nullable ApiResponse<Object> getById(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
-        return ApiResponse.buildSuccess(lessonMapper.toResponse(lesson));
+        return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(lesson));
     }
 
     @Transactional(readOnly = true)
     public @Nullable ApiResponse<Object> getBySlug(String slug) {
         Lesson lesson = lessonRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
-        return ApiResponse.buildSuccess(lessonMapper.toResponse(lesson));
+        return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(lesson));
     }
 
     @Transactional(readOnly = true)
@@ -123,13 +120,13 @@ public class LessonService {
         Lesson lesson = getOrThrow(lessonId);
         lesson.setIsPublished(!Boolean.TRUE.equals(lesson.getIsPublished()));
         Lesson saved = lessonRepository.save(lesson);
-        return ApiResponse.buildSuccess(lessonMapper.toResponse(saved));
+        return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(saved));
     }
 
     private Lesson buildLesson(LessonRequestDTO request) {
         Lesson lesson;
         switch (request.getType()) {
-            case THEORY -> lesson = createTheoryLesson(request);
+            case THEORY -> lesson = createTheoryLesson((TheoryLessonRequestDTO) request);
             case QUIZ -> lesson = createQuizLesson((QuizLessonRequestDTO) request);
             case CODING -> lesson = createCodingLesson((CodingLessonRequestDTO) request);
             default -> throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
@@ -141,19 +138,19 @@ public class LessonService {
         CodingLesson lesson = new CodingLesson();
         lesson.setTitle(request.getTitle());
         lesson.setSlug(generateUniqueSlug(request.getTitle()));
-        lesson.setContent(request.getContent());
+        lesson.setStatement(request.getStatement());
         lesson.setOrderIndex(request.getOrderIndex());
         lesson.setType(request.getType());
         lesson.setDifficulty(request.getDifficulty());
         lesson.setStarterCode(request.getStarterCode());
         lesson.setConstraints(request.getConstraints() != null
-                ? List.of(request.getConstraints().split("\n"))
+                ? request.getConstraints()
                 : new ArrayList<>());
         lesson.setHints(request.getHints() != null ? request.getHints() : new ArrayList<>());
         lesson.setExamples(request.getExamples() != null ? request.getExamples() : new ArrayList<>());
         lesson.setKeyInsights(request.getKeyInsights() != null ? request.getKeyInsights() : new ArrayList<>());
-        lesson.setBaseTimeLimitMs(request.getTimeLimit() != null ? request.getTimeLimit() : 1000);
-        lesson.setBaseMemoryLimitMb(request.getMemoryLimit() != null ? request.getMemoryLimit() : 256);
+        lesson.setBaseTimeLimitMs(request.getBaseTimeLimitMs() != null ? request.getBaseTimeLimitMs() : 2000);
+        lesson.setBaseMemoryLimitMb(request.getBaseMemoryLimitMb() != null ? request.getBaseMemoryLimitMb() : 256);
 
         if (request.getTestCases() != null) {
             List<Testcase> testCases = request.getTestCases().stream().map(dto -> {
@@ -176,7 +173,6 @@ public class LessonService {
         QuizLesson quiz = new QuizLesson();
         quiz.setTitle(request.getTitle());
         quiz.setSlug(generateUniqueSlug(request.getTitle()));
-        quiz.setContent(request.getContent());
         quiz.setOrderIndex(request.getOrderIndex());
         quiz.setType(request.getType());
         quiz.setDifficulty(request.getDifficulty());
@@ -210,7 +206,7 @@ public class LessonService {
         return quiz;
     }
 
-    private TheoryLesson createTheoryLesson(LessonRequestDTO request) {
+    private TheoryLesson createTheoryLesson(TheoryLessonRequestDTO request) {
         TheoryLesson theoryLesson = new TheoryLesson();
         theoryLesson.setTitle(request.getTitle());
         theoryLesson.setSlug(generateUniqueSlug(request.getTitle()));
