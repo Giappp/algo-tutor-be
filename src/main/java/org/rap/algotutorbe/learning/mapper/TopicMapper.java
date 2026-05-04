@@ -8,7 +8,7 @@ import org.rap.algotutorbe.learning.dto.TopicRequestDTO;
 import org.rap.algotutorbe.learning.dto.TopicResponseDTO;
 import org.rap.algotutorbe.learning.models.Topic;
 
-@Mapper(config = GlobalMapperConfig.class)
+@Mapper(config = GlobalMapperConfig.class, uses = {LessonMapper.class})
 public interface TopicMapper {
 
     @Mapping(target = "id", ignore = true)

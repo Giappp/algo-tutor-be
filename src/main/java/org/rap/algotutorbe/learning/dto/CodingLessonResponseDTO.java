@@ -8,6 +8,7 @@ import java.util.Map;
 public record CodingLessonResponseDTO(
         Long id,
         String title,
+        String type,
         String statement,
         Integer orderIndex,
         Boolean isPublished,
@@ -18,7 +19,6 @@ public record CodingLessonResponseDTO(
         Map<String, String> starterCode,
         List<String> hints,
         List<ProblemExample> examples,
-        List<String> keyInsights,
         List<TestCaseResponseDTO> testCases,
         List<EditorialResponseDTO> editorials
 ) {

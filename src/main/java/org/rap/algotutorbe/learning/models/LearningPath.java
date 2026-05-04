@@ -7,8 +7,8 @@ import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
 import org.rap.algotutorbe.learning.enums.Level;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -33,16 +33,10 @@ public class LearningPath extends BaseEntity {
     @Column(name = "is_published", nullable = false)
     private Boolean isPublished = false;
 
-    @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("orderIndex ASC")
-    private List<Topic> topics = new ArrayList<>();
+    private Set<Topic> topics = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Enrollment> enrollments = new ArrayList<>();
-
-    public void addTopic(Topic topic) {
-        topic.setLearningPath(this);
-        topic.setOrderIndex(topics.size() + 1);
-        topics.add(topic);
-    }
+    private Set<Enrollment> enrollments = new LinkedHashSet<>();
 }

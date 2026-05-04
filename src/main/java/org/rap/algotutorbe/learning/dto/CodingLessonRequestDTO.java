@@ -35,7 +35,4 @@ public class CodingLessonRequestDTO extends LessonRequestDTO {
 
     @Size(max = 10)
     private List<String> hints;
-
-    @Size(max = 20)
-    private List<String> keyInsights;
 }

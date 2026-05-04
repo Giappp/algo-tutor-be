@@ -20,7 +20,7 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, Long
     @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.slug = :slug")
     Optional<LearningPath> findBySlug(@Param("slug") String slug);
 
-    @EntityGraph(attributePaths = {"topics", "topics.lessons", "enrollments"})
+    @EntityGraph(attributePaths = {"topics", "topics.lessons"})
     @Query("SELECT lp FROM LearningPath lp WHERE lp.id = :id AND lp.deleted = false")
     Optional<LearningPath> findByIdWithTopicsAndLessons(@Param("id") Long id);
 

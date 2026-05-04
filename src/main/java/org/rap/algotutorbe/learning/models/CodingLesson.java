@@ -48,18 +48,4 @@ public class CodingLesson extends Lesson {
 
     @OneToMany(mappedBy = "codingLesson", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Submission> submissions = new ArrayList<>();
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "key_insights", columnDefinition = "jsonb")
-    private List<String> keyInsights = new ArrayList<>();
-
-    public void addTestCase(Testcase testCase) {
-        testCases.add(testCase);
-        testCase.setCodingLesson(this);
-    }
-
-    public void removeTestCase(Testcase testCase) {
-        testCases.remove(testCase);
-        testCase.setCodingLesson(null);
-    }
 }

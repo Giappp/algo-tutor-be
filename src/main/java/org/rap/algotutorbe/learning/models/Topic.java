@@ -6,8 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "topics")
@@ -37,13 +37,7 @@ public class Topic extends BaseEntity {
     @JoinColumn(name = "learning_path_id", nullable = false)
     private LearningPath learningPath;
 
-    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("orderIndex ASC")
-    private List<Lesson> lessons = new ArrayList<>();
-
-    public void addLesson(Lesson lesson) {
-        lesson.setTopic(this);
-        lesson.setOrderIndex(lessons.size() + 1);
-        lessons.add(lesson);
-    }
+    private Set<Lesson> lessons = new LinkedHashSet<>();
 }

@@ -186,7 +186,6 @@ public class LessonService {
                 : new ArrayList<>());
         lesson.setHints(request.getHints() != null ? request.getHints() : new ArrayList<>());
         lesson.setExamples(request.getExamples() != null ? request.getExamples() : new ArrayList<>());
-        lesson.setKeyInsights(request.getKeyInsights() != null ? request.getKeyInsights() : new ArrayList<>());
         lesson.setBaseTimeLimitMs(request.getBaseTimeLimitMs() != null ? request.getBaseTimeLimitMs() : 2000);
         lesson.setBaseMemoryLimitMb(request.getBaseMemoryLimitMb() != null ? request.getBaseMemoryLimitMb() : 256);
 

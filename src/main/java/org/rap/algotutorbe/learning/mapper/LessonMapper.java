@@ -114,7 +114,6 @@ public interface LessonMapper {
                 lesson.getStarterCode(),
                 lesson.getHints(),
                 lesson.getExamples(),
-                lesson.getKeyInsights(),
                 publicTestCases,
                 null
         );

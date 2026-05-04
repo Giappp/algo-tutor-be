@@ -22,7 +22,6 @@ public record PublicCodingLessonResponseDTO(
         Map<String, String> starterCode,
         List<String> hints,
         List<ProblemExample> examples,
-        List<String> keyInsights,
         List<PublicTestCaseResponseDTO> testCases,
         List<EditorialResponseDTO> editorials
 ) {
