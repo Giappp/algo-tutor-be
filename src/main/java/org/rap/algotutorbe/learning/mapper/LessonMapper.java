@@ -17,6 +17,26 @@ import java.util.List;
         uses = {TestCaseMapper.class, QuizQuestionMapper.class},
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface LessonMapper {
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "orderIndex", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
+    @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "editorials", ignore = true)
+    @Mapping(target = "submissions", ignore = true)
+    CodingLesson toEntity(CodingLessonRequestDTO request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "orderIndex", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
+    @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "attempts", ignore = true)
+    QuizLesson toEntity(QuizLessonRequestDTO request);
 
     TheoryLessonResponseDTO toTheoryResponse(TheoryLesson lesson);
 
@@ -27,41 +47,30 @@ public interface LessonMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true)
     @Mapping(target = "slug", ignore = true)
     @Mapping(target = "isPublished", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
-    void updateFromRequest(LessonRequestDTO request, @MappingTarget Lesson lesson);
+    @Mapping(target = "topic", ignore = true)
+    void updateTheoryFromDTO(TheoryLessonRequestDTO request, @MappingTarget TheoryLesson lesson);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true)
     @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "attempts", ignore = true)
     @Mapping(target = "isPublished", ignore = true)
+    void updateQuizFromDTO(QuizLessonRequestDTO request, @MappingTarget QuizLesson lesson);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "topic", ignore = true)
     @Mapping(target = "editorials", ignore = true)
     @Mapping(target = "submissions", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
-    void updateFromRequest(CodingLessonRequestDTO request, @MappingTarget CodingLesson lesson);
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true)
-    @Mapping(target = "slug", ignore = true)
     @Mapping(target = "isPublished", ignore = true)
-    @Mapping(target = "attempts", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
-    void updateFromRequest(QuizLessonRequestDTO request, @MappingTarget QuizLesson lesson);
+    void updateCodingFromDTO(CodingLessonRequestDTO request, @MappingTarget CodingLesson lesson);
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "topic", ignore = true)
-    @Mapping(target = "slug", ignore = true)
-    @Mapping(target = "isPublished", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
-    void updateFromRequest(TheoryLessonRequestDTO request, @MappingTarget TheoryLesson lesson);
 
     default LessonResponseDTO toResponse(Lesson lesson) {
         if (lesson == null) return null;

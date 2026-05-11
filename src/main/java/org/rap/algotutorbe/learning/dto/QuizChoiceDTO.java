@@ -1,0 +1,13 @@
+package org.rap.algotutorbe.learning.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record QuizChoiceDTO(
+        @NotBlank
+        String text,
+        @NotNull
+        Boolean isCorrect,
+        String explanation
+) {
+}

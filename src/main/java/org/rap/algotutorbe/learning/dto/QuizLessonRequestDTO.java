@@ -8,7 +8,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class QuizLessonRequestDTO extends LessonRequestDTO {
-    private List<QuizQuestionDTO> questions;
     private Integer passingScore;
     private Integer timeLimitMinutes;
+    private List<QuizQuestionDTO> questions;
 }

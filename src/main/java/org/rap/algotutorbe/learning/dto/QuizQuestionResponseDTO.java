@@ -11,6 +11,6 @@ public record QuizQuestionResponseDTO(
         Integer points,
         String explanation,
         Integer orderIndex,
-        List<QuizChoiceResponseDTO> choices
+        List<QuizChoiceDTO> choices
 ) {
 }

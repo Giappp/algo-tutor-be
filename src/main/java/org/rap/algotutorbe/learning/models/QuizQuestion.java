@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.rap.algotutorbe.common.domain.BaseEntity;
 import org.rap.algotutorbe.learning.mapper.QuestionType;
 
@@ -36,8 +38,8 @@ public class QuizQuestion extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String explanation;
 
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderColumn(name = "choice_order")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "choices", columnDefinition = "jsonb")
     private List<QuizChoice> choices = new ArrayList<>();
 
 }

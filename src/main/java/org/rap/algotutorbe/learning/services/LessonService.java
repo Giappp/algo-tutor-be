@@ -9,7 +9,6 @@ import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.common.services.SlugGenerator;
 import org.rap.algotutorbe.learning.dto.*;
 import org.rap.algotutorbe.learning.mapper.LessonMapper;
-import org.rap.algotutorbe.learning.mapper.QuestionType;
 import org.rap.algotutorbe.learning.models.*;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.rap.algotutorbe.learning.repositories.TopicRepository;
@@ -20,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -36,14 +36,13 @@ public class LessonService {
         if (request.getType() == null) {
             throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
         }
-
         Lesson lesson = buildLesson(request);
         lesson.setTopic(topic);
         lesson.setOrderIndex(lessonRepository.getNextOrderIndex(topicId));
+        lesson.setTopic(topic);
 
-        topic.getLessons().add(lesson);
-        topicRepository.save(topic);
-        return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(lesson));
+        Lesson saved = lessonRepository.save(lesson);
+        return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(saved));
     }
 
     private Topic getOrThrowTopic(Long topicId) {
@@ -64,32 +63,32 @@ public class LessonService {
                 if (!(lesson instanceof TheoryLesson)) {
                     throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
                 }
-                lessonMapper.updateFromRequest(request, lesson);
+                updateTheory((TheoryLesson) lesson, (TheoryLessonRequestDTO) request);
             }
             case QUIZ -> {
                 if (!(lesson instanceof QuizLesson)) {
                     throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
                 }
-                lessonMapper.updateFromRequest(request, lesson);
+                lessonMapper.updateQuizFromDTO((QuizLessonRequestDTO) request, (QuizLesson) lesson);
             }
             case CODING -> {
                 if (!(lesson instanceof CodingLesson)) {
                     throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
                 }
-                lessonMapper.updateFromRequest(request, lesson);
+                lessonMapper.updateCodingFromDTO((CodingLessonRequestDTO) request, (CodingLesson) lesson);
             }
         }
 
-        if (request.getTitle() != null && !request.getTitle().isBlank()) {
-            lesson.setTitle(request.getTitle());
-            lesson.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
-        }
-        if (request.getDifficulty() != null) {
-            lesson.setDifficulty(request.getDifficulty());
-        }
+        lesson.setTitle(request.getTitle());
+        lesson.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
+        lesson.setDifficulty(request.getDifficulty());
 
         Lesson saved = lessonRepository.save(lesson);
         return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(saved));
+    }
+
+    private void updateTheory(TheoryLesson lesson, TheoryLessonRequestDTO request) {
+        lesson.setContent(request.getContent());
     }
 
     @Transactional
@@ -174,13 +173,8 @@ public class LessonService {
     }
 
     private CodingLesson createCodingLesson(CodingLessonRequestDTO request) {
-        CodingLesson lesson = new CodingLesson();
-        lesson.setTitle(request.getTitle());
+        CodingLesson lesson = lessonMapper.toEntity(request);
         lesson.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
-        lesson.setStatement(request.getStatement());
-        lesson.setType(request.getType());
-        lesson.setDifficulty(request.getDifficulty());
-        lesson.setStarterCode(request.getStarterCode());
         lesson.setConstraints(request.getConstraints() != null
                 ? request.getConstraints()
                 : new ArrayList<>());
@@ -189,56 +183,18 @@ public class LessonService {
         lesson.setBaseTimeLimitMs(request.getBaseTimeLimitMs() != null ? request.getBaseTimeLimitMs() : 2000);
         lesson.setBaseMemoryLimitMb(request.getBaseMemoryLimitMb() != null ? request.getBaseMemoryLimitMb() : 256);
 
-        if (request.getTestCases() != null) {
-            List<Testcase> testCases = request.getTestCases().stream().map(dto -> {
-                Testcase tc = new Testcase();
-                tc.setStdin(dto.stdin());
-                tc.setExpectedStdout(dto.expectedStdout());
-                tc.setIsHidden(dto.isHidden() != null && dto.isHidden());
-                tc.setOrderIndex(dto.orderIndex() != null ? dto.orderIndex() : 0);
-                tc.setExplanation(dto.explanation());
-                tc.setCodingLesson(lesson);
-                return tc;
-            }).toList();
-            lesson.setTestCases(testCases);
-        }
-
         return lesson;
     }
 
     private QuizLesson createQuizLesson(QuizLessonRequestDTO request) {
-        QuizLesson quiz = new QuizLesson();
-        quiz.setTitle(request.getTitle());
+        QuizLesson quiz = lessonMapper.toEntity(request);
         quiz.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
-        quiz.setType(request.getType());
-        quiz.setDifficulty(request.getDifficulty());
-        quiz.setPassingScore(request.getPassingScore() != null ? request.getPassingScore() : 70);
-        quiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
-
-        if (request.getQuestions() != null) {
-            List<QuizQuestion> questions = new ArrayList<>();
-            for (QuizQuestionDTO q : request.getQuestions()) {
-                QuizQuestion question = new QuizQuestion();
-                question.setQuiz(quiz);
-                question.setQuestion(q.question());
-                question.setType(q.type() != null ? q.type() : QuestionType.SINGLE_CHOICE);
-                question.setPoints(q.points() != null ? q.points() : 1);
-                question.setOrderIndex(questions.size() + 1);
-                question.setExplanation(q.explanation());
-                if (q.choices() != null) {
-                    for (QuizChoiceRequestDTO c : q.choices()) {
-                        QuizChoice choice = new QuizChoice();
-                        choice.setText(c.text());
-                        choice.setIsCorrect(c.isCorrect() != null && c.isCorrect());
-                        choice.setExplanation(c.explanation());
-                        question.getChoices().add(choice);
-                    }
-                }
-                questions.add(question);
-            }
-            quiz.setQuestions(questions);
-        }
-
+        AtomicInteger index = new AtomicInteger(1);
+        quiz.getQuestions()
+                .forEach(question -> {
+                    question.setQuiz(quiz);
+                    question.setOrderIndex(index.getAndIncrement());
+                });
         return quiz;
     }
 

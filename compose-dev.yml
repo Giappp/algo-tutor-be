@@ -67,6 +67,20 @@ services:
     profiles:
       - tools
 
+  judge:
+    image: ghcr.io/engineer-man/piston
+    container_name: piston_api
+    restart: always
+    privileged: true
+    ports:
+      - "2000:2000"
+    volumes:
+      - ./data/piston/packages:/piston/packages
+    tmpfs:
+      - /tmp:exec
+    networks:
+      - oj-dev-net
+
 networks:
   oj-dev-net:
     driver: bridge

@@ -6,16 +6,12 @@ import org.jspecify.annotations.Nullable;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
-import org.rap.algotutorbe.learning.dto.QuizChoiceRequestDTO;
 import org.rap.algotutorbe.learning.dto.QuizQuestionDTO;
 import org.rap.algotutorbe.learning.dto.QuizQuestionResponseDTO;
-import org.rap.algotutorbe.learning.mapper.QuizChoiceMapper;
 import org.rap.algotutorbe.learning.mapper.QuizQuestionMapper;
-import org.rap.algotutorbe.learning.models.QuizChoice;
 import org.rap.algotutorbe.learning.models.QuizLesson;
 import org.rap.algotutorbe.learning.models.QuizQuestion;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
-import org.rap.algotutorbe.learning.repositories.QuizChoiceRepository;
 import org.rap.algotutorbe.learning.repositories.QuizQuestionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,10 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class QuizService {
     private final QuizQuestionRepository quizQuestionRepository;
-    private final QuizChoiceRepository quizChoiceRepository;
     private final LessonRepository lessonRepository;
     private final QuizQuestionMapper quizQuestionMapper;
-    private final QuizChoiceMapper quizChoiceMapper;
 
     @Transactional
     public @Nullable ApiResponse<QuizQuestionResponseDTO> addQuestion(Long quizLessonId, @Valid QuizQuestionDTO request) {
@@ -37,15 +31,7 @@ public class QuizService {
 
         QuizQuestion question = quizQuestionMapper.toEntity(request);
         question.setQuiz(quiz);
-        question.setOrderIndex(quiz.getQuestions().size() + 1);
-
-        if (request.choices() != null) {
-            for (QuizChoiceRequestDTO choiceDto : request.choices()) {
-                QuizChoice choice = quizChoiceMapper.toEntity(choiceDto);
-                choice.setQuestion(question);
-                question.getChoices().add(choice);
-            }
-        }
+        question.setOrderIndex(quizQuestionRepository.findNextOrderIndex(quizLessonId));
 
         quiz.getQuestions().add(question);
         QuizQuestion saved = quizQuestionRepository.save(question);
@@ -56,16 +42,6 @@ public class QuizService {
     public @Nullable ApiResponse<QuizQuestionResponseDTO> updateQuestion(Long questionId, @Valid QuizQuestionDTO request) {
         QuizQuestion question = getOrThrow(questionId);
         quizQuestionMapper.updateEntity(question, request);
-
-        if (request.choices() != null) {
-            question.getChoices().clear();
-            for (QuizChoiceRequestDTO choiceDto : request.choices()) {
-                QuizChoice choice = quizChoiceMapper.toEntity(choiceDto);
-                choice.setQuestion(question);
-                question.getChoices().add(choice);
-            }
-        }
-
         QuizQuestion saved = quizQuestionRepository.save(question);
         return ApiResponse.buildSuccess(quizQuestionMapper.toResponse(saved));
     }
@@ -81,22 +57,7 @@ public class QuizService {
     public @Nullable ApiResponse<List<QuizQuestionResponseDTO>> getQuestionsByQuizLessonId(Long quizLessonId) {
         getQuizLessonOrThrow(quizLessonId);
         List<QuizQuestion> questions = quizQuestionRepository.findByQuizIdOrderByOrderIndex(quizLessonId);
-        List<QuizQuestionResponseDTO> responses = questions.stream()
-                .map(q -> new QuizQuestionResponseDTO(
-                        q.getId(),
-                        q.getQuestion(),
-                        q.getType(),
-                        q.getPoints(),
-                        q.getExplanation(),
-                        q.getOrderIndex(),
-                        q.getChoices().stream()
-                                .map(c -> new org.rap.algotutorbe.learning.dto.QuizChoiceResponseDTO(
-                                        c.getId(),
-                                        c.getText(),
-                                        c.getExplanation()))
-                                .toList()))
-                .toList();
-        return ApiResponse.buildSuccess(responses);
+        return ApiResponse.buildSuccess(quizQuestionMapper.toResponseList(questions));
     }
 
     private QuizLesson getQuizLessonOrThrow(Long lessonId) {
