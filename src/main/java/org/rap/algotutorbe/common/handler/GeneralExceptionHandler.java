@@ -13,6 +13,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -48,7 +49,7 @@ public class GeneralExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorResponse.buildError(errors, ErrorCode.INVALID_PAYLOAD.getCode()));
     }
 
-    @ExceptionHandler(AuthorizationDeniedException.class)
+    @ExceptionHandler(exception = {AuthorizationDeniedException.class, InsufficientAuthenticationException.class})
     public ResponseEntity<ErrorResponse<Object>> handleAuthorizationDenied(AuthorizationDeniedException ex) {
         log.error(ex.getMessage(), ex);
         String message = resolveMessage(ErrorCode.NEED_AUTHENTICATION);
@@ -122,7 +123,6 @@ public class GeneralExceptionHandler {
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau", null);
     }
 
-    // Hàm tiện ích để build JSON body thống nhất
     private ResponseEntity<Object> buildErrorResponse(HttpStatus status, String errorCode, String message, Object details) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());

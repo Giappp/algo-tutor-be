@@ -30,7 +30,6 @@ import java.time.Instant;
 @Service
 @Slf4j
 public class AuthService extends BaseService {
-    private final UserService userService;
     private final JwtUtil jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
@@ -41,7 +40,7 @@ public class AuthService extends BaseService {
     public TokenResponse processSignIn(SignInRequest payload) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(payload.userName(), payload.password())
+                    new UsernamePasswordAuthenticationToken(payload.username(), payload.password())
             );
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -60,7 +59,7 @@ public class AuthService extends BaseService {
 
     private User buildUserEntity(SignUpRequest request) {
         User user = new User();
-        user.setUserName(request.userName());
+        user.setUsername(request.username());
         user.setEmail(request.email());
         user.setPasswordHashed(passwordEncoder.encode(request.password()));
         return user;
@@ -99,7 +98,7 @@ public class AuthService extends BaseService {
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new AppException(ErrorCode.EMAIL_ALREADY_INUSE);
         }
-        if (userRepository.findByUserName(request.userName()).isPresent()) {
+        if (userRepository.findByUsername(request.username()).isPresent()) {
             throw new AppException(ErrorCode.USERNAME_TAKEN);
         }
         if (!request.password().equals(request.confirmPassword())) {
@@ -109,6 +108,8 @@ public class AuthService extends BaseService {
 
     public UserResponse getUserInfo() {
         User user = getCurrentUserOrThrow();
+        UserResponse response = userMapper.toResponse(user);
+        response.setRole(user.getRole().getName());
         return userMapper.toResponse(user);
     }
 
@@ -116,7 +117,7 @@ public class AuthService extends BaseService {
         User user = getCurrentUserOrThrow();
         return new UserProfileResponse(
                 user.getId(),
-                user.getUserName(),
+                user.getUsername(),
                 user.getEmail(),
                 null
         );

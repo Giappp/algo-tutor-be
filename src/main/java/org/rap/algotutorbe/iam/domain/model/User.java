@@ -19,14 +19,15 @@ public class User extends BaseUuidEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     List<RefreshToken> sessions = new ArrayList<>();
     @Column(name = "username", nullable = false, unique = true)
-    private String userName;
+    private String username;
     @Column(nullable = false, unique = true)
     private String email;
     @Column(name = "password_hash")
     private String passwordHashed;
-    private Integer totalSolved;
 
-    private boolean isEnabled;
+    private boolean enabled;
+
+    private String avatar;
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;

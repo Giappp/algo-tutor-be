@@ -14,10 +14,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u from User u where u.email = :email")
     Optional<User> findByEmail(@Param("email") String email);
 
-    @Query("SELECT u from User u left join fetch u.role where u.userName = :userName")
-    Optional<User> findByUserNameWithRole(@Param("userName") String userName);
+    @Query("SELECT u from User u left join fetch u.role where u.username = :username")
+    Optional<User> findByUserNameWithRole(@Param("username") String username);
 
-    Optional<User> findByUserName(String userName);
+    Optional<User> findByUsername(String username);
 
-    boolean existsByUserName(String userName);
+    boolean existsByUsername(String username);
 }

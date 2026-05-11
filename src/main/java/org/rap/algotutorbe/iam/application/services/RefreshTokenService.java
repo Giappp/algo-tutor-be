@@ -115,7 +115,7 @@ public class RefreshTokenService {
      * Chỉ chịu trách nhiệm: Query User từ DB
      */
     private User getUserByUsername(String username) {
-        return userRepository.findByUserName(username)
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 

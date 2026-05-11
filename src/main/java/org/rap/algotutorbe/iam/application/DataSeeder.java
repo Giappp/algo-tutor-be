@@ -55,19 +55,18 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedUser(String userName, String email, String password, RoleCode roleCode) {
         // Kiểm tra xem user đã tồn tại chưa để tránh lỗi Unique Constraint
-        if (!userRepository.existsByUserName(userName)) {
+        if (!userRepository.existsByUsername(userName)) {
 
             // Tìm Role tương ứng từ Database
             Role userRole = roleRepository.findByCode(roleCode)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy Role: " + roleCode));
 
             User user = new User();
-            user.setUserName(userName);
+            user.setUsername(userName);
             user.setEmail(email);
             user.setPasswordHashed(password);
-            user.setTotalSolved(0);
             user.setEnabled(true);
-            user.setRole(userRole); // Gán quan hệ ManyToOne
+            user.setRole(userRole);
 
             userRepository.save(user);
             log.info("Đã tạo mới user: {} với quyền: {}", userName, roleCode);

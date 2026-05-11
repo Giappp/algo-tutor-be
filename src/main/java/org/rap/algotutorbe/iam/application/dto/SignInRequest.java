@@ -4,6 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.NonNull;
 import org.rap.algotutorbe.iam.infrastructure.annotations.Password;
 
-public record SignInRequest(@NonNull @NotBlank String userName,
+public record SignInRequest(@NonNull @NotBlank String username,
                             @NonNull @Password String password) {
 }
