@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.learning.dto;
+package org.rap.algotutorbe.learning.dto.landing;
 
 /**
  * Public-safe response DTO for test cases.

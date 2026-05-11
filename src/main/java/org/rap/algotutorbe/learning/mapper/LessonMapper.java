@@ -6,6 +6,8 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.rap.algotutorbe.common.config.GlobalMapperConfig;
 import org.rap.algotutorbe.learning.dto.*;
+import org.rap.algotutorbe.learning.dto.landing.PublicCodingLessonResponseDTO;
+import org.rap.algotutorbe.learning.dto.landing.PublicTestCaseResponseDTO;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.learning.models.QuizLesson;

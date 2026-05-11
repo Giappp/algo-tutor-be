@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -34,4 +35,7 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, Long
 
     @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.level = :level AND LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
     Page<LearningPath> findByDeletedFalseAndLevelAndSearch(@Param("level") Level level, @Param("search") String search, Pageable pageable);
+
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.isPublished = true")
+    List<LearningPath> findByDeletedFalseAndIsPublishedTrue();
 }

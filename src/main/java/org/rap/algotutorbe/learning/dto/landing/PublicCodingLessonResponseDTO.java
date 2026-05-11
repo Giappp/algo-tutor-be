@@ -1,5 +1,6 @@
-package org.rap.algotutorbe.learning.dto;
+package org.rap.algotutorbe.learning.dto.landing;
 
+import org.rap.algotutorbe.learning.dto.EditorialResponseDTO;
 import org.rap.algotutorbe.learning.models.ProblemExample;
 
 import java.util.List;
