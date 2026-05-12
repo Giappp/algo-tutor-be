@@ -29,7 +29,7 @@ public enum ErrorCode {
     SUBMISSION_TIMEOUT(3004, "errors.submission-timeout", HttpStatus.REQUEST_TIMEOUT),
     SUBMISSION_TESTCASE_ERROR(3005, "errors.submission-testcase-error", HttpStatus.BAD_REQUEST),
     UNSUPPORTED_PROGRAMMING_LANGUAGE(3006, "errors.unsupported-programming-language", HttpStatus.BAD_REQUEST),
-
+    // Learning Path Errors
     LEARNING_PATH_NOT_FOUND(4000, "errors.learning-path-not-found", HttpStatus.NOT_FOUND),
     LEARNING_PATH_SLUG_ALREADY_EXISTS(4001, "errors.learning-path-slug-already-exists", HttpStatus.CONFLICT),
     TOPIC_NOT_FOUND(4002, "errors.topic-not-found", HttpStatus.NOT_FOUND),
@@ -46,6 +46,9 @@ public enum ErrorCode {
     EDITORIAL_NOT_IN_LESSON(4013, "errors.editorial-not-in-lesson", HttpStatus.BAD_REQUEST),
     QUIZ_LESSON_REQUIRED(4014, "errors.quiz-lesson-required", HttpStatus.BAD_REQUEST),
     CODING_LESSON_REQUIRED(4015, "errors.coding-lesson-required", HttpStatus.BAD_REQUEST),
+
+    // Enroll Errors
+    ALREADY_ENROLL(5000, "errors.already-enroll", HttpStatus.CONFLICT),
 
     INTERNAL_SERVER_ERROR(9999, "errors.server-error", HttpStatus.INTERNAL_SERVER_ERROR);
 

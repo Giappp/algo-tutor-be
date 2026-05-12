@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseUuidEntity;
 import org.rap.algotutorbe.learning.models.Enrollment;
+import org.rap.algotutorbe.learning.models.LessonProgress;
 import org.rap.algotutorbe.learning.models.QuizAttempt;
 import org.rap.algotutorbe.submission.entities.Submission;
 
@@ -40,5 +41,14 @@ public class User extends BaseUuidEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuizAttempt> quizAttempts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<LessonProgress> lessonProgresses = new ArrayList<>();
+    
+    public long getTotalCompletedLessons() {
+        return this.lessonProgresses.stream()
+                .filter(LessonProgress::getIsCompleted)
+                .count();
+    }
 
 }

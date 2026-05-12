@@ -7,7 +7,6 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.rap.algotutorbe.common.domain.BaseEntity;
-import org.rap.algotutorbe.learning.mapper.QuestionType;
 
 import java.util.ArrayList;
 import java.util.List;

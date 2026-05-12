@@ -37,10 +37,6 @@ public class BaseService {
                 .orElseThrow(() -> new AppException(ErrorCode.ACCESS_DENIED));
     }
 
-    protected Optional<UUID> getCurrentUserId() {
-        return getCurrentUser().map(SecurityUser::getId);
-    }
-
     protected String getCurrentUserNameOrThrow() {
         return getCurrentUser()
                 .map(SecurityUser::getUsername)

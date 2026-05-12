@@ -1,6 +1,6 @@
 package org.rap.algotutorbe.learning.dto;
 
-import org.rap.algotutorbe.learning.mapper.QuestionType;
+import org.rap.algotutorbe.learning.models.QuestionType;
 
 import java.util.List;
 

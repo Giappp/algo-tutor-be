@@ -27,9 +27,6 @@ public class Topic extends BaseEntity {
     @Column(name = "scope_tags", length = 500)
     private String scopeTags;
 
-    /**
-     * If true, user must complete the previous topic to access this one.
-     */
     @Column(name = "is_locked", nullable = false)
     private Boolean isLocked = true;
 

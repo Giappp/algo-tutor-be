@@ -18,8 +18,8 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, Long
 
     boolean existsBySlug(String slug);
 
-    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.slug = :slug")
-    Optional<LearningPath> findBySlug(@Param("slug") String slug);
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.slug = :slug AND lp.isPublished = true")
+    Optional<LearningPath> findBySlugAndNotDeleted(@Param("slug") String slug);
 
     @EntityGraph(attributePaths = {"topics", "topics.lessons"})
     @Query("SELECT lp FROM LearningPath lp WHERE lp.id = :id AND lp.deleted = false")

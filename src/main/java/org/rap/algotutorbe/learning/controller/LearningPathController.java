@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.api.PageResponse;
+import org.rap.algotutorbe.learning.dto.EnrollmentResponseDTO;
 import org.rap.algotutorbe.learning.dto.LearningPathRequestDTO;
 import org.rap.algotutorbe.learning.dto.LearningPathResponseDTO;
 import org.rap.algotutorbe.learning.enums.Level;
@@ -62,5 +63,11 @@ public class LearningPathController {
     @GetMapping("/public/{slug}")
     public ResponseEntity<ApiResponse<LearningPathResponseDTO>> getLearningPathBySlug(@PathVariable String slug) {
         return ResponseEntity.ok(learningPathService.getBySlug(slug));
+    }
+
+    @PostMapping("/{slug}/enroll")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<EnrollmentResponseDTO>> enroll(@PathVariable String slug) {
+        return ResponseEntity.ok(learningPathService.enroll(slug));
     }
 }

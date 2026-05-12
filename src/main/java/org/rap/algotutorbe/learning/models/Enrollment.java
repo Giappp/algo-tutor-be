@@ -11,7 +11,9 @@ import org.rap.algotutorbe.learning.enums.EnrollmentStatus;
 import java.time.Instant;
 
 @Entity
-@Table(name = "enrollments")
+@Table(name = "enrollments", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "learning_path_id"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,11 +26,16 @@ public class Enrollment extends BaseUuidEntity {
     @JoinColumn(name = "learning_path_id", nullable = false)
     private LearningPath learningPath;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
+    @Column(name = "progress_percentage")
+    private Double progressPercentage = 0.0;
 
+    @Column(name = "enrolled_at")
+    private Instant enrolledAt = Instant.now();
 
     @Column(name = "completed_at")
     private Instant completedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private EnrollmentStatus status = EnrollmentStatus.IN_PROGRESS;
 }

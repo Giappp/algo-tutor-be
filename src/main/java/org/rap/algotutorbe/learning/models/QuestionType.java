@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.learning.mapper;
+package org.rap.algotutorbe.learning.models;
 
 public enum QuestionType {
     MULTIPLE_CHOICE,
