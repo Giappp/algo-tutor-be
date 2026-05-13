@@ -64,7 +64,7 @@ public class LearningPathService extends BaseService {
         } else if (search != null && !search.isBlank()) {
             page = learningPathRepository.findByDeletedFalseAndSearch(search.trim(), pageable);
         } else {
-            page = learningPathRepository.findByDeletedFalse(pageable);
+            page = learningPathRepository.findAll(pageable);
         }
         return PageResponse.of(page.map(learningPathMapper::toResponse));
     }
@@ -86,7 +86,6 @@ public class LearningPathService extends BaseService {
     @Transactional
     public @Nullable ApiResponse<String> delete(Long id) {
         LearningPath learningPath = getOrThrow(id);
-        learningPath.setDeleted(true);
         learningPathRepository.save(learningPath);
         return ApiResponse.buildMessage("Learning path deleted successfully");
     }

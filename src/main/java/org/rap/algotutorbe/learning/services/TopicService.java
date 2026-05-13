@@ -31,7 +31,7 @@ public class TopicService {
                 .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
 
         Topic topic = topicMapper.toEntity(request);
-        topic.setOrderIndex(topicRepository.getNextOrderIndex(learningPathId));
+        topic.setDisplayOrder(topicRepository.getNextDisplayOrder(learningPathId));
         topic.setLearningPath(learningPath);
         learningPath.getTopics().add(topic);
 
@@ -65,7 +65,7 @@ public class TopicService {
         if (!learningPathRepository.existsById(learningPathId)) {
             throw new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND);
         }
-        List<Topic> topics = topicRepository.findByLearningPathIdOrderByOrderIndex(learningPathId);
+        List<Topic> topics = topicRepository.findByLearningPathIdOrderByDisplayOrder(learningPathId);
         List<TopicResponseDTO> responses = topics.stream()
                 .map(topicMapper::toResponse)
                 .toList();

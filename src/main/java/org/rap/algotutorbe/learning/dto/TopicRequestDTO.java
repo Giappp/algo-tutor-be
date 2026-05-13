@@ -1,5 +1,5 @@
 package org.rap.algotutorbe.learning.dto;
 
-public record TopicRequestDTO(String name, String description, String scopeTags,
+public record TopicRequestDTO(String name, String description,
                               Boolean isLocked) {
 }

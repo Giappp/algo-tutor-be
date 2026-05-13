@@ -28,5 +28,5 @@ public abstract class LessonRequestDTO {
     private LessonType type;
     @NotNull
     private Difficulty difficulty;
-    private Integer orderIndex;
+    private Integer displayOrder;
 }

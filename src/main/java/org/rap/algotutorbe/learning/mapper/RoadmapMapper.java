@@ -19,7 +19,6 @@ public interface RoadmapMapper {
         }
         return learningPath.getTopics().stream()
                 .flatMap(topic -> topic.getLessons().stream())
-                .filter(lesson -> Boolean.TRUE.equals(lesson.getIsPublished()))
                 .mapToInt(lesson -> 1)
                 .sum();
     }

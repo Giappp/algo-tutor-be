@@ -25,7 +25,6 @@ public interface LearningPathMapper {
         if (lp.getTopics() == null) return 0;
         return lp.getTopics().stream()
                 .flatMap(t -> t.getLessons() != null ? t.getLessons().stream() : java.util.stream.Stream.empty())
-                .filter(l -> Boolean.TRUE.equals(l.getIsPublished()))
                 .mapToInt(l -> 1)
                 .sum();
     }
@@ -33,7 +32,6 @@ public interface LearningPathMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "topics", ignore = true)
     @Mapping(target = "enrollments", ignore = true)
     @Mapping(target = "slug", ignore = true)
@@ -43,7 +41,6 @@ public interface LearningPathMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "topics", ignore = true)
     @Mapping(target = "enrollments", ignore = true)
     @Mapping(target = "slug", ignore = true)

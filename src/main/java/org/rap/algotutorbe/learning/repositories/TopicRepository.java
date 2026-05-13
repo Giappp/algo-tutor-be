@@ -11,8 +11,8 @@ import java.util.List;
 @Repository
 public interface TopicRepository extends JpaRepository<Topic, Long> {
 
-    List<Topic> findByLearningPathIdOrderByOrderIndex(Long learningPathId);
+    List<Topic> findByLearningPathIdOrderByDisplayOrder(Long learningPathId);
 
-    @Query("SELECT COALESCE(MAX(t.orderIndex), 0) + 1 FROM Topic t WHERE t.learningPath.id = :learningPathId")
-    int getNextOrderIndex(@Param("learningPathId") Long learningPathId);
+    @Query("SELECT COALESCE(MAX(t.displayOrder), 0) + 1 FROM Topic t WHERE t.learningPath.id = :learningPathId")
+    int getNextDisplayOrder(@Param("learningPathId") Long learningPathId);
 }

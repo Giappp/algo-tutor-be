@@ -14,7 +14,7 @@ public interface TopicMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
+    @Mapping(target = "displayOrder", ignore = true)
     @Mapping(target = "learningPath", ignore = true)
     @Mapping(target = "lessons", ignore = true)
     Topic toEntity(TopicRequestDTO request);
@@ -22,7 +22,7 @@ public interface TopicMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
+    @Mapping(target = "displayOrder", ignore = true)
     @Mapping(target = "learningPath", ignore = true)
     @Mapping(target = "lessons", ignore = true)
     void updateEntity(@MappingTarget Topic entity, TopicRequestDTO request);

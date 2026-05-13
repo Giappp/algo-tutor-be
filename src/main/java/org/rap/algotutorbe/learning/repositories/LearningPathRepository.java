@@ -18,24 +18,22 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, Long
 
     boolean existsBySlug(String slug);
 
-    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.slug = :slug AND lp.isPublished = true")
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.slug = :slug AND lp.isPublished = true")
     Optional<LearningPath> findBySlugAndNotDeleted(@Param("slug") String slug);
 
     @EntityGraph(attributePaths = {"topics", "topics.lessons"})
-    @Query("SELECT lp FROM LearningPath lp WHERE lp.id = :id AND lp.deleted = false")
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.id = :id ")
     Optional<LearningPath> findByIdWithTopicsAndLessons(@Param("id") Long id);
 
-    Page<LearningPath> findByDeletedFalse(Pageable pageable);
-
-    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.level = :level")
+    @Query("SELECT lp FROM LearningPath lp WHERE  lp.level = :level")
     Page<LearningPath> findByDeletedFalseAndLevel(@Param("level") Level level, Pageable pageable);
 
-    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
+    @Query("SELECT lp FROM LearningPath lp WHERE  LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
     Page<LearningPath> findByDeletedFalseAndSearch(@Param("search") String search, Pageable pageable);
 
-    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.level = :level AND LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
+    @Query("SELECT lp FROM LearningPath lp WHERE  lp.level = :level AND LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
     Page<LearningPath> findByDeletedFalseAndLevelAndSearch(@Param("level") Level level, @Param("search") String search, Pageable pageable);
 
-    @Query("SELECT lp FROM LearningPath lp WHERE lp.deleted = false AND lp.isPublished = true")
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.isPublished = true")
     List<LearningPath> findByDeletedFalseAndIsPublishedTrue();
 }

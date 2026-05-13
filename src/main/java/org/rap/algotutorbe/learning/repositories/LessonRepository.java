@@ -18,11 +18,9 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     boolean existsBySlug(String slug);
 
-    @Query("SELECT COALESCE(MAX(l.orderIndex), 0) + 1 FROM Lesson l WHERE l.topic.id = :topicId")
-    int getNextOrderIndex(@Param("topicId") Long topicId);
+    @Query("SELECT COALESCE(MAX(l.displayOrder), 0) + 1 FROM Lesson l WHERE l.topic.id = :topicId")
+    int getNextDisplayOrder(@Param("topicId") Long topicId);
 
-    Page<Lesson> findByTopicIdOrderByOrderIndex(Long topicId, Pageable pageable);
-
-    @Query("SELECT l FROM Lesson l WHERE l.topic.id = :topicId AND l.isPublished = true ORDER BY l.orderIndex")
-    Page<Lesson> findByTopicIdAndPublishedTrueOrderByOrderIndex(@Param("topicId") Long topicId, Pageable pageable);
+    @Query("SELECT l FROM Lesson l WHERE l.topic.id = :topicId ORDER BY l.displayOrder")
+    Page<Lesson> findByTopicIdOrderByOrderIndex(@Param("topicId") Long topicId, Pageable pageable);
 }

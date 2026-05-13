@@ -10,8 +10,7 @@ public record LessonResponseDTO(
         String title,
         String slug,
         LessonType type,
-        Integer orderIndex,
-        Boolean isPublished,
+        Integer displayOrder,
         Difficulty difficulty,
         Instant createdAt,
         Instant updatedAt

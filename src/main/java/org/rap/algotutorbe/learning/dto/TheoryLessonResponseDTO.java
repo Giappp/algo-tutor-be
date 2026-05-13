@@ -5,8 +5,7 @@ public record TheoryLessonResponseDTO(
         String title,
         String content,
         String type,
-        Integer orderIndex,
-        Boolean isPublished,
+        Integer displayOrder,
         String difficulty
 ) {
 }

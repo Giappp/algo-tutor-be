@@ -13,14 +13,14 @@ public record LearningPathResponseDTO(
         String description,
         String goal,
         String thumbnailUrl,
-        boolean deleted,
         int topicCount,
         int totalLessonCount,
         int publishedLessonCount,
         int enrollmentCount,
         Boolean isPublished,
+        Boolean isPremium,
+        List<TopicResponseDTO> topics,
         Instant createdAt,
-        Instant updatedAt,
-        List<TopicResponseDTO> topics
+        Instant updatedAt
 ) {
 }

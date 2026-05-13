@@ -21,11 +21,8 @@ public class Topic extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "order_index", nullable = false)
-    private Integer orderIndex;
-
-    @Column(name = "scope_tags", length = 500)
-    private String scopeTags;
+    @Column(name = "display_order", nullable = false)
+    private Integer displayOrder;
 
     @Column(name = "is_locked", nullable = false)
     private Boolean isLocked = true;

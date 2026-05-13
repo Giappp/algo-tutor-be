@@ -18,15 +18,15 @@ public class Lesson extends BaseEntity {
     @Column(nullable = false, length = 200)
     private String title;
 
+    @Column(unique = true)
+    private String slug;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private LessonType type;
 
-    @Column(name = "order_index", nullable = false)
-    private Integer orderIndex;
-
-    @Column(name = "is_published", nullable = false)
-    private Boolean isPublished = false;
+    @Column(name = "display_order", nullable = false)
+    private Integer displayOrder;
 
     @Convert(converter = DifficultyConverter.class)
     @Column(columnDefinition = "varchar(20)")
@@ -35,7 +35,4 @@ public class Lesson extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "topic_id", nullable = false)
     private Topic topic;
-
-    @Column(unique = true)
-    private String slug;
 }

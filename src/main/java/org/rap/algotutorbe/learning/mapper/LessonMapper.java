@@ -23,8 +23,7 @@ public interface LessonMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "slug", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
-    @Mapping(target = "isPublished", ignore = true)
+    @Mapping(target = "displayOrder", ignore = true)
     @Mapping(target = "topic", ignore = true)
     @Mapping(target = "editorials", ignore = true)
     @Mapping(target = "submissions", ignore = true)
@@ -34,8 +33,7 @@ public interface LessonMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "slug", ignore = true)
-    @Mapping(target = "orderIndex", ignore = true)
-    @Mapping(target = "isPublished", ignore = true)
+    @Mapping(target = "displayOrder", ignore = true)
     @Mapping(target = "topic", ignore = true)
     @Mapping(target = "attempts", ignore = true)
     QuizLesson toEntity(QuizLessonRequestDTO request);
@@ -50,7 +48,6 @@ public interface LessonMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "slug", ignore = true)
-    @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "topic", ignore = true)
     void updateTheoryFromDTO(TheoryLessonRequestDTO request, @MappingTarget TheoryLesson lesson);
 
@@ -60,7 +57,6 @@ public interface LessonMapper {
     @Mapping(target = "slug", ignore = true)
     @Mapping(target = "topic", ignore = true)
     @Mapping(target = "attempts", ignore = true)
-    @Mapping(target = "isPublished", ignore = true)
     void updateQuizFromDTO(QuizLessonRequestDTO request, @MappingTarget QuizLesson lesson);
 
     @Mapping(target = "id", ignore = true)
@@ -70,7 +66,6 @@ public interface LessonMapper {
     @Mapping(target = "topic", ignore = true)
     @Mapping(target = "editorials", ignore = true)
     @Mapping(target = "submissions", ignore = true)
-    @Mapping(target = "isPublished", ignore = true)
     void updateCodingFromDTO(CodingLessonRequestDTO request, @MappingTarget CodingLesson lesson);
 
 
@@ -81,8 +76,7 @@ public interface LessonMapper {
                 lesson.getTitle(),
                 lesson.getSlug(),
                 lesson.getType(),
-                lesson.getOrderIndex(),
-                lesson.getIsPublished(),
+                lesson.getDisplayOrder(),
                 lesson.getDifficulty(),
                 lesson.getCreatedAt(),
                 lesson.getUpdatedAt()
@@ -116,8 +110,7 @@ public interface LessonMapper {
                 lesson.getId(),
                 lesson.getTitle(),
                 lesson.getStatement(),
-                lesson.getOrderIndex(),
-                lesson.getIsPublished(),
+                lesson.getDisplayOrder(),
                 lesson.getDifficulty() != null ? lesson.getDifficulty().name() : null,
                 lesson.getBaseTimeLimitMs(),
                 lesson.getBaseMemoryLimitMb(),

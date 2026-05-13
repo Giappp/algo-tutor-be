@@ -38,7 +38,7 @@ public class LessonService {
         }
         Lesson lesson = buildLesson(request);
         lesson.setTopic(topic);
-        lesson.setOrderIndex(lessonRepository.getNextOrderIndex(topicId));
+        lesson.setDisplayOrder(lessonRepository.getNextDisplayOrder(topicId));
         lesson.setTopic(topic);
 
         Lesson saved = lessonRepository.save(lesson);
@@ -107,9 +107,6 @@ public class LessonService {
     @Transactional(readOnly = true)
     public @Nullable ApiResponse<Object> getPublishedById(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
-        if (!Boolean.TRUE.equals(lesson.getIsPublished())) {
-            throw new AppException(ErrorCode.LESSON_NOT_FOUND);
-        }
         return ApiResponse.buildSuccess(buildPublicResponse(lesson));
     }
 
@@ -117,9 +114,6 @@ public class LessonService {
     public @Nullable ApiResponse<Object> getPublishedBySlug(String slug) {
         Lesson lesson = lessonRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
-        if (!Boolean.TRUE.equals(lesson.getIsPublished())) {
-            throw new AppException(ErrorCode.LESSON_NOT_FOUND);
-        }
         return ApiResponse.buildSuccess(buildPublicResponse(lesson));
     }
 
@@ -138,14 +132,12 @@ public class LessonService {
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getByTopicId(Long topicId, boolean publishedOnly, Pageable pageable) {
+    public @Nullable ApiResponse<Object> getByTopicId(Long topicId, Pageable pageable) {
         if (!topicRepository.existsById(topicId)) {
             throw new AppException(ErrorCode.TOPIC_NOT_FOUND);
         }
 
-        Page<Lesson> lessonPage = publishedOnly
-                ? lessonRepository.findByTopicIdAndPublishedTrueOrderByOrderIndex(topicId, pageable)
-                : lessonRepository.findByTopicIdOrderByOrderIndex(topicId, pageable);
+        Page<Lesson> lessonPage = lessonRepository.findByTopicIdOrderByOrderIndex(topicId, pageable);
 
         List<LessonResponseDTO> responses = lessonPage.getContent().stream()
                 .map(lessonMapper::toResponse)
@@ -156,7 +148,6 @@ public class LessonService {
     @Transactional
     public @Nullable ApiResponse<Object> togglePublish(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
-        lesson.setIsPublished(!Boolean.TRUE.equals(lesson.getIsPublished()));
         Lesson saved = lessonRepository.save(lesson);
         return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(saved));
     }

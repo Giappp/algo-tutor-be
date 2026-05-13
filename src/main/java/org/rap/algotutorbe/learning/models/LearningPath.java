@@ -17,6 +17,7 @@ import java.util.Set;
 @Entity
 public class LearningPath extends BaseEntity {
     private String name;
+
     private String slug;
     @Enumerated(EnumType.STRING)
     private Level level;
@@ -28,10 +29,10 @@ public class LearningPath extends BaseEntity {
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
-    private boolean deleted = false;
-
     @Column(name = "is_published", nullable = false)
     private Boolean isPublished = false;
+
+    private Boolean isPremium = false;
 
     @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("orderIndex ASC")

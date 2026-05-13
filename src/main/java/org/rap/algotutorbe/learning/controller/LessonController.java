@@ -40,9 +40,8 @@ public class LessonController {
     @GetMapping("/topics/{topicId}")
     public ResponseEntity<ApiResponse<Object>> getLessonsByTopic(
             @PathVariable Long topicId,
-            @RequestParam(defaultValue = "false") boolean publishedOnly,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(lessonService.getByTopicId(topicId, publishedOnly, pageable));
+        return ResponseEntity.ok(lessonService.getByTopicId(topicId, pageable));
     }
 
     @PutMapping("/{lessonId}")

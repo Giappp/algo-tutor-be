@@ -14,6 +14,9 @@ public class CodingLessonRequestDTO extends LessonRequestDTO {
     @NotNull
     @NotBlank
     private String statement;
+
+    private Integer displayOrder;
+
     @Min(1)
     @Max(300000)
     private Integer baseTimeLimitMs;
