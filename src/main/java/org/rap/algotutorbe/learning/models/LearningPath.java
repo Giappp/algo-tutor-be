@@ -35,7 +35,7 @@ public class LearningPath extends BaseEntity {
     private Boolean isPremium = false;
 
     @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @OrderBy("orderIndex ASC")
+    @OrderBy("displayOrder ASC")
     private Set<Topic> topics = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true)

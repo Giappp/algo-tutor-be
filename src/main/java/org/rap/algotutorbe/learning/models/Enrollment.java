@@ -9,6 +9,8 @@ import org.rap.algotutorbe.iam.domain.model.User;
 import org.rap.algotutorbe.learning.enums.EnrollmentStatus;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "enrollments", uniqueConstraints = {
@@ -38,4 +40,7 @@ public class Enrollment extends BaseUuidEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EnrollmentStatus status = EnrollmentStatus.IN_PROGRESS;
+
+    @OneToMany(mappedBy = "enrollment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<LessonProgress> lessonProgressions = new LinkedHashSet<>();
 }

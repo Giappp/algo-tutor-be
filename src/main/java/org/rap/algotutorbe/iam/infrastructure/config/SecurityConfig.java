@@ -36,6 +36,7 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/landing/**",
+            "/roadmaps/**",
     };
     private static final String[] IGNORE_CSRF_ENDPOINTS = {
             "/api/v1/iam/**",

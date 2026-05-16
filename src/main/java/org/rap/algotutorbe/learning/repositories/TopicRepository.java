@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TopicRepository extends JpaRepository<Topic, Long> {
@@ -15,4 +16,6 @@ public interface TopicRepository extends JpaRepository<Topic, Long> {
 
     @Query("SELECT COALESCE(MAX(t.displayOrder), 0) + 1 FROM Topic t WHERE t.learningPath.id = :learningPathId")
     int getNextDisplayOrder(@Param("learningPathId") Long learningPathId);
+
+    Optional<Topic> findByLearningPathIdAndDisplayOrder(Long learningPathId, Integer displayOrder);
 }

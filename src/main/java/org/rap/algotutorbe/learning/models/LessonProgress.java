@@ -25,9 +25,23 @@ public class LessonProgress extends BaseUuidEntity {
     @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "enrollment_id", nullable = false)
+    private Enrollment enrollment;
+
     @Column(name = "is_completed", nullable = false)
     private Boolean isCompleted = false;
 
     @Column(name = "completed_at")
     private Instant completedAt;
+
+    @PrePersist
+    @PreUpdate
+    protected void syncCompletedAt() {
+        if (Boolean.TRUE.equals(isCompleted) && completedAt == null) {
+            completedAt = Instant.now();
+        } else if (Boolean.FALSE.equals(isCompleted)) {
+            completedAt = null;
+        }
+    }
 }

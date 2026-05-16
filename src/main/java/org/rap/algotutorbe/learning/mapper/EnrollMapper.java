@@ -11,5 +11,6 @@ public interface EnrollMapper {
     @Mapping(target = "userId", expression = "java(enrollment.getUser().getId())")
     @Mapping(target = "learningPathId", expression = "java(enrollment.getLearningPath().getId())")
     @Mapping(target = "learningPathName", expression = "java(enrollment.getLearningPath().getName())")
+    @Mapping(target = "enrolledAt", expression = "java(enrollment.getEnrolledAt())")
     EnrollmentResponseDTO toResponse(Enrollment enrollment);
 }

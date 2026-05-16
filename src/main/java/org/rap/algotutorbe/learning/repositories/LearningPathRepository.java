@@ -19,21 +19,36 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, Long
     boolean existsBySlug(String slug);
 
     @Query("SELECT lp FROM LearningPath lp WHERE lp.slug = :slug AND lp.isPublished = true")
+    Optional<LearningPath> findBySlugAndIsPublishedTrue(@Param("slug") String slug);
+
+    Optional<LearningPath> findBySlug(String slug);
+
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.slug = :slug AND lp.isPublished = true")
     Optional<LearningPath> findBySlugAndNotDeleted(@Param("slug") String slug);
 
     @EntityGraph(attributePaths = {"topics", "topics.lessons"})
-    @Query("SELECT lp FROM LearningPath lp WHERE lp.id = :id ")
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.id = :id")
     Optional<LearningPath> findByIdWithTopicsAndLessons(@Param("id") Long id);
 
-    @Query("SELECT lp FROM LearningPath lp WHERE  lp.level = :level")
+    @EntityGraph(attributePaths = {"topics", "topics.lessons"})
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.slug = :slug AND lp.isPublished = true")
+    Optional<LearningPath> findBySlugWithTopicsAndLessons(@Param("slug") String slug);
+
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.isPublished = true AND (:level IS NULL OR lp.level = :level)")
+    Page<LearningPath> findPublishedByLevel(@Param("level") Level level, Pageable pageable);
+
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.level = :level")
     Page<LearningPath> findByDeletedFalseAndLevel(@Param("level") Level level, Pageable pageable);
 
-    @Query("SELECT lp FROM LearningPath lp WHERE  LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
+    @Query("SELECT lp FROM LearningPath lp WHERE LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
     Page<LearningPath> findByDeletedFalseAndSearch(@Param("search") String search, Pageable pageable);
 
-    @Query("SELECT lp FROM LearningPath lp WHERE  lp.level = :level AND LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
+    @Query("SELECT lp FROM LearningPath lp WHERE lp.level = :level AND LOWER(lp.name) LIKE LOWER(CONCAT('%', :search, '%'))")
     Page<LearningPath> findByDeletedFalseAndLevelAndSearch(@Param("level") Level level, @Param("search") String search, Pageable pageable);
 
     @Query("SELECT lp FROM LearningPath lp WHERE lp.isPublished = true")
     List<LearningPath> findByDeletedFalseAndIsPublishedTrue();
+
+    @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.learningPath.id = :learningPathId AND e.status = 'ACTIVE'")
+    int countActiveEnrollments(@Param("learningPathId") Long learningPathId);
 }

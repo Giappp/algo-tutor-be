@@ -50,6 +50,13 @@ public enum ErrorCode {
     // Enroll Errors
     ALREADY_ENROLL(5000, "errors.already-enroll", HttpStatus.CONFLICT),
 
+    // Roadmap Errors
+    LEARNING_PATH_NOT_PUBLISHED(6000, "errors.learning-path-not-published", HttpStatus.FORBIDDEN),
+    ALREADY_ENROLLED(6001, "errors.already-enrolled", HttpStatus.CONFLICT),
+    NOT_ENROLLED(6002, "errors.not-enrolled", HttpStatus.FORBIDDEN),
+    TOPIC_LOCKED(6003, "errors.topic-locked", HttpStatus.FORBIDDEN),
+    INVALID_PROGRESS_STATUS(6004, "errors.invalid-progress-status", HttpStatus.BAD_REQUEST),
+
     INTERNAL_SERVER_ERROR(9999, "errors.server-error", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final int code;
