@@ -18,9 +18,6 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, Long
 
     boolean existsBySlug(String slug);
 
-    @Query("SELECT lp FROM LearningPath lp WHERE lp.slug = :slug AND lp.isPublished = true")
-    Optional<LearningPath> findBySlugAndIsPublishedTrue(@Param("slug") String slug);
-
     Optional<LearningPath> findBySlug(String slug);
 
     @Query("SELECT lp FROM LearningPath lp WHERE lp.slug = :slug AND lp.isPublished = true")

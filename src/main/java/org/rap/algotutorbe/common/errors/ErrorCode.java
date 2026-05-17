@@ -57,6 +57,14 @@ public enum ErrorCode {
     TOPIC_LOCKED(6003, "errors.topic-locked", HttpStatus.FORBIDDEN),
     INVALID_PROGRESS_STATUS(6004, "errors.invalid-progress-status", HttpStatus.BAD_REQUEST),
 
+    // Rate Limiting
+    RATE_LIMITED(7000, "errors.rate-limited", HttpStatus.TOO_MANY_REQUESTS),
+
+    FILE_EMPTY(9000, "errors.file.empty", HttpStatus.BAD_REQUEST),
+    IMAGE_TYPE_ERROR(9001, "errors.image.type", HttpStatus.BAD_REQUEST),
+    S3_CONNECTION(9002, "errors.s3.connection", HttpStatus.INTERNAL_SERVER_ERROR),
+    S3_UNEXPECTED(9003, "errors.s3.unexpected", HttpStatus.INTERNAL_SERVER_ERROR),
+    FILE_EXCEEDED_SIZE(9004, "errors.file.exceed.size", HttpStatus.BAD_REQUEST),
     INTERNAL_SERVER_ERROR(9999, "errors.server-error", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final int code;

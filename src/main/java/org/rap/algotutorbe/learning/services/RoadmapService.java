@@ -139,6 +139,7 @@ public class RoadmapService extends BaseService {
                     return lp;
                 });
 
+        progress.setStatus(status);
         progress.setIsCompleted(status == ProgressStatus.COMPLETED);
         progress.setCompletedAt(status == ProgressStatus.COMPLETED ? Instant.now() : null);
         lessonProgressRepository.save(progress);
@@ -169,9 +170,7 @@ public class RoadmapService extends BaseService {
 
         List<LessonProgressionDTO> progressions = enrollment.getLessonProgressions().stream()
                 .map(lp -> {
-                    ProgressStatus status = Boolean.TRUE.equals(lp.getIsCompleted())
-                            ? ProgressStatus.COMPLETED
-                            : ProgressStatus.NOT_STARTED;
+                    ProgressStatus status = lp.getEffectiveStatus();
                     return new LessonProgressionDTO(
                             lp.getLesson().getId(),
                             status,
@@ -333,10 +332,7 @@ public class RoadmapService extends BaseService {
     }
 
     private ProgressStatus toProgressStatus(LessonProgress progress) {
-        if (Boolean.TRUE.equals(progress.getIsCompleted())) {
-            return ProgressStatus.COMPLETED;
-        }
-        return ProgressStatus.NOT_STARTED;
+        return progress.getEffectiveStatus();
     }
 
     private EnrollmentResponseDTO toEnrollmentResponse(Enrollment enrollment) {

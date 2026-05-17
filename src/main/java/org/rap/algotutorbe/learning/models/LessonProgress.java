@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseUuidEntity;
 import org.rap.algotutorbe.iam.domain.model.User;
+import org.rap.algotutorbe.learning.enums.ProgressStatus;
 
 import java.time.Instant;
 
@@ -32,16 +33,34 @@ public class LessonProgress extends BaseUuidEntity {
     @Column(name = "is_completed", nullable = false)
     private Boolean isCompleted = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private ProgressStatus status = ProgressStatus.NOT_STARTED;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 
     @PrePersist
     @PreUpdate
-    protected void syncCompletedAt() {
-        if (Boolean.TRUE.equals(isCompleted) && completedAt == null) {
-            completedAt = Instant.now();
-        } else if (Boolean.FALSE.equals(isCompleted)) {
+    protected void syncFields() {
+        // Keep isCompleted in sync with status for backward compatibility
+        if (status == ProgressStatus.COMPLETED) {
+            isCompleted = true;
+            if (completedAt == null) {
+                completedAt = Instant.now();
+            }
+        } else {
+            isCompleted = false;
             completedAt = null;
         }
+    }
+
+    /**
+     * Convenience method to get the effective progress status.
+     * Derives from the status field, falling back to isCompleted for legacy data.
+     */
+    public ProgressStatus getEffectiveStatus() {
+        if (status != null) return status;
+        return Boolean.TRUE.equals(isCompleted) ? ProgressStatus.COMPLETED : ProgressStatus.NOT_STARTED;
     }
 }

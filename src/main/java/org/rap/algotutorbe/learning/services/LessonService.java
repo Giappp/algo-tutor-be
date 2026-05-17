@@ -137,7 +137,7 @@ public class LessonService {
             throw new AppException(ErrorCode.TOPIC_NOT_FOUND);
         }
 
-        Page<Lesson> lessonPage = lessonRepository.findByTopicIdOrderByOrderIndex(topicId, pageable);
+        Page<Lesson> lessonPage = lessonRepository.findByTopicIdOrderByDisplayOrder(topicId, pageable);
 
         List<LessonResponseDTO> responses = lessonPage.getContent().stream()
                 .map(lessonMapper::toResponse)

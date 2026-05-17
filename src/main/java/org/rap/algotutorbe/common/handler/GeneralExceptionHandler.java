@@ -19,6 +19,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import javax.naming.AuthenticationException;
 import java.time.LocalDateTime;
@@ -96,6 +97,14 @@ public class GeneralExceptionHandler {
         String message = resolveMessage(ErrorCode.INVALID_PAYLOAD);
         return ResponseEntity.status(ErrorCode.INVALID_PAYLOAD.getHttpStatus())
                 .body(ErrorResponse.buildError(message, ErrorCode.INVALID_PAYLOAD.getCode()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse<String>> handleMaxSizeException(MaxUploadSizeExceededException ex) {
+        log.error(ex.getMessage(), ex);
+        String message = resolveMessage(ErrorCode.FILE_EXCEEDED_SIZE);
+        return ResponseEntity.status(ErrorCode.FILE_EXCEEDED_SIZE.getHttpStatus())
+                .body(ErrorResponse.buildError(message, ErrorCode.FILE_EXCEEDED_SIZE.getCode()));
     }
 
     // Bắt lỗi từ Piston trả về (400, 404, 500 từ Piston)

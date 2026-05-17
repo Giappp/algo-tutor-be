@@ -1,6 +1,7 @@
-package org.rap.algotutorbe.iam.infrastructure.config;
+package org.rap.algotutorbe.common.config;
 
 import lombok.RequiredArgsConstructor;
+import org.rap.algotutorbe.iam.infrastructure.config.DelegatedSecurityExceptionHandler;
 import org.rap.algotutorbe.iam.infrastructure.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,6 +38,10 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/landing/**",
             "/roadmaps/**",
+            "/upload/**",
+            "/lessons/*/theory",
+            "/lessons/*/quiz",
+            "/lessons/*/coding"
     };
     private static final String[] IGNORE_CSRF_ENDPOINTS = {
             "/api/v1/iam/**",

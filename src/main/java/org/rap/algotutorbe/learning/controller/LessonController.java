@@ -4,6 +4,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.learning.dto.LessonRequestDTO;
+import org.rap.algotutorbe.learning.dto.landing.CodingContentResponse;
+import org.rap.algotutorbe.learning.dto.landing.QuizContentResponse;
+import org.rap.algotutorbe.learning.dto.landing.TheoryContentResponse;
+import org.rap.algotutorbe.learning.services.LessonContentService;
 import org.rap.algotutorbe.learning.services.LessonService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -16,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class LessonController {
     private final LessonService lessonService;
+    private final LessonContentService lessonContentService;
 
     @PostMapping("/topics/{topicId}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -72,5 +77,22 @@ public class LessonController {
     @GetMapping("/public/slug/{slug}")
     public ResponseEntity<ApiResponse<Object>> getPublishedLessonBySlug(@PathVariable String slug) {
         return ResponseEntity.ok(lessonService.getPublishedBySlug(slug));
+    }
+
+    // ── Public Lesson Content Endpoints (for learning flow) ──────────────
+
+    @GetMapping("/{slug}/theory")
+    public ResponseEntity<ApiResponse<TheoryContentResponse>> getTheoryContent(@PathVariable String slug) {
+        return ResponseEntity.ok(ApiResponse.buildSuccess(lessonContentService.getTheoryContent(slug)));
+    }
+
+    @GetMapping("/{slug}/quiz")
+    public ResponseEntity<ApiResponse<QuizContentResponse>> getQuizContent(@PathVariable String slug) {
+        return ResponseEntity.ok(ApiResponse.buildSuccess(lessonContentService.getQuizContent(slug)));
+    }
+
+    @GetMapping("/{slug}/coding")
+    public ResponseEntity<ApiResponse<CodingContentResponse>> getCodingContent(@PathVariable String slug) {
+        return ResponseEntity.ok(ApiResponse.buildSuccess(lessonContentService.getCodingContent(slug)));
     }
 }

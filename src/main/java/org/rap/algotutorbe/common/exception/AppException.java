@@ -11,4 +11,9 @@ public class AppException extends RuntimeException {
         super(error.getKey());
         this.error = error;
     }
+
+    public AppException(ErrorCode error, Throwable cause) {
+        super(error.getKey(), cause);
+        this.error = error;
+    }
 }

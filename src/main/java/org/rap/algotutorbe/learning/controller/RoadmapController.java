@@ -21,7 +21,7 @@ public class RoadmapController {
 
     @GetMapping
     public ResponseEntity<PageResponse<RoadmapResponseDTO>> getPublishedRoadmaps(
-            @PageableDefault(size = 10) Pageable pageable,
+            @PageableDefault Pageable pageable,
             @RequestParam(required = false) String level) {
         return ResponseEntity.ok(roadmapService.getPublishedRoadmaps(pageable, level));
     }

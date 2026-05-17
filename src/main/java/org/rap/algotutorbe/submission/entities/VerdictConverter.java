@@ -7,7 +7,7 @@ import jakarta.persistence.Converter;
 public class VerdictConverter implements AttributeConverter<Verdict, String> {
     @Override
     public String convertToDatabaseColumn(Verdict attribute) {
-        return attribute == null ? null : attribute.toApiValue();
+        return attribute == null ? null : attribute.toDbValue();
     }
 
     @Override

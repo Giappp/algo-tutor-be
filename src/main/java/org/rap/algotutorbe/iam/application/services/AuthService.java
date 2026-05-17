@@ -10,7 +10,9 @@ import org.rap.algotutorbe.iam.application.dto.SignUpRequest;
 import org.rap.algotutorbe.iam.application.dto.TokenResponse;
 import org.rap.algotutorbe.iam.application.dto.UserResponse;
 import org.rap.algotutorbe.iam.application.mapper.UserMapper;
+import org.rap.algotutorbe.iam.domain.model.RoleCode;
 import org.rap.algotutorbe.iam.domain.model.User;
+import org.rap.algotutorbe.iam.domain.repositories.RoleRepository;
 import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
 import org.rap.algotutorbe.iam.dto.UserProfileResponse;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
@@ -33,6 +35,7 @@ public class AuthService extends BaseService {
     private final JwtUtil jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
     private final UserMapper userMapper;
@@ -62,6 +65,7 @@ public class AuthService extends BaseService {
         user.setUsername(request.username());
         user.setEmail(request.email());
         user.setPasswordHashed(passwordEncoder.encode(request.password()));
+        user.setRole(roleRepository.findByCode(RoleCode.USER).get());
         return user;
     }
 

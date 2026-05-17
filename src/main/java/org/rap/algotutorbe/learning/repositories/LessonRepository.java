@@ -28,5 +28,5 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
     int getNextDisplayOrder(@Param("topicId") Long topicId);
 
     @Query("SELECT l FROM Lesson l WHERE l.topic.id = :topicId ORDER BY l.displayOrder")
-    Page<Lesson> findByTopicIdOrderByOrderIndex(@Param("topicId") Long topicId, Pageable pageable);
+    Page<Lesson> findByTopicIdOrderByDisplayOrder(@Param("topicId") Long topicId, Pageable pageable);
 }

@@ -9,8 +9,8 @@ import java.io.Serializable;
 @Getter
 @Setter
 @NoArgsConstructor
-public class QuizChoice implements
-        Serializable {
+public class QuizChoice implements Serializable {
+    private String id;
     private String text;
     private Boolean isCorrect;
     private String explanation;

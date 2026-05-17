@@ -6,7 +6,9 @@ public record RoadmapResponseDTO(String name,
                                  String thumbnailUrl,
                                  String description,
                                  String goal,
+                                 Boolean isPremium,
                                  Integer topicCount,
-                                 Integer lessonCount
+                                 Integer lessonCount,
+                                 Integer enrollmentCount
 ) {
 }

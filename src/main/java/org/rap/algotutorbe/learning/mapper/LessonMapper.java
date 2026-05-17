@@ -49,6 +49,7 @@ public interface LessonMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "slug", ignore = true)
     @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "estimatedMinutes", ignore = true)
     void updateTheoryFromDTO(TheoryLessonRequestDTO request, @MappingTarget TheoryLesson lesson);
 
     @Mapping(target = "id", ignore = true)

@@ -13,6 +13,8 @@ import org.rap.algotutorbe.learning.models.LearningPath;
 public interface RoadmapMapper {
 
     @Mapping(target = "lessonCount", expression = "java(computeLessonCount(entity))")
+    @Mapping(target = "topicCount", expression = "java(computeTopicCount(entity))")
+    @Mapping(target = "enrollmentCount", expression = "java(entity.getEnrollments() != null ? entity.getEnrollments().size() : 0)")
     RoadmapResponseDTO toResponse(LearningPath entity);
 
     @Mapping(target = "level", expression = "java(entity.getLevel() != null ? entity.getLevel().name() : null)")
@@ -23,12 +25,10 @@ public interface RoadmapMapper {
     RoadmapDetailResponseDTO toDetailDto(LearningPath entity);
 
     default int computeLessonCount(LearningPath learningPath) {
-        if (learningPath.getTopics() == null) {
-            return 0;
-        }
-        return learningPath.getTopics().stream()
-                .flatMap(topic -> topic.getLessons() != null ? topic.getLessons().stream() : java.util.stream.Stream.empty())
-                .mapToInt(lesson -> 1)
-                .sum();
+        return LearningPathMapper.countPublishedLessons(learningPath);
+    }
+
+    default int computeTopicCount(LearningPath learningPath) {
+        return TopicMapper.countPublishedTopic(learningPath);
     }
 }
