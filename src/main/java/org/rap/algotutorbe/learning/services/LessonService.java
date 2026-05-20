@@ -2,7 +2,6 @@ package org.rap.algotutorbe.learning.services;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
@@ -30,7 +29,7 @@ public class LessonService {
     private final SlugGenerator slugGenerator;
 
     @Transactional
-    public @Nullable ApiResponse<Object> create(Long topicId, @Valid LessonRequestDTO request) {
+    public ApiResponse<Object> create(Long topicId, @Valid LessonRequestDTO request) {
         Topic topic = getOrThrowTopic(topicId);
 
         if (request.getType() == null) {
@@ -39,7 +38,6 @@ public class LessonService {
         Lesson lesson = buildLesson(request);
         lesson.setTopic(topic);
         lesson.setDisplayOrder(lessonRepository.getNextDisplayOrder(topicId));
-        lesson.setTopic(topic);
 
         Lesson saved = lessonRepository.save(lesson);
         return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(saved));
@@ -51,7 +49,7 @@ public class LessonService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<Object> update(Long lessonId, @Valid LessonRequestDTO request) {
+    public ApiResponse<Object> update(Long lessonId, @Valid LessonRequestDTO request) {
         Lesson lesson = getOrThrow(lessonId);
 
         if (request.getType() == null) {
@@ -92,26 +90,26 @@ public class LessonService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<String> delete(Long lessonId) {
+    public ApiResponse<String> delete(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
         lessonRepository.delete(lesson);
         return ApiResponse.buildMessage("Lesson deleted successfully");
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getById(Long lessonId) {
+    public ApiResponse<Object> getById(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
         return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(lesson));
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getPublishedById(Long lessonId) {
+    public ApiResponse<Object> getPublishedById(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
         return ApiResponse.buildSuccess(buildPublicResponse(lesson));
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getPublishedBySlug(String slug) {
+    public ApiResponse<Object> getPublishedBySlug(String slug) {
         Lesson lesson = lessonRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
         return ApiResponse.buildSuccess(buildPublicResponse(lesson));
@@ -125,14 +123,14 @@ public class LessonService {
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getBySlug(String slug) {
+    public ApiResponse<Object> getBySlug(String slug) {
         Lesson lesson = lessonRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
         return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(lesson));
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getByTopicId(Long topicId, Pageable pageable) {
+    public ApiResponse<Object> getByTopicId(Long topicId, Pageable pageable) {
         if (!topicRepository.existsById(topicId)) {
             throw new AppException(ErrorCode.TOPIC_NOT_FOUND);
         }
@@ -146,8 +144,9 @@ public class LessonService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<Object> togglePublish(Long lessonId) {
+    public ApiResponse<Object> togglePublish(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
+        lesson.setIsPublished(!Boolean.TRUE.equals(lesson.getIsPublished()));
         Lesson saved = lessonRepository.save(lesson);
         return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(saved));
     }
@@ -171,6 +170,7 @@ public class LessonService {
                 : new ArrayList<>());
         lesson.setHints(request.getHints() != null ? request.getHints() : new ArrayList<>());
         lesson.setExamples(request.getExamples() != null ? request.getExamples() : new ArrayList<>());
+        lesson.getTestCases().forEach(testCase -> lesson.getTestCases().add(testCase));
         lesson.setBaseTimeLimitMs(request.getBaseTimeLimitMs() != null ? request.getBaseTimeLimitMs() : 2000);
         lesson.setBaseMemoryLimitMb(request.getBaseMemoryLimitMb() != null ? request.getBaseMemoryLimitMb() : 256);
 

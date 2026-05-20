@@ -32,6 +32,9 @@ public class Lesson extends BaseEntity {
     @Column(columnDefinition = "varchar(20)")
     private Difficulty difficulty;
 
+    @Column(name = "is_published", nullable = false)
+    private Boolean isPublished = false;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "topic_id", nullable = false)
     private Topic topic;

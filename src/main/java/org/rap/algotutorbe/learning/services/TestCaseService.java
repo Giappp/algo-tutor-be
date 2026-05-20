@@ -2,7 +2,6 @@ package org.rap.algotutorbe.learning.services;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
@@ -26,7 +25,7 @@ public class TestCaseService {
     private final TestCaseMapper testCaseMapper;
 
     @Transactional
-    public @Nullable ApiResponse<Object> create(Long lessonId, @Valid TestCaseDTO dto) {
+    public ApiResponse<Object> create(Long lessonId, @Valid TestCaseDTO dto) {
         CodingLesson lesson = getCodingLessonOrThrow(lessonId);
 
         Testcase testCase = testCaseMapper.toEntity(dto);
@@ -38,7 +37,7 @@ public class TestCaseService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<Object> update(Long testCaseId, @Valid TestCaseDTO dto) {
+    public ApiResponse<Object> update(Long testCaseId, @Valid TestCaseDTO dto) {
         Testcase testCase = getOrThrow(testCaseId);
         testCaseMapper.updateEntity(testCase, dto);
         Testcase saved = testcaseRepository.save(testCase);
@@ -46,14 +45,14 @@ public class TestCaseService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<Object> delete(Long testCaseId) {
+    public ApiResponse<Object> delete(Long testCaseId) {
         Testcase testCase = getOrThrow(testCaseId);
         testcaseRepository.delete(testCase);
         return ApiResponse.buildMessage("Test case deleted successfully");
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<Object> getByLessonId(Long lessonId) {
+    public ApiResponse<Object> getByLessonId(Long lessonId) {
         getCodingLessonOrThrow(lessonId);
         List<Testcase> testCases = testcaseRepository.findByCodingLessonId(lessonId);
         List<TestCaseResponseDTO> responses = testCases.stream()

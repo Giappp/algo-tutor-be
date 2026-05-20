@@ -2,7 +2,6 @@ package org.rap.algotutorbe.learning.services;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
@@ -26,7 +25,7 @@ public class QuizService {
     private final QuizQuestionMapper quizQuestionMapper;
 
     @Transactional
-    public @Nullable ApiResponse<QuizQuestionResponseDTO> addQuestion(Long quizLessonId, @Valid QuizQuestionDTO request) {
+    public ApiResponse<QuizQuestionResponseDTO> addQuestion(Long quizLessonId, @Valid QuizQuestionDTO request) {
         QuizLesson quiz = getQuizLessonOrThrow(quizLessonId);
 
         QuizQuestion question = quizQuestionMapper.toEntity(request);
@@ -39,7 +38,7 @@ public class QuizService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<QuizQuestionResponseDTO> updateQuestion(Long questionId, @Valid QuizQuestionDTO request) {
+    public ApiResponse<QuizQuestionResponseDTO> updateQuestion(Long questionId, @Valid QuizQuestionDTO request) {
         QuizQuestion question = getOrThrow(questionId);
         quizQuestionMapper.updateEntity(question, request);
         QuizQuestion saved = quizQuestionRepository.save(question);
@@ -47,14 +46,14 @@ public class QuizService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<String> deleteQuestion(Long questionId) {
+    public ApiResponse<String> deleteQuestion(Long questionId) {
         QuizQuestion question = getOrThrow(questionId);
         quizQuestionRepository.delete(question);
         return ApiResponse.buildMessage("Question deleted successfully");
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<List<QuizQuestionResponseDTO>> getQuestionsByQuizLessonId(Long quizLessonId) {
+    public ApiResponse<List<QuizQuestionResponseDTO>> getQuestionsByQuizLessonId(Long quizLessonId) {
         getQuizLessonOrThrow(quizLessonId);
         List<QuizQuestion> questions = quizQuestionRepository.findByQuizIdOrderByOrderIndex(quizLessonId);
         return ApiResponse.buildSuccess(quizQuestionMapper.toResponseList(questions));

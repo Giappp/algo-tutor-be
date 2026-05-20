@@ -25,6 +25,7 @@ public interface LessonMapper {
     @Mapping(target = "slug", ignore = true)
     @Mapping(target = "displayOrder", ignore = true)
     @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "editorials", ignore = true)
     @Mapping(target = "submissions", ignore = true)
     CodingLesson toEntity(CodingLessonRequestDTO request);
@@ -35,6 +36,7 @@ public interface LessonMapper {
     @Mapping(target = "slug", ignore = true)
     @Mapping(target = "displayOrder", ignore = true)
     @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "attempts", ignore = true)
     QuizLesson toEntity(QuizLessonRequestDTO request);
 
@@ -49,6 +51,7 @@ public interface LessonMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "slug", ignore = true)
     @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "estimatedMinutes", ignore = true)
     void updateTheoryFromDTO(TheoryLessonRequestDTO request, @MappingTarget TheoryLesson lesson);
 
@@ -57,6 +60,7 @@ public interface LessonMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "slug", ignore = true)
     @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "attempts", ignore = true)
     void updateQuizFromDTO(QuizLessonRequestDTO request, @MappingTarget QuizLesson lesson);
 
@@ -65,6 +69,7 @@ public interface LessonMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "slug", ignore = true)
     @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "editorials", ignore = true)
     @Mapping(target = "submissions", ignore = true)
     void updateCodingFromDTO(CodingLessonRequestDTO request, @MappingTarget CodingLesson lesson);

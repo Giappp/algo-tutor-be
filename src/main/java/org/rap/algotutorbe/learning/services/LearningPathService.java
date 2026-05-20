@@ -2,7 +2,6 @@ package org.rap.algotutorbe.learning.services;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.api.PageResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
@@ -38,7 +37,7 @@ public class LearningPathService extends BaseService {
     private final EnrollMapper enrollMapper;
 
     @Transactional
-    public @Nullable ApiResponse<LearningPathResponseDTO> create(@Valid LearningPathRequestDTO request) {
+    public ApiResponse<LearningPathResponseDTO> create(@Valid LearningPathRequestDTO request) {
         LearningPath learningPath = learningPathMapper.toEntity(request);
         String slug = slugGenerator.generateUniqueForLearningPath(request.name());
         learningPath.setSlug(slug);
@@ -47,7 +46,7 @@ public class LearningPathService extends BaseService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<LearningPathResponseDTO> update(Long id, @Valid LearningPathRequestDTO request) {
+    public ApiResponse<LearningPathResponseDTO> update(Long id, @Valid LearningPathRequestDTO request) {
         LearningPath learningPath = getOrThrow(id);
         learningPathMapper.updateEntity(learningPath, request);
         LearningPath saved = learningPathRepository.save(learningPath);
@@ -55,7 +54,7 @@ public class LearningPathService extends BaseService {
     }
 
     @Transactional(readOnly = true)
-    public @Nullable PageResponse<LearningPathResponseDTO> getAll(Pageable pageable, Level level, String search) {
+    public PageResponse<LearningPathResponseDTO> getAll(Pageable pageable, Level level, String search) {
         Page<LearningPath> page;
         if (level != null && search != null && !search.isBlank()) {
             page = learningPathRepository.findByDeletedFalseAndLevelAndSearch(level, search.trim(), pageable);
@@ -70,28 +69,28 @@ public class LearningPathService extends BaseService {
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<LearningPathResponseDTO> getBySlug(String slug) {
+    public ApiResponse<LearningPathResponseDTO> getBySlug(String slug) {
         LearningPath learningPath = learningPathRepository.findBySlugAndNotDeleted(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
         return ApiResponse.buildSuccess(learningPathMapper.toResponse(learningPath));
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<LearningPathResponseDTO> getById(Long id) {
+    public ApiResponse<LearningPathResponseDTO> getById(Long id) {
         LearningPath learningPath = learningPathRepository.findByIdWithTopicsAndLessons(id)
                 .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
         return ApiResponse.buildSuccess(learningPathMapper.toResponse(learningPath));
     }
 
     @Transactional
-    public @Nullable ApiResponse<String> delete(Long id) {
+    public ApiResponse<String> delete(Long id) {
         LearningPath learningPath = getOrThrow(id);
-        learningPathRepository.save(learningPath);
+        learningPathRepository.delete(learningPath);
         return ApiResponse.buildMessage("Learning path deleted successfully");
     }
 
     @Transactional
-    public @Nullable ApiResponse<LearningPathResponseDTO> togglePublish(Long id) {
+    public ApiResponse<LearningPathResponseDTO> togglePublish(Long id) {
         LearningPath learningPath = getOrThrow(id);
         learningPath.setIsPublished(!Boolean.TRUE.equals(learningPath.getIsPublished()));
         learningPathRepository.save(learningPath);

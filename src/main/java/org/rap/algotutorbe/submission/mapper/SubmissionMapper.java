@@ -33,6 +33,7 @@ public interface SubmissionMapper {
 
     @Mapping(target = "language", source = "submission.language", qualifiedByName = "languageToApiValue")
     @Mapping(target = "status", source = "submission.verdict", qualifiedByName = "verdictToApiValue")
+    @Mapping(target = "sourceCode", source = "submission.sourceCode")
     @Mapping(target = "passedTestCases", source = "submission.passedTestcases")
     @Mapping(target = "totalTestCases", source = "submission.totalTestcases")
     @Mapping(target = "submittedAt", source = "submission.createdAt")

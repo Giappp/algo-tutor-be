@@ -2,7 +2,6 @@ package org.rap.algotutorbe.learning.services;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
@@ -26,7 +25,7 @@ public class TopicService {
     private final TopicMapper topicMapper;
 
     @Transactional
-    public @Nullable ApiResponse<TopicResponseDTO> create(Long learningPathId, @Valid TopicRequestDTO request) {
+    public ApiResponse<TopicResponseDTO> create(Long learningPathId, @Valid TopicRequestDTO request) {
         LearningPath learningPath = learningPathRepository.findById(learningPathId)
                 .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
 
@@ -40,7 +39,7 @@ public class TopicService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<TopicResponseDTO> update(Long topicId, @Valid TopicRequestDTO request) {
+    public ApiResponse<TopicResponseDTO> update(Long topicId, @Valid TopicRequestDTO request) {
         Topic topic = getOrThrow(topicId);
         topicMapper.updateEntity(topic, request);
         Topic saved = topicRepository.save(topic);
@@ -48,20 +47,20 @@ public class TopicService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<String> delete(Long topicId) {
+    public ApiResponse<String> delete(Long topicId) {
         Topic topic = getOrThrow(topicId);
         topicRepository.delete(topic);
         return ApiResponse.buildMessage("Topic deleted successfully");
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<TopicResponseDTO> getById(Long topicId) {
+    public ApiResponse<TopicResponseDTO> getById(Long topicId) {
         Topic topic = getOrThrow(topicId);
         return ApiResponse.buildSuccess(topicMapper.toResponse(topic));
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<List<TopicResponseDTO>> getByLearningPathId(Long learningPathId) {
+    public ApiResponse<List<TopicResponseDTO>> getByLearningPathId(Long learningPathId) {
         if (!learningPathRepository.existsById(learningPathId)) {
             throw new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND);
         }

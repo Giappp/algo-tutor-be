@@ -1,6 +1,8 @@
 package org.rap.algotutorbe.execution.service;
 
 import lombok.RequiredArgsConstructor;
+import org.rap.algotutorbe.common.errors.ErrorCode;
+import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.execution.dto.*;
 import org.rap.algotutorbe.judge.PistonClient;
 import org.rap.algotutorbe.judge.dto.PistonResponse;
@@ -10,30 +12,29 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Service for free-form code execution (sandbox/playground).
+ * Unlike JudgeService, this does not validate against lesson testcases.
+ */
 @Service
 @RequiredArgsConstructor
 public class ExecutionService {
-    private static final int DEFAULT_COMPILE_TIMEOUT_MS = 10_000;
+    private static final int DEFAULT_RUN_TIMEOUT_MS = 3_000;
+    private static final int DEFAULT_COMPILE_TIMEOUT_MS = 5_000;
     private static final int DEFAULT_MEMORY_LIMIT_MB = 256;
 
     private final PistonClient pistonClient;
 
+    /**
+     * Execute code with optional stdin (playground mode).
+     */
     public ExecuteResponse execute(ExecuteRequest request) {
-        ProgrammingLanguage language;
-        try {
-            language = ProgrammingLanguage.fromApiValue(request.language());
-        } catch (IllegalArgumentException e) {
-            return new ExecuteResponse("", "Unsupported programming language", 1, null, null);
-        }
-        int timeout = request.timeout() == null ? 3000 : request.timeout();
+        ProgrammingLanguage language = parseLanguage(request.language());
+        int timeout = request.timeout() != null ? request.timeout() : DEFAULT_RUN_TIMEOUT_MS;
 
         PistonResponse response = pistonClient.executeRaw(
-                language,
-                request.code(),
-                request.stdin(),
-                timeout,
-                DEFAULT_COMPILE_TIMEOUT_MS,
-                DEFAULT_MEMORY_LIMIT_MB
+                language, request.code(), request.stdin(),
+                timeout, DEFAULT_COMPILE_TIMEOUT_MS, DEFAULT_MEMORY_LIMIT_MB
         );
 
         if (response == null) {
@@ -51,6 +52,10 @@ public class ExecutionService {
         }
 
         var run = response.run();
+        if (run == null) {
+            return new ExecuteResponse("", "No run output from execution engine", 1, null, null);
+        }
+
         return new ExecuteResponse(
                 run.stdout(),
                 run.stderr(),
@@ -60,26 +65,24 @@ public class ExecutionService {
         );
     }
 
+    /**
+     * Execute code against user-provided test cases (custom test mode).
+     */
     public ExecuteTestResponse executeWithTestcases(ExecuteTestRequest request) {
-        ProgrammingLanguage language;
-        try {
-            language = ProgrammingLanguage.fromApiValue(request.language());
-        } catch (IllegalArgumentException e) {
+        ProgrammingLanguage language = parseLanguage(request.language());
+        List<ExecuteTestcase> testcases = request.testCases() != null ? request.testCases() : List.of();
+
+        if (testcases.isEmpty()) {
             return new ExecuteTestResponse(List.of(), new ExecuteTestSummary(0, 0, 0));
         }
-        List<ExecuteTestcase> tcs = request.testCases() == null ? List.of() : request.testCases();
 
         List<ExecuteTestcaseResult> results = new ArrayList<>();
         int passed = 0;
 
-        for (ExecuteTestcase tc : tcs) {
+        for (ExecuteTestcase tc : testcases) {
             PistonResponse resp = pistonClient.executeRaw(
-                    language,
-                    request.code(),
-                    tc.input(),
-                    5000,
-                    DEFAULT_COMPILE_TIMEOUT_MS,
-                    DEFAULT_MEMORY_LIMIT_MB
+                    language, request.code(), tc.input(),
+                    DEFAULT_RUN_TIMEOUT_MS, DEFAULT_COMPILE_TIMEOUT_MS, DEFAULT_MEMORY_LIMIT_MB
             );
 
             String actual = resp != null && resp.run() != null ? resp.run().stdout() : null;
@@ -90,7 +93,7 @@ public class ExecutionService {
 
             results.add(new ExecuteTestcaseResult(
                     tc.id(),
-                    ok ? "passed" : "failed",
+                    ok ? "PASSED" : "FAILED",
                     tc.input(),
                     tc.expected(),
                     actual,
@@ -98,10 +101,18 @@ public class ExecutionService {
             ));
         }
 
-        int total = tcs.size();
+        int total = testcases.size();
         int failed = total - passed;
 
         return new ExecuteTestResponse(results, new ExecuteTestSummary(passed, failed, total));
+    }
+
+    private ProgrammingLanguage parseLanguage(String language) {
+        try {
+            return ProgrammingLanguage.fromApiValue(language);
+        } catch (IllegalArgumentException e) {
+            throw new AppException(ErrorCode.UNSUPPORTED_PROGRAMMING_LANGUAGE);
+        }
     }
 
     private String normalize(String s) {
@@ -109,4 +120,3 @@ public class ExecutionService {
         return s.replace("\r\n", "\n").trim();
     }
 }
-

@@ -2,7 +2,6 @@ package org.rap.algotutorbe.iam.application.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.NonNull;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.iam.domain.model.RefreshToken;
@@ -81,7 +80,7 @@ public class RefreshTokenService {
     /**
      * Chỉ chịu trách nhiệm: Lấy token từ DB và kiểm tra tính hợp lệ
      */
-    private @NonNull RefreshToken getAndValidateToken(String tokenStr) {
+    private RefreshToken getAndValidateToken(String tokenStr) {
         RefreshToken refreshToken = fetchTokenFromString(tokenStr);
 
         if (refreshToken.isExpired()) {

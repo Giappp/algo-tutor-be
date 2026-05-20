@@ -5,23 +5,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.api.ErrorResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
+import org.rap.algotutorbe.common.exception.RateLimitExceededException;
 import org.rap.algotutorbe.judge.exception.JudgeConnectionException;
 import org.rap.algotutorbe.judge.exception.PistonApiException;
 import org.rap.algotutorbe.judge.exception.SolutionValidationException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-import javax.naming.AuthenticationException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,6 +35,14 @@ import java.util.Map;
 @Slf4j
 public class GeneralExceptionHandler {
     private final MessageSource messageSource;
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse<Object>> handleRateLimitExceeded(RateLimitExceededException ex) {
+        String message = "Rate limit reached. Retry after " + ex.getRetryAfterSeconds() + " seconds";
+        return ResponseEntity.status(ex.getError().getHttpStatus())
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
+                .body(ErrorResponse.buildError(message, ex.getError().getCode()));
+    }
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse<Object>> handleAppException(AppException ex) {
@@ -50,20 +60,49 @@ public class GeneralExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorResponse.buildError(errors, ErrorCode.INVALID_PAYLOAD.getCode()));
     }
 
-    @ExceptionHandler(exception = {AuthorizationDeniedException.class, InsufficientAuthenticationException.class})
-    public ResponseEntity<ErrorResponse<Object>> handleAuthorizationDenied(AuthorizationDeniedException ex) {
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ErrorResponse<Object>> handleAuthorizationDenied(
+            AuthorizationDeniedException ex
+    ) {
         log.error(ex.getMessage(), ex);
+
+        String message = resolveMessage(ErrorCode.ACCESS_DENIED);
+
+        return ResponseEntity.status(ErrorCode.ACCESS_DENIED.getHttpStatus())
+                .body(ErrorResponse.buildError(
+                        message,
+                        ErrorCode.ACCESS_DENIED.getCode()
+                ));
+    }
+
+    @ExceptionHandler(InsufficientAuthenticationException.class)
+    public ResponseEntity<ErrorResponse<Object>> handleInsufficientAuthentication(
+            InsufficientAuthenticationException ex
+    ) {
+        log.error(ex.getMessage(), ex);
+
         String message = resolveMessage(ErrorCode.NEED_AUTHENTICATION);
+
         return ResponseEntity.status(ErrorCode.NEED_AUTHENTICATION.getHttpStatus())
-                .body(ErrorResponse.buildError(message, ErrorCode.ACCESS_DENIED.getCode()));
+                .body(ErrorResponse.buildError(
+                        message,
+                        ErrorCode.NEED_AUTHENTICATION.getCode()
+                ));
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse<Object>> handleAuthenticationException(AuthenticationException ex) {
+    public ResponseEntity<ErrorResponse<Object>> handleAuthenticationException(
+            AuthenticationException ex
+    ) {
         log.error(ex.getMessage(), ex);
+
         String message = resolveMessage(ErrorCode.NEED_AUTHENTICATION);
+
         return ResponseEntity.status(ErrorCode.NEED_AUTHENTICATION.getHttpStatus())
-                .body(ErrorResponse.buildError(message, ErrorCode.ACCESS_DENIED.getCode()));
+                .body(ErrorResponse.buildError(
+                        message,
+                        ErrorCode.NEED_AUTHENTICATION.getCode()
+                ));
     }
 
     private Map<String, List<String>> getFieldErrors(MethodArgumentNotValidException ex, Locale locale) {
@@ -127,9 +166,11 @@ public class GeneralExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Object> handleGlobalException(Exception ex) {
-        log.error("Handled Uncaught Exception: ", ex);
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau", null);
+    public ResponseEntity<ErrorResponse<Object>> handleGlobalException(Exception ex) {
+        log.error("Unhandled exception occurred", ex);
+        String message = resolveMessage(ErrorCode.INTERNAL_SERVER_ERROR);
+        return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
+                .body(ErrorResponse.buildError(message, ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
     }
 
     private ResponseEntity<Object> buildErrorResponse(HttpStatus status, String errorCode, String message, Object details) {

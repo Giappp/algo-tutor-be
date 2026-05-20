@@ -7,6 +7,7 @@ public record SubmissionDetailResponse(
         String id,
         String language,
         String status,
+        String sourceCode,
         Integer passedTestCases,
         Integer totalTestCases,
         Integer executionTime,

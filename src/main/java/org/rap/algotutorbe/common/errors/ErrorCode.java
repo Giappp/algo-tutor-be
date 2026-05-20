@@ -60,6 +60,14 @@ public enum ErrorCode {
     // Rate Limiting
     RATE_LIMITED(7000, "errors.rate-limited", HttpStatus.TOO_MANY_REQUESTS),
 
+    // AI Chatbot Errors
+    INVALID_CHAT_MODE(8000, "errors.ai.invalid-chat-mode", HttpStatus.BAD_REQUEST),
+    CODE_REQUIRED(8001, "errors.ai.code-required", HttpStatus.BAD_REQUEST),
+    CONVERSATION_NOT_FOUND(8002, "errors.ai.conversation-not-found", HttpStatus.NOT_FOUND),
+    UNSUPPORTED_PROVIDER(8003, "errors.ai.unsupported-provider", HttpStatus.BAD_REQUEST),
+    RATE_LIMIT_EXCEEDED(8004, "errors.ai.rate-limit-exceeded", HttpStatus.TOO_MANY_REQUESTS),
+    AI_SERVICE_UNAVAILABLE(8005, "errors.ai.service-unavailable", HttpStatus.SERVICE_UNAVAILABLE),
+
     FILE_EMPTY(9000, "errors.file.empty", HttpStatus.BAD_REQUEST),
     IMAGE_TYPE_ERROR(9001, "errors.image.type", HttpStatus.BAD_REQUEST),
     S3_CONNECTION(9002, "errors.s3.connection", HttpStatus.INTERNAL_SERVER_ERROR),

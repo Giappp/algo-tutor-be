@@ -43,6 +43,43 @@ public class RateLimiter {
     }
 
     /**
+     * Get the number of seconds until the next request is allowed for the given key.
+     * Returns 0 if the key is not rate limited.
+     *
+     * @param key          unique key (e.g., "ai-chat:userId")
+     * @param maxRequests  maximum number of requests allowed in the window
+     * @param windowMillis time window in milliseconds
+     * @return seconds until the next request is allowed, or 0 if not rate limited
+     */
+    public long getRetryAfterSeconds(String key, int maxRequests, long windowMillis) {
+        long now = System.currentTimeMillis();
+        long windowStart = now - windowMillis;
+
+        Deque<Long> timestamps = requestLog.get(key);
+        if (timestamps == null || timestamps.isEmpty()) {
+            return 0;
+        }
+
+        // Remove expired entries
+        while (!timestamps.isEmpty() && timestamps.peekFirst() < windowStart) {
+            timestamps.pollFirst();
+        }
+
+        if (timestamps.size() < maxRequests) {
+            return 0;
+        }
+
+        // The oldest request in the window determines when the next slot opens
+        Long oldestInWindow = timestamps.peekFirst();
+        if (oldestInWindow == null) {
+            return 0;
+        }
+
+        long retryAfterMs = (oldestInWindow + windowMillis) - now;
+        return Math.max(1, (retryAfterMs + 999) / 1000); // Round up to nearest second
+    }
+
+    /**
      * Clean up expired entries to prevent memory leaks.
      * Should be called periodically (e.g., via @Scheduled).
      */

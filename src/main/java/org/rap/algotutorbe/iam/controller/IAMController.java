@@ -71,5 +71,4 @@ public class IAMController {
         var user = authService.getUserInfo();
         return ResponseEntity.ok(ApiResponse.buildSuccess(user));
     }
-
 }

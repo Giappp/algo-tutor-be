@@ -8,15 +8,13 @@ import org.rap.algotutorbe.learning.enums.ProgressStatus;
 import org.rap.algotutorbe.learning.models.*;
 import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
 import org.rap.algotutorbe.learning.repositories.LessonProgressRepository;
-import org.rap.algotutorbe.submission.entities.Submission;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
 /**
- * Shared service for auto-updating lesson progress when a submission is ACCEPTED.
- * Used by both the synchronous JudgeRunService and the async SubmissionListener.
+ * Service for auto-updating lesson progress when a submission is ACCEPTED.
  */
 @Slf4j
 @Service
@@ -26,28 +24,6 @@ public class LessonProgressUpdater {
     private final EnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
 
-    /**
-     * Marks the lesson as completed for the submission's user.
-     * Returns true if this was the first time marking it completed.
-     */
-    @Transactional
-    public boolean markLessonCompletedIfNeeded(Submission submission) {
-        User user = submission.getUser();
-        CodingLesson codingLesson = submission.getCodingLesson();
-
-        if (user == null || codingLesson == null) {
-            log.warn("Cannot update progress: user or codingLesson is null for submission [{}]",
-                    submission.getId());
-            return false;
-        }
-
-        return markLessonCompleted(user, codingLesson);
-    }
-
-    /**
-     * Marks the lesson as completed for the given user.
-     * Returns true if this was the first time marking it completed.
-     */
     @Transactional
     public boolean markLessonCompleted(User user, CodingLesson codingLesson) {
         LessonProgress progress = lessonProgressRepository.findByUserAndLesson(user, codingLesson)

@@ -6,12 +6,10 @@ import org.rap.algotutorbe.common.api.PageResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.common.services.BaseService;
-import org.rap.algotutorbe.iam.domain.model.User;
-import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
 import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
-import org.rap.algotutorbe.learning.models.CodingLesson;
-import org.rap.algotutorbe.learning.repositories.LessonRepository;
-import org.rap.algotutorbe.submission.dto.*;
+import org.rap.algotutorbe.submission.dto.SubmissionDetailResponse;
+import org.rap.algotutorbe.submission.dto.SubmissionResponse;
+import org.rap.algotutorbe.submission.dto.SubmissionTestcaseResultResponse;
 import org.rap.algotutorbe.submission.entities.Submission;
 import org.rap.algotutorbe.submission.entities.SubmissionTestcase;
 import org.rap.algotutorbe.submission.entities.Verdict;
@@ -25,6 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Service for querying submission history and details.
+ * Submission creation is handled by JudgeService.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -32,78 +34,7 @@ public class SubmissionService extends BaseService {
     private final SubmissionRepository submissionRepository;
     private final SubmissionMapper submissionMapper;
     private final SubmissionTestcaseMapper submissionTestcaseMapper;
-    private final SubmissionEventPublisher eventPublisher;
-    private final LessonRepository lessonRepository;
-    private final UserRepository userRepository;
     private final SubmissionTestcaseRepository submissionTestcaseRepository;
-
-    @Transactional
-    public SubmissionResponse submitCode(SubmitCodeRequest request) {
-        ProgrammingLanguage language;
-        try {
-            language = ProgrammingLanguage.fromApiValue(request.language());
-        } catch (IllegalArgumentException e) {
-            throw new AppException(ErrorCode.UNSUPPORTED_PROGRAMMING_LANGUAGE);
-        }
-
-        User user = userRepository.findById(getCurrentUserIdOrThrow())
-                .orElseThrow(() -> new AppException(ErrorCode.ACCESS_DENIED));
-
-        CodingLesson codingLesson = lessonRepository.findBySlug(request.problemSlug())
-                .filter(CodingLesson.class::isInstance)
-                .map(cl -> (CodingLesson) cl)
-                .orElseThrow(() -> new AppException(ErrorCode.PROBLEM_NOT_FOUND));
-
-        Submission submission = new Submission();
-        submission.setLanguage(language);
-        submission.setSourceCode(request.code());
-        submission.setUser(user);
-        submission.setCodingLesson(codingLesson);
-        submission.setVerdict(Verdict.PENDING);
-
-        Submission saved = submissionRepository.save(submission);
-        log.info("Submission [{}] da luu DB, trang thai PENDING", saved.getId());
-
-        eventPublisher.publishSubmissionCreated(new SubmissionCreatedMessage(
-                saved.getId(),
-                codingLesson.getId(),
-                saved.getSourceCode(),
-                saved.getLanguage()
-        ));
-
-        return submissionMapper.toResponse(saved);
-    }
-
-    public Submission getOrThrowSubmission(UUID submissionId) {
-        return submissionRepository.findById(submissionId)
-                .orElseThrow(() -> new AppException(ErrorCode.SUBMISSION_NOT_FOUND));
-    }
-
-    @Transactional
-    public void markAsProcessing(UUID id) {
-        Submission submission = getOrThrowSubmission(id);
-        submission.setVerdict(Verdict.PROCESSING);
-        log.info("Submission [{}] marked as PROCESSING", id);
-    }
-
-    @Transactional
-    public void markAsSystemError(UUID id, String message) {
-        Submission submission = getOrThrowSubmission(id);
-        submission.setVerdict(Verdict.SYSTEM_ERROR);
-        log.error("Submission [{}] marked as SYSTEM_ERROR: {}", id, message);
-    }
-
-    @Transactional
-    public void updateWithJudgeResult(UUID id, Verdict verdict, Integer passedTestcases,
-                                      Integer maxTime, Integer maxMemory, String compileOutput) {
-        Submission submission = getOrThrowSubmission(id);
-        submission.setVerdict(verdict);
-        submission.setPassedTestcases(passedTestcases);
-        submission.setExecutionTime(maxTime);
-        submission.setMemoryUsed(maxMemory);
-        submission.setCompileOutput(compileOutput);
-        log.info("Submission [{}] updated with verdict={}, passed={}", id, verdict, passedTestcases);
-    }
 
     @Transactional(readOnly = true)
     public SubmissionDetailResponse getSubmissionDetail(UUID id) {
@@ -134,7 +65,8 @@ public class SubmissionService extends BaseService {
         int size = limit == null ? 20 : Math.clamp(limit, 1, 100);
 
         Verdict verdict = status != null && !status.isBlank() ? Verdict.fromApiValue(status.trim()) : null;
-        ProgrammingLanguage lang = language != null && !language.isBlank() ? ProgrammingLanguage.fromApiValue(language.trim()) : null;
+        ProgrammingLanguage lang = language != null && !language.isBlank()
+                ? ProgrammingLanguage.fromApiValue(language.trim()) : null;
 
         var pageable = org.springframework.data.domain.PageRequest.of(pageNum - 1, size);
         var submissionsPage = submissionRepository.findMySubmissions(userId, lessonSlug, verdict, lang, pageable);

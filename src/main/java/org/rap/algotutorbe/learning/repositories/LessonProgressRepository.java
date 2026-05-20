@@ -1,6 +1,8 @@
 package org.rap.algotutorbe.learning.repositories;
 
 import org.rap.algotutorbe.iam.domain.model.User;
+import org.rap.algotutorbe.learning.enums.ProgressStatus;
+import org.rap.algotutorbe.learning.models.Enrollment;
 import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.learning.models.LessonProgress;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,4 +25,18 @@ public interface LessonProgressRepository extends JpaRepository<LessonProgress, 
 
     @Query("SELECT lp FROM LessonProgress lp WHERE lp.user = :user AND lp.lesson IN :lessons")
     List<LessonProgress> findAllByUserAndLessons(@Param("user") User user, @Param("lessons") List<Lesson> lessons);
+
+    @Query("SELECT lp FROM LessonProgress lp " +
+            "JOIN FETCH lp.lesson l " +
+            "JOIN FETCH l.topic t " +
+            "JOIN FETCH t.learningPath " +
+            "WHERE lp.user = :user AND lp.status = :status " +
+            "ORDER BY lp.updatedAt DESC")
+    List<LessonProgress> findByUserAndStatusOrderByUpdatedAtDesc(
+            @Param("user") User user, @Param("status") ProgressStatus status);
+
+    @Query("SELECT lp FROM LessonProgress lp WHERE lp.enrollment = :enrollment AND lp.status = 'COMPLETED'")
+    List<LessonProgress> findCompletedByEnrollment(@Param("enrollment") Enrollment enrollment);
+
+    List<LessonProgress> findByEnrollment(Enrollment enrollment);
 }

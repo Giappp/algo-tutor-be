@@ -23,10 +23,10 @@ public interface LearningPathMapper {
     @Named("countPublishedLessons")
     static int countPublishedLessons(LearningPath lp) {
         if (lp.getTopics() == null) return 0;
-        return lp.getTopics().stream()
+        return (int) lp.getTopics().stream()
                 .flatMap(t -> t.getLessons() != null ? t.getLessons().stream() : java.util.stream.Stream.empty())
-                .mapToInt(l -> 1)
-                .sum();
+                .filter(l -> Boolean.TRUE.equals(l.getIsPublished()))
+                .count();
     }
 
     @Mapping(target = "id", ignore = true)

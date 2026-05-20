@@ -2,7 +2,6 @@ package org.rap.algotutorbe.learning.services;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
@@ -28,7 +27,7 @@ public class EditorialService {
     private final EditorialMapper editorialMapper;
 
     @Transactional
-    public @Nullable ApiResponse<EditorialResponseDTO> create(Long lessonId, @Valid EditorialRequestDTO dto) {
+    public ApiResponse<EditorialResponseDTO> create(Long lessonId, @Valid EditorialRequestDTO dto) {
         CodingLesson lesson = getCodingLessonOrThrow(lessonId);
 
         Editorial editorial = editorialMapper.toEntity(dto);
@@ -40,7 +39,7 @@ public class EditorialService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<EditorialResponseDTO> update(Long editorialId, @Valid EditorialRequestDTO dto) {
+    public ApiResponse<EditorialResponseDTO> update(Long editorialId, @Valid EditorialRequestDTO dto) {
         Editorial editorial = getOrThrow(editorialId);
         editorialMapper.updateEntity(editorial, dto);
         Editorial saved = editorialRepository.save(editorial);
@@ -48,13 +47,13 @@ public class EditorialService {
     }
 
     @Transactional
-    public @Nullable ApiResponse<String> delete(Long editorialId) {
+    public ApiResponse<String> delete(Long editorialId) {
         editorialRepository.deleteById(editorialId);
         return ApiResponse.buildMessage("Editorial deleted successfully");
     }
 
     @Transactional(readOnly = true)
-    public @Nullable ApiResponse<List<EditorialResponseDTO>> getByLessonId(Long lessonId) {
+    public ApiResponse<List<EditorialResponseDTO>> getByLessonId(Long lessonId) {
         getCodingLessonOrThrow(lessonId);
         List<Editorial> editorials = editorialRepository.findByCodingLessonId(lessonId);
         List<EditorialResponseDTO> responses = editorials.stream()

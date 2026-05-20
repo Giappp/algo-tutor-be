@@ -35,4 +35,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, UUID> {
             @Param("language") ProgrammingLanguage language,
             Pageable pageable
     );
+
+    Optional<Submission> findTopByUserIdAndCodingLessonIdOrderByCreatedAtDesc(UUID userId, Long codingLessonId);
 }

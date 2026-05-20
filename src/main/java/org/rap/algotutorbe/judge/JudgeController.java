@@ -3,24 +3,18 @@ package org.rap.algotutorbe.judge;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
-import org.rap.algotutorbe.common.api.PageResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.common.ratelimit.RateLimiter;
 import org.rap.algotutorbe.common.services.BaseService;
-import org.rap.algotutorbe.judge.dto.JudgeRunRequest;
-import org.rap.algotutorbe.judge.dto.JudgeRunResponse;
-import org.rap.algotutorbe.judge.dto.JudgeSubmitResponse;
-import org.rap.algotutorbe.submission.dto.SubmissionResponse;
-import org.rap.algotutorbe.submission.service.SubmissionService;
+import org.rap.algotutorbe.judge.dto.JudgeRequest;
+import org.rap.algotutorbe.judge.dto.JudgeResponse;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Judge controller for the frontend learning flow.
- * Provides synchronous code execution endpoints matching the frontend spec.
- * Rate limited: 10 runs/min, 5 submits/min per user.
- */
 @RestController
 @RequestMapping("/judge")
 @RequiredArgsConstructor
@@ -30,8 +24,7 @@ public class JudgeController extends BaseService {
     private static final int MAX_SUBMITS_PER_MINUTE = 5;
     private static final long ONE_MINUTE_MS = 60_000;
 
-    private final JudgeRunService judgeRunService;
-    private final SubmissionService submissionService;
+    private final JudgeService judgeService;
     private final RateLimiter rateLimiter;
 
     /**
@@ -40,36 +33,24 @@ public class JudgeController extends BaseService {
      * Rate limit: 10 requests/minute per user.
      */
     @PostMapping("/run")
-    public ResponseEntity<ApiResponse<JudgeRunResponse>> run(
-            @Valid @RequestBody JudgeRunRequest request) {
+    public ResponseEntity<ApiResponse<JudgeResponse>> run(
+            @Valid @RequestBody JudgeRequest request) {
         checkRunRateLimit();
-        JudgeRunResponse response = judgeRunService.run(request);
+        JudgeResponse response = judgeService.run(request);
         return ResponseEntity.ok(ApiResponse.buildSuccess(response));
     }
 
     /**
      * Submit code against ALL test cases.
-     * Saves a submission record and auto-updates lesson progress if ACCEPTED.
+     * Saves submission record + auto-updates lesson progress.
      * Rate limit: 5 requests/minute per user.
      */
     @PostMapping("/submit")
-    public ResponseEntity<ApiResponse<JudgeSubmitResponse>> submit(
-            @Valid @RequestBody JudgeRunRequest request) {
+    public ResponseEntity<ApiResponse<JudgeResponse>> submit(
+            @Valid @RequestBody JudgeRequest request) {
         checkSubmitRateLimit();
-        JudgeSubmitResponse response = judgeRunService.submit(request);
+        JudgeResponse response = judgeService.submit(request);
         return ResponseEntity.ok(ApiResponse.buildSuccess(response));
-    }
-
-    /**
-     * Get submission history for a lesson.
-     */
-    @GetMapping("/submissions")
-    public ResponseEntity<PageResponse<SubmissionResponse>> getSubmissions(
-            @RequestParam String lessonSlug,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
-        return ResponseEntity.ok(submissionService.listMySubmissions(
-                lessonSlug, null, null, page, size));
     }
 
     private void checkRunRateLimit() {
