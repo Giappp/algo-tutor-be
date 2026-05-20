@@ -32,14 +32,14 @@ public class ProviderRouter {
         LLMProvider provider = resolveProvider(providerName);
 
         return switch (provider) {
-            case OPENAI -> getRequiredClient(openAiClientProvider, provider);
-            case GEMINI -> getRequiredClient(geminiClientProvider, provider);
-            case CLAUDE_SONNET_4_6 -> getRequiredClient(claudeClientProvider, provider);
+            case OPENAI -> getRequiredClient(openAiClientProvider);
+            case GEMINI -> getRequiredClient(geminiClientProvider);
+            case CLAUDE_SONNET_4_6 -> getRequiredClient(claudeClientProvider);
         };
     }
 
     private ChatClient getRequiredClient(
-            ObjectProvider<ChatClient> provider,
+            ObjectProvider<ChatClient> provider
     ) {
         ChatClient client = provider.getIfAvailable();
 
