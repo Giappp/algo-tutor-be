@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.ai.dto.AiChatRequest;
 import org.rap.algotutorbe.ai.dto.AiChatResponse;
-import org.rap.algotutorbe.ai.dto.AiSuggestion;
 import org.rap.algotutorbe.ai.entity.AIConversation;
 import org.rap.algotutorbe.ai.entity.AiMessage;
 import org.rap.algotutorbe.ai.enums.AiChatMode;
@@ -48,7 +47,6 @@ public class AiChatService {
     private final LessonRepository lessonRepository;
     private final AiMessageRepository aiMessageRepository;
     private final AlgoTutorAiTools algoTutorAiTools;
-    private final SuggestionGenerator suggestionGenerator;
 
     public AiChatResponse chat(AiChatRequest request, UUID userId) {
         validateRequest(request);
@@ -308,13 +306,11 @@ public class AiChatService {
 
         String greeting = buildOnboardingMessage(lesson);
 
-        List<AiSuggestion> suggestions = suggestionGenerator.buildSuggestionsForMode(AiChatMode.EXPLAIN, lesson.getType().toString());
-
         return new AiChatResponse(
                 conversation.getId(),
                 greeting,
                 "BOOTSTRAP",
-                suggestions,
+                null,
                 Collections.emptyList(),
                 true
         );

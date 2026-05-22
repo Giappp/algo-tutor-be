@@ -98,15 +98,6 @@ public class LessonContentService {
         }
 
         List<CodingContentResponse.TestCaseItem> testCaseItems = new ArrayList<>();
-        if (coding.getTestCases() != null) {
-            for (Testcase tc : coding.getTestCases()) {
-                testCaseItems.add(new CodingContentResponse.TestCaseItem(
-                        tc.getStdin(),
-                        Boolean.TRUE.equals(tc.getIsHidden()) ? null : tc.getExpectedStdout(),
-                        tc.getIsHidden()
-                ));
-            }
-        }
 
         return new CodingContentResponse(
                 coding.getId(),

@@ -30,7 +30,6 @@ public class AWSConfig {
                 .build();
     }
 
-    // 2. Tùy chọn: Tạo Bean Presigner (Dùng cho Cách 2 ở câu trả lời trước - Upload trực tiếp từ Next.js)
     @Bean
     public S3Presigner s3Presigner() {
         AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);

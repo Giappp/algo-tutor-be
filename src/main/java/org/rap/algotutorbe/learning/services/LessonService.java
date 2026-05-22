@@ -203,4 +203,9 @@ public class LessonService {
         return lessonRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
     }
+
+    public Lesson getOrThrowBySlug(String slug) {
+        return lessonRepository.findBySlug(slug)
+                .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
+    }
 }

@@ -20,7 +20,7 @@ public class Submission extends BaseUuidEntity {
     @Version
     private Long version;
     @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SubmissionTestcase> submissionTestcases;
+    private List<SubmissionDetail> submissionDetails;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

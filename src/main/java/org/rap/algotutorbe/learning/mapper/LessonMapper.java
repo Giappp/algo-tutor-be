@@ -7,13 +7,10 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.rap.algotutorbe.common.config.GlobalMapperConfig;
 import org.rap.algotutorbe.learning.dto.*;
 import org.rap.algotutorbe.learning.dto.landing.PublicCodingLessonResponseDTO;
-import org.rap.algotutorbe.learning.dto.landing.PublicTestCaseResponseDTO;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.learning.models.QuizLesson;
 import org.rap.algotutorbe.learning.models.TheoryLesson;
-
-import java.util.List;
 
 @Mapper(config = GlobalMapperConfig.class,
         uses = {TestCaseMapper.class, QuizQuestionMapper.class},
@@ -28,6 +25,7 @@ public interface LessonMapper {
     @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "editorials", ignore = true)
     @Mapping(target = "submissions", ignore = true)
+    @Mapping(target = "testCases", ignore = true)
     CodingLesson toEntity(CodingLessonRequestDTO request);
 
     @Mapping(target = "id", ignore = true)
@@ -72,6 +70,7 @@ public interface LessonMapper {
     @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "editorials", ignore = true)
     @Mapping(target = "submissions", ignore = true)
+    @Mapping(target = "testCases", ignore = true)
     void updateCodingFromDTO(CodingLessonRequestDTO request, @MappingTarget CodingLesson lesson);
 
 
@@ -101,17 +100,6 @@ public interface LessonMapper {
 
     default PublicCodingLessonResponseDTO toPublicCodingResponse(CodingLesson lesson) {
         if (lesson == null) return null;
-        List<PublicTestCaseResponseDTO> publicTestCases = lesson.getTestCases() == null
-                ? List.of()
-                : lesson.getTestCases().stream()
-                .map(tc -> new PublicTestCaseResponseDTO(
-                        tc.getId(),
-                        tc.getStdin(),
-                        tc.getExpectedStdout(),
-                        tc.getIsHidden(),
-                        tc.getOrderIndex(),
-                        tc.getExplanation()))
-                .toList();
         return new PublicCodingLessonResponseDTO(
                 lesson.getId(),
                 lesson.getTitle(),
@@ -124,7 +112,7 @@ public interface LessonMapper {
                 lesson.getStarterCode(),
                 lesson.getHints(),
                 lesson.getExamples(),
-                publicTestCases,
+                null,
                 null
         );
     }

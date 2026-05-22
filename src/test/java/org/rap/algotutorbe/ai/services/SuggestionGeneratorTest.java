@@ -2,7 +2,6 @@ package org.rap.algotutorbe.ai.services;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.rap.algotutorbe.ai.dto.AiSuggestion;
 import org.rap.algotutorbe.ai.enums.AiChatMode;
 
 import java.util.List;
@@ -13,11 +12,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SuggestionGeneratorTest {
 
-    private SuggestionGenerator suggestionGenerator;
-
     private static final Set<String> VALID_MODES = Set.of(
             "HINT", "EXPLAIN", "DEBUG", "REVIEW", "COMPLEXITY", "SOLUTION", "NEXT_STEP"
     );
+    private SuggestionGenerator suggestionGenerator;
 
     @BeforeEach
     void setUp() {

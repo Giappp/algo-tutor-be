@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum ProgrammingLanguage {
-    JAVA("java", "Main.java", 2.0, 256, 800),
+    JAVA("java", "Main.java", 2.0, 256, 850),
     PYTHON("python", "main.py", 3.0, 64, 0);
 
     private final String pistonAlias;

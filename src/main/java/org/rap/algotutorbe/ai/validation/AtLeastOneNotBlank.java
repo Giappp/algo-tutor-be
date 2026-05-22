@@ -1,13 +1,9 @@
-package org.rap.algotutorbe.ai.dto.validation;
+package org.rap.algotutorbe.ai.validation;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Validates that at least one of the specified fields is non-null and non-blank.

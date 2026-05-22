@@ -13,6 +13,9 @@ import java.util.UUID;
 
 public class SecurityUser implements UserDetails {
     @Getter
+    private final transient User user;
+
+    @Getter
     private final UUID id;
     private final String username;
     @Getter
@@ -26,6 +29,7 @@ public class SecurityUser implements UserDetails {
     private final Collection<? extends GrantedAuthority> authorities;
 
     public SecurityUser(User user) {
+        this.user = user;
         this.id = user.getId();
         this.email = user.getEmail();
         this.username = user.getUsername();

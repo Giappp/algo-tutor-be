@@ -39,7 +39,7 @@ public class AiContextService {
         if (request.failedTestCases() != null && !request.failedTestCases().isEmpty()) {
             context.append("[FAILED_TEST_CASES]\n");
             for (int i = 0; i < request.failedTestCases().size(); i++) {
-                context.append("Test Case %d: %s\n".formatted(i + 1, request.failedTestCases().get(i)));
+                context.append("Test Case %d: %s%n".formatted(i + 1, request.failedTestCases().get(i)));
             }
             context.append("[/FAILED_TEST_CASES]\n\n");
         }

@@ -1,4 +1,4 @@
-package org.rap.algotutorbe.ai.dto.validation;
+package org.rap.algotutorbe.ai.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

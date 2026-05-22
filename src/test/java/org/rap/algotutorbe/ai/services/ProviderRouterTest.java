@@ -101,7 +101,7 @@ class ProviderRouterTest {
     @Test
     void route_withDefaultProviderClaude_usesClaudeWhenNull() {
         ProviderRouter claudeDefaultRouter = new ProviderRouter(
-                openAiClient, geminiClient, claudeClient, LLMProvider.CLAUDE_SONNET_4_6);
+                openAiClient, geminiClient, claudeClient, LLMProvider.CLAUDE);
         ChatClient result = claudeDefaultRouter.route(null);
         assertThat(result).isSameAs(claudeClient);
     }

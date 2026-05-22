@@ -34,7 +34,7 @@ public class ProviderRouter {
         return switch (provider) {
             case OPENAI -> getRequiredClient(openAiClientProvider);
             case GEMINI -> getRequiredClient(geminiClientProvider);
-            case CLAUDE_SONNET_4_6 -> getRequiredClient(claudeClientProvider);
+            case CLAUDE -> getRequiredClient(claudeClientProvider);
         };
     }
 

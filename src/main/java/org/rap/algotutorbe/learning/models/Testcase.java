@@ -18,17 +18,17 @@ public class Testcase extends BaseEntity {
     @JoinColumn(name = "coding_lesson_id", nullable = false)
     private CodingLesson codingLesson;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String stdin;
+    @Column(nullable = false)
+    private String inputFileUrl;
 
-    @Column(name = "expected_stdout", columnDefinition = "TEXT", nullable = false)
-    private String expectedStdout;
+    @Column(nullable = false)
+    private String outputFileUrl;
 
-    @Column(name = "is_hidden")
-    private Boolean isHidden;
+    private Integer scoreWeight;
+
+    @Column(name = "isSample")
+    private Boolean isSample;
 
     @Column(name = "sort_order")
-    private Integer orderIndex;
-
-    private String explanation;
+    private Integer sortOrder;
 }

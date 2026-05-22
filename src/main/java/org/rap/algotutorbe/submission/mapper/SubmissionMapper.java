@@ -7,11 +7,8 @@ import org.rap.algotutorbe.common.config.GlobalMapperConfig;
 import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.submission.dto.SubmissionDetailResponse;
 import org.rap.algotutorbe.submission.dto.SubmissionResponse;
-import org.rap.algotutorbe.submission.dto.SubmissionTestcaseResultResponse;
 import org.rap.algotutorbe.submission.entities.Submission;
 import org.rap.algotutorbe.submission.entities.Verdict;
-
-import java.util.List;
 
 @Mapper(config = GlobalMapperConfig.class)
 public interface SubmissionMapper {
@@ -37,5 +34,5 @@ public interface SubmissionMapper {
     @Mapping(target = "passedTestCases", source = "submission.passedTestcases")
     @Mapping(target = "totalTestCases", source = "submission.totalTestcases")
     @Mapping(target = "submittedAt", source = "submission.createdAt")
-    SubmissionDetailResponse toDetailResponse(Submission submission, List<SubmissionTestcaseResultResponse> results);
+    SubmissionDetailResponse toDetailResponse(Submission submission);
 }

@@ -5,8 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
-import org.rap.algotutorbe.learning.dto.TestCaseDTO;
-import org.rap.algotutorbe.learning.dto.TestCaseResponseDTO;
+import org.rap.algotutorbe.learning.dto.testcase.SaveTestCaseRequest;
+import org.rap.algotutorbe.learning.dto.testcase.TestCaseDTO;
 import org.rap.algotutorbe.learning.mapper.TestCaseMapper;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Testcase;
@@ -25,23 +25,30 @@ public class TestCaseService {
     private final TestCaseMapper testCaseMapper;
 
     @Transactional
-    public ApiResponse<Object> create(Long lessonId, @Valid TestCaseDTO dto) {
-        CodingLesson lesson = getCodingLessonOrThrow(lessonId);
+    public Testcase saveTestCase(Long problemId, TestCaseDTO request) {
+        CodingLesson codingLesson = codingLessonRepository.findById(problemId)
+                .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
 
+        Testcase testCase = new Testcase();
+        testCase.setCodingLesson(codingLesson);
+        testCase.setInputFileUrl(request.inputFileUrl());
+        testCase.setOutputFileUrl(request.outputFileUrl());
+        testCase.setScoreWeight(request.scoreWeight());
+        testCase.setIsSample(request.isSample());
+        testCase.setSortOrder(request.sortOrder());
+
+        return testcaseRepository.save(testCase);
+    }
+
+    @Transactional
+    public ApiResponse<TestCaseDTO> create(Long lessonId, @Valid SaveTestCaseRequest dto) {
+        CodingLesson lesson = getCodingLessonOrThrow(lessonId);
         Testcase testCase = testCaseMapper.toEntity(dto);
         testCase.setCodingLesson(lesson);
         lesson.getTestCases().add(testCase);
 
         codingLessonRepository.save(lesson);
-        return ApiResponse.buildSuccess(testCaseMapper.toResponse(testCase));
-    }
-
-    @Transactional
-    public ApiResponse<Object> update(Long testCaseId, @Valid TestCaseDTO dto) {
-        Testcase testCase = getOrThrow(testCaseId);
-        testCaseMapper.updateEntity(testCase, dto);
-        Testcase saved = testcaseRepository.save(testCase);
-        return ApiResponse.buildSuccess(testCaseMapper.toResponse(saved));
+        return ApiResponse.buildSuccess(testCaseMapper.toDto(testCase));
     }
 
     @Transactional
@@ -52,11 +59,11 @@ public class TestCaseService {
     }
 
     @Transactional(readOnly = true)
-    public ApiResponse<Object> getByLessonId(Long lessonId) {
+    public ApiResponse<List<TestCaseDTO>> getByLessonId(Long lessonId) {
         getCodingLessonOrThrow(lessonId);
         List<Testcase> testCases = testcaseRepository.findByCodingLessonId(lessonId);
-        List<TestCaseResponseDTO> responses = testCases.stream()
-                .map(testCaseMapper::toResponse)
+        List<TestCaseDTO> responses = testCases.stream()
+                .map(testCaseMapper::toDto)
                 .toList();
         return ApiResponse.buildSuccess(responses);
     }

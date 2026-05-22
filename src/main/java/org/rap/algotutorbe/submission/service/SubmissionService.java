@@ -9,14 +9,11 @@ import org.rap.algotutorbe.common.services.BaseService;
 import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.submission.dto.SubmissionDetailResponse;
 import org.rap.algotutorbe.submission.dto.SubmissionResponse;
-import org.rap.algotutorbe.submission.dto.SubmissionTestcaseResultResponse;
 import org.rap.algotutorbe.submission.entities.Submission;
-import org.rap.algotutorbe.submission.entities.SubmissionTestcase;
 import org.rap.algotutorbe.submission.entities.Verdict;
 import org.rap.algotutorbe.submission.mapper.SubmissionMapper;
-import org.rap.algotutorbe.submission.mapper.SubmissionTestcaseMapper;
+import org.rap.algotutorbe.submission.repositories.SubmissionDetailRepository;
 import org.rap.algotutorbe.submission.repositories.SubmissionRepository;
-import org.rap.algotutorbe.submission.repositories.SubmissionTestcaseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,8 +30,7 @@ import java.util.UUID;
 public class SubmissionService extends BaseService {
     private final SubmissionRepository submissionRepository;
     private final SubmissionMapper submissionMapper;
-    private final SubmissionTestcaseMapper submissionTestcaseMapper;
-    private final SubmissionTestcaseRepository submissionTestcaseRepository;
+    private final SubmissionDetailRepository submissionDetailRepository;
 
     @Transactional(readOnly = true)
     public SubmissionDetailResponse getSubmissionDetail(UUID id) {
@@ -46,10 +42,7 @@ public class SubmissionService extends BaseService {
             throw new AppException(ErrorCode.SUBMISSION_ACCESS_DENIED);
         }
 
-        List<SubmissionTestcase> testcases = submissionTestcaseRepository.findBySubmissionId(id);
-        List<SubmissionTestcaseResultResponse> testcaseResponses = submissionTestcaseMapper.toResponses(testcases);
-
-        return submissionMapper.toDetailResponse(submission, testcaseResponses);
+        return submissionMapper.toDetailResponse(submission);
     }
 
     @Transactional(readOnly = true)

@@ -19,10 +19,6 @@ public interface LessonProgressRepository extends JpaRepository<LessonProgress, 
 
     Optional<LessonProgress> findByUserAndLesson(User user, Lesson lesson);
 
-    List<LessonProgress> findByUserAndLessonIn(User user, List<Lesson> lessons);
-
-    boolean existsByUserAndLesson(User user, Lesson lesson);
-
     @Query("SELECT lp FROM LessonProgress lp WHERE lp.user = :user AND lp.lesson IN :lessons")
     List<LessonProgress> findAllByUserAndLessons(@Param("user") User user, @Param("lessons") List<Lesson> lessons);
 

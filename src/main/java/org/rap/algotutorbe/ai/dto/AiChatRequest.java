@@ -2,7 +2,7 @@ package org.rap.algotutorbe.ai.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.rap.algotutorbe.ai.dto.validation.AtLeastOneNotBlank;
+import org.rap.algotutorbe.ai.validation.AtLeastOneNotBlank;
 
 import java.util.List;
 import java.util.UUID;

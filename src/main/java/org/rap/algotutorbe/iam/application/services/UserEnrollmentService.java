@@ -7,7 +7,9 @@ import org.rap.algotutorbe.iam.domain.model.User;
 import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
 import org.rap.algotutorbe.iam.dto.CurrentLessonResponse;
 import org.rap.algotutorbe.iam.dto.EnrollmentProgressResponse;
+import org.rap.algotutorbe.learning.dto.landing.RoadmapResponseDTO;
 import org.rap.algotutorbe.learning.enums.ProgressStatus;
+import org.rap.algotutorbe.learning.mapper.RoadmapMapper;
 import org.rap.algotutorbe.learning.models.*;
 import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
 import org.rap.algotutorbe.learning.repositories.LessonProgressRepository;
@@ -26,6 +28,7 @@ public class UserEnrollmentService {
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
+    private final RoadmapMapper roadmapMapper;
 
     public Optional<CurrentLessonResponse> getCurrentLesson(UUID userId) {
         User user = getUserOrThrow(userId);
@@ -36,7 +39,7 @@ public class UserEnrollmentService {
         }
 
         return findInProgressLesson(user, enrollments)
-                .or(() -> findFirstNotStartedLesson(user, enrollments));
+                .or(() -> findFirstNotStartedLesson(enrollments));
     }
 
     public List<EnrollmentProgressResponse> getEnrollments(UUID userId) {
@@ -48,7 +51,7 @@ public class UserEnrollmentService {
         }
 
         return enrollments.stream()
-                .map(enrollment -> buildEnrollmentResponse(user, enrollment))
+                .map(this::buildEnrollmentResponse)
                 .sorted(Comparator.comparing(EnrollmentProgressResponse::completionPercentage).reversed())
                 .toList();
     }
@@ -61,8 +64,19 @@ public class UserEnrollmentService {
             return List.of();
         }
 
-        return sortEnrollmentsByActivity(user, enrollments).stream()
-                .map(enrollment -> buildEnrollmentResponse(user, enrollment))
+        return sortEnrollmentsByActivity(enrollments).stream()
+                .map(this::buildEnrollmentResponse)
+                .toList();
+    }
+
+    public List<RoadmapResponseDTO> getUserRoadmaps(UUID userId) {
+        User user = getUserOrThrow(userId);
+        if (user.getEnrollments().isEmpty()) {
+            return List.of();
+        }
+        return user.getEnrollments().stream()
+                .map(Enrollment::getLearningPath)
+                .map(roadmapMapper::toResponse)
                 .toList();
     }
 
@@ -87,7 +101,7 @@ public class UserEnrollmentService {
         ));
     }
 
-    private Optional<CurrentLessonResponse> findFirstNotStartedLesson(User user, List<Enrollment> enrollments) {
+    private Optional<CurrentLessonResponse> findFirstNotStartedLesson(List<Enrollment> enrollments) {
         Enrollment latestEnrollment = enrollments.stream()
                 .max(Comparator.comparing(Enrollment::getCreatedAt))
                 .orElse(null);
@@ -136,7 +150,7 @@ public class UserEnrollmentService {
         return null;
     }
 
-    private EnrollmentProgressResponse buildEnrollmentResponse(User user, Enrollment enrollment) {
+    private EnrollmentProgressResponse buildEnrollmentResponse(Enrollment enrollment) {
         LearningPath roadmap = enrollment.getLearningPath();
         int percentage = calculateCompletionPercentage(enrollment);
 
@@ -167,7 +181,7 @@ public class UserEnrollmentService {
         return findFirstUncompletedLesson(enrollment, completedIds);
     }
 
-    private List<Enrollment> sortEnrollmentsByActivity(User user, List<Enrollment> enrollments) {
+    private List<Enrollment> sortEnrollmentsByActivity(List<Enrollment> enrollments) {
         Map<UUID, Instant> latestActivityMap = new HashMap<>();
 
         for (Enrollment enrollment : enrollments) {

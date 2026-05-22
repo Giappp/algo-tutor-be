@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.rap.algotutorbe.ai.enums.LLMProvider;
+import org.rap.algotutorbe.common.domain.BaseUuidEntity;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -16,28 +17,17 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AIConversation {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-
+public class AIConversation extends BaseUuidEntity {
     @Column(nullable = false)
     private UUID userId;
 
     private Long lessonId;
 
-    @Column(length = 255)
     private String title;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LLMProvider provider;
-
-    @Column(nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @Column(nullable = false)
-    private Instant updatedAt;
 
     @PrePersist
     protected void onCreate() {

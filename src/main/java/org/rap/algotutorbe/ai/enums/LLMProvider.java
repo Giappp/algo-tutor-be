@@ -1,5 +1,5 @@
 package org.rap.algotutorbe.ai.enums;
 
 public enum LLMProvider {
-    OPENAI, GEMINI, CLAUDE_SONNET_4_6
+    OPENAI, GEMINI, CLAUDE
 }

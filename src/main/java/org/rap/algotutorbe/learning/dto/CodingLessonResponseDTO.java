@@ -1,5 +1,6 @@
 package org.rap.algotutorbe.learning.dto;
 
+import org.rap.algotutorbe.learning.dto.testcase.TestCaseDTO;
 import org.rap.algotutorbe.learning.models.ProblemExample;
 
 import java.util.List;
@@ -18,7 +19,7 @@ public record CodingLessonResponseDTO(
         Map<String, String> starterCode,
         List<String> hints,
         List<ProblemExample> examples,
-        List<TestCaseResponseDTO> testCases,
+        List<TestCaseDTO> testCases,
         List<EditorialResponseDTO> editorials
 ) {
 }

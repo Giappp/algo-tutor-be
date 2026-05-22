@@ -79,8 +79,6 @@ public class LessonController {
         return ResponseEntity.ok(lessonService.getPublishedBySlug(slug));
     }
 
-    // ── Public Lesson Content Endpoints (for learning flow) ──────────────
-
     @GetMapping("/{slug}/theory")
     public ResponseEntity<ApiResponse<TheoryContentResponse>> getTheoryContent(@PathVariable String slug) {
         return ResponseEntity.ok(ApiResponse.buildSuccess(lessonContentService.getTheoryContent(slug)));

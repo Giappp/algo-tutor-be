@@ -64,7 +64,7 @@ public class RoadmapService extends BaseService {
         }
         LearningPath learningPath = published.get();
 
-        UUID userId = null;
+        UUID userId;
         User user = null;
         boolean enrolled = false;
 
@@ -120,7 +120,7 @@ public class RoadmapService extends BaseService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        enrollmentRepository
+        Enrollment enrollment = enrollmentRepository
                 .findByUserAndLearningPathIdAndStatus(user, learningPath.getId(), EnrollmentStatus.IN_PROGRESS)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_ENROLLED));
 
@@ -138,7 +138,7 @@ public class RoadmapService extends BaseService {
                     lp.setLesson(lesson);
                     return lp;
                 });
-
+        progress.setEnrollment(enrollment);
         progress.setStatus(status);
         progress.setIsCompleted(status == ProgressStatus.COMPLETED);
         progress.setCompletedAt(status == ProgressStatus.COMPLETED ? Instant.now() : null);

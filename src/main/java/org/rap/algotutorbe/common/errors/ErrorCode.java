@@ -46,6 +46,7 @@ public enum ErrorCode {
     EDITORIAL_NOT_IN_LESSON(4013, "errors.editorial-not-in-lesson", HttpStatus.BAD_REQUEST),
     QUIZ_LESSON_REQUIRED(4014, "errors.quiz-lesson-required", HttpStatus.BAD_REQUEST),
     CODING_LESSON_REQUIRED(4015, "errors.coding-lesson-required", HttpStatus.BAD_REQUEST),
+    INVALID_QUIZ_QUESTION(4016, "errors.quiz-choice-invalid", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Enroll Errors
     ALREADY_ENROLL(5000, "errors.already-enroll", HttpStatus.CONFLICT),

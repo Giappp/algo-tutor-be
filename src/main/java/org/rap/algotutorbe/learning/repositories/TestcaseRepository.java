@@ -12,10 +12,10 @@ import java.util.Optional;
 
 @Repository
 public interface TestcaseRepository extends JpaRepository<Testcase, Long> {
-    @Query("SELECT t FROM Testcase t WHERE t.codingLesson.id = :lessonId ORDER BY t.orderIndex")
+    @Query("SELECT t FROM Testcase t WHERE t.codingLesson.id = :lessonId ORDER BY t.sortOrder")
     Optional<List<Testcase>> findByLessonIdOrderByOrderIndex(@Param("lessonId") Long lessonId);
 
-    @Query("SELECT t FROM Testcase t WHERE t.codingLesson.id = :lessonId AND t.isHidden = false ORDER BY t.orderIndex")
+    @Query("SELECT t FROM Testcase t WHERE t.codingLesson.id = :lessonId AND t.isSample = true ORDER BY t.sortOrder")
     List<Testcase> findSamplesByLessonId(@Param("lessonId") Long lessonId);
 
     @Modifying

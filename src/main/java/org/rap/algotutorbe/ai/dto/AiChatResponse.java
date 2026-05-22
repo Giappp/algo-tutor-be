@@ -7,7 +7,7 @@ public record AiChatResponse(
         UUID conversationId,
         String answer,
         String mode,
-        List<AiSuggestion> suggestions,
+        List<AiQuickAction> quickActions,
         List<AiSource> sources,
         Boolean canAskNextHint
 ) {

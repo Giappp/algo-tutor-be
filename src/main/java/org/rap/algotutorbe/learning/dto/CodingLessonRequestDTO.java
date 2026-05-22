@@ -30,9 +30,6 @@ public class CodingLessonRequestDTO extends LessonRequestDTO {
     @Size(max = 10)
     private Map<String, String> starterCode;
 
-    @Size(max = 50)
-    private List<TestCaseDTO> testCases;
-
     @Size(max = 5)
     private List<ProblemExample> examples;
 

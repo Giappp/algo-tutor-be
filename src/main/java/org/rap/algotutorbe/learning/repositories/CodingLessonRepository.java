@@ -13,4 +13,7 @@ public interface CodingLessonRepository extends JpaRepository<CodingLesson, Long
 
     @Query("SELECT cl FROM CodingLesson cl LEFT JOIN FETCH cl.testCases WHERE cl.id = :id")
     Optional<CodingLesson> findByIdWithTestCases(@Param("id") Long id);
+
+    @Query("SELECT cl FROM CodingLesson cl LEFT JOIN FETCH cl.testCases WHERE cl.slug = :slug")
+    Optional<CodingLesson> findBySlugWithTestCases(@Param("slug") String slug);
 }
