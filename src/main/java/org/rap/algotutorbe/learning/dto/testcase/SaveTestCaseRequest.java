@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 
 public record SaveTestCaseRequest(@NotBlank String inputFileUrl,
                                   @NotBlank String outputFileUrl,
+                                  @NotBlank String inputFileKey,
+                                  @NotBlank String outputFileKey,
                                   @NotNull Integer scoreWeight,
                                   Boolean isSample,
                                   Integer sortOrder) {

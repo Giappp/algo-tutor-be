@@ -39,10 +39,6 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/landing/**",
             "/roadmaps/**",
-            "/upload/**",
-            "/lessons/*/theory",
-            "/lessons/*/quiz",
-            "/lessons/*/coding"
     };
     private static final String[] IGNORE_CSRF_ENDPOINTS = {
             "/api/v1/iam/**",

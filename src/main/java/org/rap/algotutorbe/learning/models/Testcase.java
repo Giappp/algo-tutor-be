@@ -24,6 +24,12 @@ public class Testcase extends BaseEntity {
     @Column(nullable = false)
     private String outputFileUrl;
 
+    @Column(nullable = false)
+    private String inputFileKey;
+
+    @Column(nullable = false)
+    private String outputFileKey;
+
     private Integer scoreWeight;
 
     @Column(name = "isSample")

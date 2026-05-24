@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
+import org.rap.algotutorbe.common.services.BaseService;
 import org.rap.algotutorbe.common.services.SlugGenerator;
 import org.rap.algotutorbe.learning.dto.*;
 import org.rap.algotutorbe.learning.mapper.LessonMapper;
@@ -22,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
-public class LessonService {
+public class LessonService extends BaseService {
     private final LessonRepository lessonRepository;
     private final TopicRepository topicRepository;
     private final LessonMapper lessonMapper;
@@ -100,26 +101,6 @@ public class LessonService {
     public ApiResponse<Object> getById(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
         return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(lesson));
-    }
-
-    @Transactional(readOnly = true)
-    public ApiResponse<Object> getPublishedById(Long lessonId) {
-        Lesson lesson = getOrThrow(lessonId);
-        return ApiResponse.buildSuccess(buildPublicResponse(lesson));
-    }
-
-    @Transactional(readOnly = true)
-    public ApiResponse<Object> getPublishedBySlug(String slug) {
-        Lesson lesson = lessonRepository.findBySlug(slug)
-                .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
-        return ApiResponse.buildSuccess(buildPublicResponse(lesson));
-    }
-
-    private Object buildPublicResponse(Lesson lesson) {
-        if (lesson instanceof CodingLesson coding) {
-            return lessonMapper.toPublicCodingResponse(coding);
-        }
-        return lessonMapper.toDetailedResponse(lesson);
     }
 
     @Transactional(readOnly = true)

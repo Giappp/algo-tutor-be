@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.api.FileUploadResponse;
+import org.rap.algotutorbe.common.api.PresignedUploadTarget;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,12 +59,17 @@ public class S3Service {
         return ApiResponse.buildSuccess(response);
     }
 
-    public String generatePresignedUploadUrl(Long problemId, String testCaseUuid, String fileName) {
-        String s3Key = String.format("problems/%d/testcases/%s//%s", problemId, testCaseUuid, fileName);
+    public PresignedUploadTarget createPresignedUploadTarget(
+            Long lessonId,
+            String testCaseUuid,
+            String fileName
+    ) {
+        String objectKey = buildTestCaseObjectKey(lessonId, testCaseUuid, fileName);
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
-                .key(s3Key)
+                .key(objectKey)
+                .contentType("application/octet-stream")
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -71,19 +77,52 @@ public class S3Service {
                 .putObjectRequest(putObjectRequest)
                 .build();
 
-        return s3Presigner.presignPutObject(presignRequest).url().toString();
+        String uploadUrl = s3Presigner.presignPutObject(presignRequest)
+                .url()
+                .toString();
+
+        String fileUrl = buildFileUrl(objectKey);
+
+        return new PresignedUploadTarget(objectKey, uploadUrl, fileUrl);
+    }
+
+    public String buildTestCaseObjectKey(Long lessonId, String testCaseUuid, String fileName) {
+        String cleanFileName = sanitizeFileName(fileName);
+
+        return String.format(
+                "lessons/%d/testcases/%s/%s",
+                lessonId,
+                testCaseUuid,
+                cleanFileName
+        );
+    }
+
+    public String buildFileUrl(String objectKey) {
+        return String.format(
+                "https://%s.s3.%s.amazonaws.com/%s",
+                bucketName,
+                region,
+                objectKey
+        );
+    }
+
+    private String sanitizeFileName(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return "file";
+        }
+
+        return fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
     /**
      * Lấy file testcase từ local cache, nếu không có sẽ tải từ S3 về đĩa.
      *
-     * @param problemId ID của bài tập (để phân thư mục gọn gàng)
-     * @param s3Url     Link đầy đủ của file lưu trong DB (VD: https://.../input.in)
+     * @param lessonId ID của bài tập (để phân thư mục gọn gàng)
+     * @param s3Url    Link đầy đủ của file lưu trong DB (VD: https://.../input.in)
      * @return Path dẫn tới file vật lý trên ổ đĩa Server
      */
-    public Path getOrCreateLocalTestCaseFile(Long problemId, String s3Url) {
+    public Path getOrCreateLocalTestCaseFile(Long lessonId, String s3Url) {
         // 1. Trích xuất S3 Key từ URL
-        // Ví dụ: "problems/12/testcases/uuid-abc/input.in"
         String s3Key = s3Url.substring(s3Url.indexOf(".amazonaws.com/") + 15);
 
         // Tách lấy tên file gốc (input.in hoặc output.out) từ S3 Key
@@ -93,7 +132,7 @@ public class S3Service {
         String[] parts = s3Key.split("/");
         String testCaseUuid = parts[parts.length - 2];
 
-        Path localFilePath = Paths.get(localStoragePath, problemId.toString(), testCaseUuid, fileName);
+        Path localFilePath = Paths.get(localStoragePath, lessonId.toString(), testCaseUuid, fileName);
 
         // 3. Nếu file đã tồn tại cục bộ, trả về luôn (Hit Cache)
         if (Files.exists(localFilePath)) {
@@ -148,9 +187,9 @@ public class S3Service {
     /**
      * Tạo đường dẫn công khai (hoặc private bản chuẩn) của file sau khi upload thành công
      */
-    public String getDisplayUrl(Long problemId, String testCaseUuid, String fileName) {
+    public String getDisplayUrl(Long lessonId, String testCaseUuid, String fileName) {
         return String.format("https://%s.s3.%s.amazonaws.com/problems/%d/testcases/%s/%s",
-                bucketName, region, problemId, testCaseUuid, fileName);
+                bucketName, region, lessonId, testCaseUuid, fileName);
     }
 
     private void validateImage(MultipartFile file) {
@@ -185,9 +224,5 @@ public class S3Service {
         } catch (Exception e) {
             throw new AppException(ErrorCode.S3_CONNECTION, e);
         }
-    }
-
-    private String buildFileUrl(String objectKey) {
-        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, objectKey);
     }
 }

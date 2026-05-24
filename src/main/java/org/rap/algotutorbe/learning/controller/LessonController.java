@@ -69,27 +69,20 @@ public class LessonController {
         return ResponseEntity.ok(lessonService.togglePublish(lessonId));
     }
 
-    @GetMapping("/public/{lessonId}")
-    public ResponseEntity<ApiResponse<Object>> getPublishedLessonById(@PathVariable Long lessonId) {
-        return ResponseEntity.ok(lessonService.getPublishedById(lessonId));
-    }
-
-    @GetMapping("/public/slug/{slug}")
-    public ResponseEntity<ApiResponse<Object>> getPublishedLessonBySlug(@PathVariable String slug) {
-        return ResponseEntity.ok(lessonService.getPublishedBySlug(slug));
-    }
-
     @GetMapping("/{slug}/theory")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<TheoryContentResponse>> getTheoryContent(@PathVariable String slug) {
         return ResponseEntity.ok(ApiResponse.buildSuccess(lessonContentService.getTheoryContent(slug)));
     }
 
     @GetMapping("/{slug}/quiz")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<QuizContentResponse>> getQuizContent(@PathVariable String slug) {
         return ResponseEntity.ok(ApiResponse.buildSuccess(lessonContentService.getQuizContent(slug)));
     }
 
     @GetMapping("/{slug}/coding")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CodingContentResponse>> getCodingContent(@PathVariable String slug) {
         return ResponseEntity.ok(ApiResponse.buildSuccess(lessonContentService.getCodingContent(slug)));
     }

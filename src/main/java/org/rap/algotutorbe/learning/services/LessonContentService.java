@@ -3,27 +3,33 @@ package org.rap.algotutorbe.learning.services;
 import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
+import org.rap.algotutorbe.common.services.BaseService;
+import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
 import org.rap.algotutorbe.learning.dto.landing.CodingContentResponse;
 import org.rap.algotutorbe.learning.dto.landing.QuizContentResponse;
 import org.rap.algotutorbe.learning.dto.landing.TheoryContentResponse;
 import org.rap.algotutorbe.learning.models.*;
+import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class LessonContentService {
+public class LessonContentService extends BaseService {
 
     private final LessonRepository lessonRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     @Transactional(readOnly = true)
     public TheoryContentResponse getTheoryContent(String slug) {
         Lesson lesson = lessonRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
+        validateLessonAccess(lesson);
 
         if (!(lesson instanceof TheoryLesson theory)) {
             throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
@@ -46,6 +52,7 @@ public class LessonContentService {
     public QuizContentResponse getQuizContent(String slug) {
         Lesson lesson = lessonRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
+        validateLessonAccess(lesson);
 
         if (!(lesson instanceof QuizLesson quiz)) {
             throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
@@ -92,6 +99,7 @@ public class LessonContentService {
     public CodingContentResponse getCodingContent(String slug) {
         Lesson lesson = lessonRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
+        validateLessonAccess(lesson);
 
         if (!(lesson instanceof CodingLesson coding)) {
             throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
@@ -110,6 +118,28 @@ public class LessonContentService {
                 coding.getBaseTimeLimitMs(),
                 coding.getBaseMemoryLimitMb()
         );
+    }
+
+    private void validateLessonAccess(Lesson lesson) {
+        SecurityUser currentUser = getCurrentUser()
+                .orElseThrow(() -> new AppException(ErrorCode.NEED_AUTHENTICATION));
+
+        String role = currentUser.getRoleCode();
+        if ("ADMIN".equals(role) || "EDITOR".equals(role)) {
+            return;
+        }
+
+        if (lesson.getTopic() == null || lesson.getTopic().getLearningPath() == null) {
+            throw new AppException(ErrorCode.TOPIC_NOT_IN_LEARNING_PATH);
+        }
+
+        Long learningPathId = lesson.getTopic().getLearningPath().getId();
+        UUID userId = currentUser.getId();
+
+        boolean isEnrolled = enrollmentRepository.existsByUserIdAndLearningPathId(userId, learningPathId);
+        if (!isEnrolled) {
+            throw new AppException(ErrorCode.NOT_ENROLLED);
+        }
     }
 
     private int estimateReadingTime(String content) {

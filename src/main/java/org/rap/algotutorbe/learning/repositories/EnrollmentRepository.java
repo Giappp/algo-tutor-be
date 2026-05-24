@@ -19,7 +19,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
 
     boolean existsEnrollmentByUser(User user);
 
-    boolean existsByUserAndLearningPathId(User user, Long learningPathId);
+    boolean existsByUserIdAndLearningPathId(java.util.UUID userId, Long learningPathId);
 
     Optional<Enrollment> findByUserAndLearningPathId(User user, Long learningPathId);
 
