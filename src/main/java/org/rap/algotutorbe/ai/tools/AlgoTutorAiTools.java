@@ -38,7 +38,17 @@ public class AlgoTutorAiTools {
     }
 
     @Tool(description = "Get user's latest submission for a lesson")
-    public SubmissionToolResult getLatestSubmission(UUID userId, Long codingLessonId) {
+    public SubmissionToolResult getLatestSubmission(Long codingLessonId) {
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof org.rap.algotutorbe.iam.infrastructure.SecurityUser securityUser)) {
+            return new SubmissionToolResult(
+                    null,
+                    "No Authentication",
+                    null,
+                    "User is not authenticated."
+            );
+        }
+        UUID userId = securityUser.getId();
         return submissionRepository
                 .findTopByUserIdAndCodingLessonIdOrderByCreatedAtDesc(userId, codingLessonId)
                 .map(submission -> new SubmissionToolResult(

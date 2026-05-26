@@ -2,91 +2,74 @@ package org.rap.algotutorbe.ai.services;
 
 import org.rap.algotutorbe.ai.dto.AiChatRequest;
 import org.rap.algotutorbe.ai.enums.AiChatMode;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.EnumMap;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class AiPromptService {
 
-    private static final String BASE_SYSTEM_PROMPT = """
-            You are AlgoTutor AI, an intelligent algorithm and programming tutor for the AlgoTutor platform.
-            
-            Your role:
-            - Help learners understand algorithms and data structures through guided learning.
-            - Encourage independent thinking and problem-solving skills.
-            - Respond in the same language the user uses (default to Vietnamese if unclear).
-            - If you lack sufficient context, state clearly what information is missing rather than guessing.
-            - Always be encouraging, patient, and pedagogically sound in your responses.
-            
-            Safety rules:
-            - Never reveal full solutions unless explicitly in SOLUTION mode.
-            - Never fabricate test cases or problem constraints that are not provided in context.
-            - Keep responses focused on the algorithm/programming topic at hand.
-            """;
+    @Value("classpath:/prompts/base_system.st")
+    private Resource baseSystemPromptResource;
 
-    private final Map<AiChatMode, String> modePrompts;
+    @Value("classpath:/prompts/hint.st")
+    private Resource hintPromptResource;
 
-    public AiPromptService() {
-        this.modePrompts = new EnumMap<>(AiChatMode.class);
-        initModePrompts();
-    }
+    @Value("classpath:/prompts/explain.st")
+    private Resource explainPromptResource;
 
-    private void initModePrompts() {
-        modePrompts.put(AiChatMode.HINT, """
-                MODE: HINT
-                Instructions: Provide only a single hint of no more than 2 sentences. \
-                Do NOT reveal the full solution, complete code, or detailed algorithm steps. \
-                The hint should nudge the learner in the right direction without giving away the answer.""");
+    @Value("classpath:/prompts/debug.st")
+    private Resource debugPromptResource;
 
-        modePrompts.put(AiChatMode.EXPLAIN, """
-                MODE: EXPLAIN
-                Instructions: Explain the relevant algorithm theory including its definition, \
-                working principle, and an illustrative example. \
-                Cover the core concept clearly so the learner understands the underlying theory. \
-                Use step-by-step explanation with a concrete example to demonstrate how the algorithm works.""");
+    @Value("classpath:/prompts/review.st")
+    private Resource reviewPromptResource;
 
-        modePrompts.put(AiChatMode.DEBUG, """
-                MODE: DEBUG
-                Instructions: Identify errors and edge cases in the user's code. \
-                Provide fix guidance limited to pointing out the root cause of the issue. \
-                Do NOT rewrite the full solution or provide complete corrected code. \
-                Focus on what is wrong, why it is wrong, and give a minimal hint toward the fix.""");
+    @Value("classpath:/prompts/complexity.st")
+    private Resource complexityPromptResource;
 
-        modePrompts.put(AiChatMode.REVIEW, """
-                MODE: REVIEW
-                Instructions: Review the user's code for correctness, style, and optimization opportunities. \
-                Evaluate whether the logic is correct, identify any style issues or anti-patterns, \
-                and suggest potential optimizations. Provide constructive feedback organized by category.""");
+    @Value("classpath:/prompts/solution.st")
+    private Resource solutionPromptResource;
 
-        modePrompts.put(AiChatMode.COMPLEXITY, """
-                MODE: COMPLEXITY
-                Instructions: Analyze and explain the time and space complexity of the user's code using Big-O notation. \
-                Break down the analysis by identifying loops, recursive calls, and data structure operations. \
-                Provide the final time complexity and space complexity with clear justification.""");
+    @Value("classpath:/prompts/next_step.st")
+    private Resource nextStepPromptResource;
 
-        modePrompts.put(AiChatMode.SOLUTION, """
-                MODE: SOLUTION
-                Instructions: Provide a complete algorithm solution with a step-by-step explanation of the approach. \
-                Include the full working code along with detailed commentary on why each step is necessary. \
-                Explain the algorithm choice, its complexity, and any trade-offs considered.""");
+    private String baseSystemPrompt = "";
+    private final Map<AiChatMode, String> modePrompts = new EnumMap<>(AiChatMode.class);
 
-        modePrompts.put(AiChatMode.NEXT_STEP, """
-                MODE: NEXT_STEP
-                Instructions: Suggest the single next actionable step the learner should take to progress toward a solution. \
-                Do NOT reveal subsequent steps or the full path to the solution. \
-                The suggestion should be specific, concrete, and immediately actionable.""");
+    @PostConstruct
+    public void init() {
+        try {
+            baseSystemPrompt = StreamUtils.copyToString(baseSystemPromptResource.getInputStream(), StandardCharsets.UTF_8);
+            modePrompts.put(AiChatMode.HINT, StreamUtils.copyToString(hintPromptResource.getInputStream(), StandardCharsets.UTF_8));
+            modePrompts.put(AiChatMode.EXPLAIN, StreamUtils.copyToString(explainPromptResource.getInputStream(), StandardCharsets.UTF_8));
+            modePrompts.put(AiChatMode.DEBUG, StreamUtils.copyToString(debugPromptResource.getInputStream(), StandardCharsets.UTF_8));
+            modePrompts.put(AiChatMode.REVIEW, StreamUtils.copyToString(reviewPromptResource.getInputStream(), StandardCharsets.UTF_8));
+            modePrompts.put(AiChatMode.COMPLEXITY, StreamUtils.copyToString(complexityPromptResource.getInputStream(), StandardCharsets.UTF_8));
+            modePrompts.put(AiChatMode.SOLUTION, StreamUtils.copyToString(solutionPromptResource.getInputStream(), StandardCharsets.UTF_8));
+            modePrompts.put(AiChatMode.NEXT_STEP, StreamUtils.copyToString(nextStepPromptResource.getInputStream(), StandardCharsets.UTF_8));
+            log.info("AI Prompt templates loaded successfully from resources.");
+        } catch (IOException e) {
+            log.error("Failed to load prompt templates from resources", e);
+            throw new RuntimeException("Initialization of AI Prompts failed", e);
+        }
     }
 
     /**
      * Builds the complete system prompt by combining the base system prompt
-     * with mode-specific instructions. Per Requirement 2.9, the mode-specific
-     * instruction is always included regardless of conversation history.
+     * with mode-specific instructions.
      */
     public String buildSystemPrompt(AiChatMode mode) {
         String modeInstruction = modePrompts.getOrDefault(mode, "");
-        return BASE_SYSTEM_PROMPT + "\n" + modeInstruction;
+        return baseSystemPrompt + "\n" + modeInstruction;
     }
 
     /**

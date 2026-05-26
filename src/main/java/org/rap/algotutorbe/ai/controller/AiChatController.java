@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/ai")
@@ -49,6 +50,23 @@ public class AiChatController {
 
         AiChatResponse response = aiChatService.chat(request, principal.getId());
         return ResponseEntity.ok(ApiResponse.buildSuccess(response));
+    }
+
+    @PostMapping(value = "/chat/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter chatStream(
+            @Valid @RequestBody AiChatRequest request,
+            @AuthenticationPrincipal SecurityUser principal) {
+        String userId = principal.getId().toString();
+        String rateLimitKey = RATE_LIMIT_KEY_PREFIX + userId;
+
+        if (!rateLimiter.isAllowed(rateLimitKey, maxRequests, windowMs)) {
+            long retryAfterSeconds = rateLimiter.getRetryAfterSeconds(rateLimitKey, maxRequests, windowMs);
+            throw new RateLimitExceededException(retryAfterSeconds);
+        }
+
+        SseEmitter emitter = new SseEmitter(60000L);
+        aiChatService.chatStream(request, principal.getId(), emitter);
+        return emitter;
     }
 
     @GetMapping("/chat/bootstrap")

@@ -68,6 +68,8 @@ public enum ErrorCode {
     UNSUPPORTED_PROVIDER(8003, "errors.ai.unsupported-provider", HttpStatus.BAD_REQUEST),
     RATE_LIMIT_EXCEEDED(8004, "errors.ai.rate-limit-exceeded", HttpStatus.TOO_MANY_REQUESTS),
     AI_SERVICE_UNAVAILABLE(8005, "errors.ai.service-unavailable", HttpStatus.SERVICE_UNAVAILABLE),
+    NO_MORE_HINTS(8006, "errors.ai.no-more-hints", HttpStatus.BAD_REQUEST),
+
 
     FILE_EMPTY(9000, "errors.file.empty", HttpStatus.BAD_REQUEST),
     IMAGE_TYPE_ERROR(9001, "errors.image.type", HttpStatus.BAD_REQUEST),

@@ -8,4 +8,7 @@ import java.util.UUID;
 
 public interface AiMessageRepository extends JpaRepository<AiMessage, UUID> {
     List<AiMessage> findTop10ByConversationIdOrderByCreatedAtDesc(UUID conversationId);
+
+    long countByConversationIdAndRoleAndMode(UUID conversationId, org.rap.algotutorbe.ai.enums.AiMessageRole role, String mode);
 }
+
