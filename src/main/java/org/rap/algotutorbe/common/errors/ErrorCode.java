@@ -69,6 +69,7 @@ public enum ErrorCode {
     RATE_LIMIT_EXCEEDED(8004, "errors.ai.rate-limit-exceeded", HttpStatus.TOO_MANY_REQUESTS),
     AI_SERVICE_UNAVAILABLE(8005, "errors.ai.service-unavailable", HttpStatus.SERVICE_UNAVAILABLE),
     NO_MORE_HINTS(8006, "errors.ai.no-more-hints", HttpStatus.BAD_REQUEST),
+    PROVIDER_NOT_CONFIGURED(8007, "errors.ai.provider-not-configured", HttpStatus.SERVICE_UNAVAILABLE),
 
 
     FILE_EMPTY(9000, "errors.file.empty", HttpStatus.BAD_REQUEST),

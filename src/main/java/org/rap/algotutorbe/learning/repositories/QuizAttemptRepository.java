@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,4 +18,7 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
 
     @Query("SELECT qa FROM QuizAttempt qa WHERE qa.user = :user AND qa.lessonSlug = :lessonSlug")
     List<QuizAttempt> getQuizAttemptByUserAndLessonSlug(@Param("user") User user, @Param("lessonSlug") String lessonSlug);
+
+    @Query("SELECT qa.createdAt FROM QuizAttempt qa WHERE qa.user.id = :userId AND qa.createdAt >= :startDate AND qa.createdAt < :endDate")
+    List<Instant> findQuizAttemptDates(@Param("userId") UUID userId, @Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
 }

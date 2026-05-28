@@ -6,18 +6,11 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.google.genai.GoogleGenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 
-/**
- * AI configuration that creates separate ChatClient beans for each LLM provider.
- * Each client is built from the auto-configured ChatModel beans.
- * Timeout is configured at 30 seconds via application properties.
- * The default provider is configurable via the ai.default-provider property.
- */
 @Configuration
 public class AiConfig {
 
@@ -27,27 +20,28 @@ public class AiConfig {
     @Value("${ai.timeout-seconds:30}")
     private int timeoutSeconds;
 
-    @Bean
-    @ConditionalOnBean(OpenAiChatModel.class)
+    @Bean("openAiChatClient")
     public ChatClient openAiChatClient(OpenAiChatModel chatModel) {
         return ChatClient.builder(chatModel).build();
     }
 
-    @Bean
-    @ConditionalOnBean(GoogleGenAiChatModel.class)
+    @Bean("geminiChatClient")
     public ChatClient geminiChatClient(GoogleGenAiChatModel chatModel) {
         return ChatClient.builder(chatModel).build();
     }
 
-    @Bean
-    @ConditionalOnBean(AnthropicChatModel.class)
+    @Bean("claudeChatClient")
     public ChatClient claudeChatClient(AnthropicChatModel chatModel) {
         return ChatClient.builder(chatModel).build();
     }
 
     @Bean
     public LLMProvider defaultProvider() {
-        return LLMProvider.valueOf(defaultProviderName.toUpperCase());
+        try {
+            return LLMProvider.valueOf(defaultProviderName.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Invalid ai.default-provider: " + defaultProviderName, e);
+        }
     }
 
     @Bean

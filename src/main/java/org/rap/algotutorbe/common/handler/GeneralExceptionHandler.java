@@ -46,6 +46,7 @@ public class GeneralExceptionHandler {
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse<Object>> handleAppException(AppException ex) {
+        log.error(ex.getMessage(), ex);
         String message = resolveMessage(ex.getError());
         return ResponseEntity.status(ex.getError().getHttpStatus())
                 .body(ErrorResponse.buildError(message, ex.getError().getCode()));

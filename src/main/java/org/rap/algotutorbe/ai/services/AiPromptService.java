@@ -42,13 +42,18 @@ public class AiPromptService {
     @Value("classpath:/prompts/next_step.st")
     private Resource nextStepPromptResource;
 
+    @Value("classpath:/prompts/general_chat.st")
+    private Resource generalChatPromptResource;
+
     private String baseSystemPrompt = "";
+    private String generalChatPrompt = "";
     private final Map<AiChatMode, String> modePrompts = new EnumMap<>(AiChatMode.class);
 
     @PostConstruct
     public void init() {
         try {
             baseSystemPrompt = StreamUtils.copyToString(baseSystemPromptResource.getInputStream(), StandardCharsets.UTF_8);
+            generalChatPrompt = StreamUtils.copyToString(generalChatPromptResource.getInputStream(), StandardCharsets.UTF_8);
             modePrompts.put(AiChatMode.HINT, StreamUtils.copyToString(hintPromptResource.getInputStream(), StandardCharsets.UTF_8));
             modePrompts.put(AiChatMode.EXPLAIN, StreamUtils.copyToString(explainPromptResource.getInputStream(), StandardCharsets.UTF_8));
             modePrompts.put(AiChatMode.DEBUG, StreamUtils.copyToString(debugPromptResource.getInputStream(), StandardCharsets.UTF_8));
@@ -70,6 +75,13 @@ public class AiPromptService {
     public String buildSystemPrompt(AiChatMode mode) {
         String modeInstruction = modePrompts.getOrDefault(mode, "");
         return baseSystemPrompt + "\n" + modeInstruction;
+    }
+
+    /**
+     * Builds the system prompt for the general academic advisor chatbot.
+     */
+    public String buildGeneralSystemPrompt() {
+        return generalChatPrompt;
     }
 
     /**

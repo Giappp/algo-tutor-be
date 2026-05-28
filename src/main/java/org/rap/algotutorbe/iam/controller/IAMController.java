@@ -23,8 +23,8 @@ public class IAMController {
     private final CookieService cookieService;
 
     @PostMapping("/signin")
-    public ResponseEntity<ApiResponse<String>> signIn(@RequestBody @Valid SignInRequest payload) {
-        var token = authService.processSignIn(payload);
+    public ResponseEntity<ApiResponse<String>> signIn(@RequestBody @Valid SignInRequest payload, HttpServletRequest request) {
+        var token = authService.processSignIn(payload, getClientIp(request), getDeviceInfo(request));
 
         var accessTokenCookie = cookieService.createAccessTokenCookie(token.accessToken());
         var refreshTokenCookie = cookieService.createRefreshTokenCookie(token.refreshToken());
@@ -42,8 +42,11 @@ public class IAMController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<String>> refresh(@CookieValue(name = "refresh-token", required = false) String refreshToken) {
-        var token = authService.processRefresh(refreshToken);
+    public ResponseEntity<ApiResponse<String>> refresh(
+            @CookieValue(name = "refresh-token", required = false) String refreshToken,
+            HttpServletRequest request
+    ) {
+        var token = authService.processRefresh(refreshToken, getClientIp(request), getDeviceInfo(request));
         var accessTokenCookie = cookieService.createAccessTokenCookie(token.accessToken());
         var refreshTokenCookie = cookieService.createRefreshTokenCookie(token.refreshToken());
 
@@ -70,5 +73,18 @@ public class IAMController {
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
         var user = authService.getUserInfo();
         return ResponseEntity.ok(ApiResponse.buildSuccess(user));
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String xfHeader = request.getHeader("X-Forwarded-For");
+        if (xfHeader == null || xfHeader.isEmpty()) {
+            return request.getRemoteAddr();
+        }
+        return xfHeader.split(",")[0].trim();
+    }
+
+    private String getDeviceInfo(HttpServletRequest request) {
+        String ua = request.getHeader("User-Agent");
+        return ua != null ? ua : "Unknown";
     }
 }

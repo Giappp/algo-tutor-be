@@ -138,4 +138,51 @@ class AiChatControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.TEXT_EVENT_STREAM_VALUE));
     }
+
+    @Test
+    void generalChatStream_shouldReturnOkWhenAllowed() throws Exception {
+        AiChatRequest request = new AiChatRequest(
+                null, null, null, "GEMINI", "EXPLAIN", "Tư vấn lộ trình học", null, null, null, null, Collections.emptyList()
+        );
+
+        when(rateLimiter.isAllowed(eq("ai-general-chat:" + testUserId), eq(20), eq(60000L))).thenReturn(true);
+        when(aiChatService.getRoadmapsForAdvisory()).thenReturn(Collections.emptyList());
+        doAnswer(invocation -> {
+            org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter = invocation.getArgument(2);
+            emitter.complete();
+            return null;
+        }).when(aiChatService).generalChatStream(any(AiChatRequest.class), eq(testUserId), any(), any());
+
+        MvcResult mvcResult = mockMvc.perform(post("/ai/general/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.TEXT_EVENT_STREAM_VALUE));
+    }
+
+    @Test
+    void generalChat_shouldReturnOkWhenAllowed() throws Exception {
+        AiChatRequest request = new AiChatRequest(
+                null, null, null, "GEMINI", "EXPLAIN", "Tư vấn lộ trình học", null, null, null, null, Collections.emptyList()
+        );
+
+        org.rap.algotutorbe.ai.dto.AiGeneralChatResponse response = new org.rap.algotutorbe.ai.dto.AiGeneralChatResponse(
+                UUID.randomUUID(), "Here is roadmaps advisory.", Collections.emptyList()
+        );
+
+        when(rateLimiter.isAllowed(eq("ai-general-chat:" + testUserId), eq(20), eq(60000L))).thenReturn(true);
+        when(aiChatService.getRoadmapsForAdvisory()).thenReturn(Collections.emptyList());
+        when(aiChatService.generalChat(any(AiChatRequest.class), eq(testUserId), any())).thenReturn(response);
+
+        mockMvc.perform(post("/ai/general/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.answer").value("Here is roadmaps advisory."));
+    }
 }

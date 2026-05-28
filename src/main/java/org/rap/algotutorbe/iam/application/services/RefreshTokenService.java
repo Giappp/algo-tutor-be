@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -28,9 +29,9 @@ public class RefreshTokenService {
     private long refreshTokenExpirationMs;
 
 
-    public String createRefreshToken(UserDetails userDetails, Instant now) {
+    public String createRefreshToken(UserDetails userDetails, Instant now, String ipAddress, String deviceInfo) {
         User user = getUserByUsername(userDetails.getUsername());
-        return generateAndSaveTokenForUser(user, now);
+        return generateAndSaveTokenForUser(user, now, ipAddress, deviceInfo);
     }
 
     public User verify(String tokenStr) {
@@ -39,7 +40,7 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public String rotate(String tokenStr) {
+    public String rotate(String tokenStr, String ipAddress, String deviceInfo) {
         // 1. Lấy và kiểm tra token cũ
         RefreshToken oldToken = getAndValidateToken(tokenStr);
         User user = oldToken.getUser();
@@ -48,7 +49,7 @@ public class RefreshTokenService {
         deleteToken(oldToken);
         log.info("Rotated refresh token for user {}", user.getId());
 
-        return generateAndSaveTokenForUser(user, Instant.now());
+        return generateAndSaveTokenForUser(user, Instant.now(), ipAddress, deviceInfo);
     }
 
     public void invalidate(String tokenStr) {
@@ -57,22 +58,57 @@ public class RefreshTokenService {
         log.info("Deleted refresh token for user {}", token.getUser().getId());
     }
 
+    public List<RefreshToken> getActiveSessions(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        return refreshTokenRepository.findByUser(user).stream()
+                .filter(rt -> !rt.isExpired())
+                .toList();
+    }
+
+    @Transactional
+    public void terminateSession(UUID userId, Long sessionId) {
+        RefreshToken token = refreshTokenRepository.findById(sessionId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+        if (!token.getUser().getId().equals(userId)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+        deleteToken(token);
+        log.info("Terminated session {} for user {}", sessionId, userId);
+    }
+
+    @Transactional
+    public void terminateOtherSessions(UUID userId, String currentTokenStr) {
+        UUID currentUuid = parseUUID(currentTokenStr);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        List<RefreshToken> allSessions = refreshTokenRepository.findByUser(user);
+        for (RefreshToken rt : allSessions) {
+            if (!rt.getToken().equals(currentUuid)) {
+                deleteToken(rt);
+            }
+        }
+        log.info("Terminated all other sessions for user {}", userId);
+    }
+
     // --- CÁC HÀM PRIVATE HELPER (Phục vụ cho nguyên lý SRP - Đơn nhiệm) ---
 
     /**
      * Chỉ chịu trách nhiệm: Lắp ráp thực thể RefreshToken (Không query DB)
      */
-    private RefreshToken buildTokenEntity(User user, Instant now) {
+    private RefreshToken buildTokenEntity(User user, Instant now, String ipAddress, String deviceInfo) {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
         refreshToken.setExpiryDate(now.plusMillis(refreshTokenExpirationMs));
         refreshToken.setToken(UUID.randomUUID());
+        refreshToken.setIpv4Address(ipAddress);
+        refreshToken.setDeviceInfo(deviceInfo);
         return refreshToken;
     }
 
 
-    private String generateAndSaveTokenForUser(User user, Instant now) {
-        RefreshToken newToken = buildTokenEntity(user, now);
+    private String generateAndSaveTokenForUser(User user, Instant now, String ipAddress, String deviceInfo) {
+        RefreshToken newToken = buildTokenEntity(user, now, ipAddress, deviceInfo);
         refreshTokenRepository.save(newToken);
         return newToken.getToken().toString();
     }

@@ -3,6 +3,7 @@ package org.rap.algotutorbe.ai.controller;
 import jakarta.validation.Valid;
 import org.rap.algotutorbe.ai.dto.AiChatRequest;
 import org.rap.algotutorbe.ai.dto.AiChatResponse;
+import org.rap.algotutorbe.ai.dto.AiGeneralChatResponse;
 import org.rap.algotutorbe.ai.services.AiChatService;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.exception.RateLimitExceededException;
@@ -13,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import java.util.List;
+import org.rap.algotutorbe.ai.dto.AiRoadmapAdvisoryResponse.RoadmapInfo;
 
 @RestController
 @RequestMapping("/ai")
@@ -67,6 +70,43 @@ public class AiChatController {
         SseEmitter emitter = new SseEmitter(60000L);
         aiChatService.chatStream(request, principal.getId(), emitter);
         return emitter;
+    }
+
+    @PostMapping(value = "/general/chat/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter generalChatStream(
+            @Valid @RequestBody AiChatRequest request,
+            @AuthenticationPrincipal SecurityUser principal) {
+        String userId = principal.getId().toString();
+        String rateLimitKey = "ai-general-chat:" + userId;
+
+        if (!rateLimiter.isAllowed(rateLimitKey, maxRequests, windowMs)) {
+            long retryAfterSeconds = rateLimiter.getRetryAfterSeconds(rateLimitKey, maxRequests, windowMs);
+            throw new RateLimitExceededException(retryAfterSeconds);
+        }
+
+        // Fetch published roadmaps inside a short read-only transaction first
+        List<RoadmapInfo> availableRoadmaps = aiChatService.getRoadmapsForAdvisory();
+
+        SseEmitter emitter = new SseEmitter(60000L);
+        aiChatService.generalChatStream(request, principal.getId(), emitter, availableRoadmaps);
+        return emitter;
+    }
+
+    @PostMapping("/general/chat")
+    public ResponseEntity<ApiResponse<AiGeneralChatResponse>> generalChat(
+            @Valid @RequestBody AiChatRequest request,
+            @AuthenticationPrincipal SecurityUser principal) {
+        String userId = principal.getId().toString();
+        String rateLimitKey = "ai-general-chat:" + userId;
+
+        if (!rateLimiter.isAllowed(rateLimitKey, maxRequests, windowMs)) {
+            long retryAfterSeconds = rateLimiter.getRetryAfterSeconds(rateLimitKey, maxRequests, windowMs);
+            throw new RateLimitExceededException(retryAfterSeconds);
+        }
+
+        List<RoadmapInfo> availableRoadmaps = aiChatService.getRoadmapsForAdvisory();
+        AiGeneralChatResponse response = aiChatService.generalChat(request, principal.getId(), availableRoadmaps);
+        return ResponseEntity.ok(ApiResponse.buildSuccess(response));
     }
 
     @GetMapping("/chat/bootstrap")

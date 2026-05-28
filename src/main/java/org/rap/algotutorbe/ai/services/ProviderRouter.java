@@ -29,8 +29,13 @@ public class ProviderRouter {
 
 
     public ChatClient route(String providerName) {
-        LLMProvider provider = resolveProvider(providerName);
+        return routeByProvider(resolveProvider(providerName));
+    }
 
+    public ChatClient routeByProvider(LLMProvider provider) {
+        if (provider == null) {
+            provider = defaultProvider;
+        }
         return switch (provider) {
             case OPENAI -> getRequiredClient(openAiClientProvider);
             case GEMINI -> getRequiredClient(geminiClientProvider);
@@ -44,13 +49,13 @@ public class ProviderRouter {
         ChatClient client = provider.getIfAvailable();
 
         if (client == null) {
-            throw new AppException(ErrorCode.UNSUPPORTED_PROVIDER);
+            throw new AppException(ErrorCode.PROVIDER_NOT_CONFIGURED);
         }
 
         return client;
     }
 
-    private LLMProvider resolveProvider(String providerName) {
+    public LLMProvider resolveProvider(String providerName) {
         if (providerName == null || providerName.isBlank()) {
             return defaultProvider;
         }

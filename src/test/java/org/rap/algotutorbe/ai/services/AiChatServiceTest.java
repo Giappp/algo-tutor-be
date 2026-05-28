@@ -49,6 +49,10 @@ class AiChatServiceTest {
         private AlgoTutorAiTools algoTutorAiTools;
         @Mock
         private SuggestionGenerator suggestionGenerator;
+        @Mock
+        private AiMessagePersister aiMessagePersister;
+        @Mock
+        private org.rap.algotutorbe.learning.repositories.LearningPathRepository learningPathRepository;
 
         @InjectMocks
         @Spy
@@ -159,11 +163,9 @@ class AiChatServiceTest {
                 when(aiPromptService.buildSystemPrompt(AiChatMode.HINT)).thenReturn("System Prompt");
                 when(aiPromptService.buildUserPrompt(any(), any(), any())).thenReturn("User Prompt");
 
-                // Mock callLlm to return AI answer
-                doReturn("Here is your hint.").when(aiChatService).callLlm(any(), any(), any());
-
-                when(aiMessageRepository.save(any(AiMessage.class)))
-                                .thenAnswer(invocation -> invocation.getArgument(0));
+                // Mock callLlmWithTokens to return AI answer
+                doReturn(new AiChatService.ChatResponseWithTokens("Here is your hint.", null, null))
+                                .when(aiChatService).callLlmWithTokens(any(), any());
 
                 when(suggestionGenerator.generate(eq(AiChatMode.HINT), any(), anyBoolean(), anyBoolean(), eq(true)))
                                 .thenReturn(List.of());
