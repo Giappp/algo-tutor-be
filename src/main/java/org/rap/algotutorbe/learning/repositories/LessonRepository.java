@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -23,4 +24,7 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     @Query("SELECT l FROM Lesson l WHERE l.topic.id = :topicId ORDER BY l.displayOrder")
     Page<Lesson> findByTopicIdOrderByDisplayOrder(@Param("topicId") Long topicId, Pageable pageable);
+
+    @Query("SELECT l.type, COUNT(l) FROM Lesson l GROUP BY l.type")
+    List<Object[]> getLessonDistribution();
 }

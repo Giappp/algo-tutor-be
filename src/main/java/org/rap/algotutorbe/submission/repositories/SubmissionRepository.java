@@ -42,4 +42,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, UUID> {
 
     @Query("SELECT s.createdAt FROM Submission s WHERE s.user.id = :userId AND s.createdAt >= :startDate AND s.createdAt < :endDate")
     List<Instant> findSubmissionDates(@Param("userId") UUID userId, @Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
+
+    @Query("SELECT s.verdict, COUNT(s) FROM Submission s GROUP BY s.verdict")
+    List<Object[]> getVerdictDistribution();
 }

@@ -96,4 +96,13 @@ public class RateLimiter {
             return timestamps.isEmpty();
         });
     }
+
+    /**
+     * Get the current in-memory request log for monitoring purposes.
+     *
+     * @return unmodifiable map of request logs
+     */
+    public java.util.Map<String, Deque<Long>> getRequestLog() {
+        return java.util.Collections.unmodifiableMap(requestLog);
+    }
 }
