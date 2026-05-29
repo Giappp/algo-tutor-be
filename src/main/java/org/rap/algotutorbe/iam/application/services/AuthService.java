@@ -71,7 +71,8 @@ public class AuthService extends BaseService {
         user.setUsername(request.username());
         user.setEmail(request.email());
         user.setPasswordHashed(passwordEncoder.encode(request.password()));
-        user.setRole(roleRepository.findByCode(RoleCode.USER).get());
+        user.setRole(roleRepository.findByCode(RoleCode.USER)
+                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_SERVER_ERROR)));
         user.setEnabled(true);
         return user;
     }

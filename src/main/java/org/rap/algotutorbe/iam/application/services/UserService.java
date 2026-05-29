@@ -29,7 +29,7 @@ public class UserService implements UserDetailsService {
 
     public List<UserRoadMapResponse> getUserRoadmaps(UUID id) {
         User user = getUserOrThrow(id);
-        if (user.getEnrollments().isEmpty()) {
+        if (user.getEnrollments() == null || user.getEnrollments().isEmpty()) {
             return List.of();
         }
         return user.getEnrollments().stream()

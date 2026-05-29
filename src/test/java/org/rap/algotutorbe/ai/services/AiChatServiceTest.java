@@ -9,7 +9,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.rap.algotutorbe.ai.dto.AiChatRequest;
 import org.rap.algotutorbe.ai.dto.AiChatResponse;
 import org.rap.algotutorbe.ai.entity.AIConversation;
-import org.rap.algotutorbe.ai.entity.AiMessage;
 import org.rap.algotutorbe.ai.enums.AiChatMode;
 import org.rap.algotutorbe.ai.enums.AiMessageRole;
 import org.rap.algotutorbe.ai.repository.AiMessageRepository;
@@ -165,7 +164,7 @@ class AiChatServiceTest {
 
                 // Mock callLlmWithTokens to return AI answer
                 doReturn(new AiChatService.ChatResponseWithTokens("Here is your hint.", null, null))
-                                .when(aiChatService).callLlmWithTokens(any(), any());
+                                .when(aiChatService).callLlmWithTokens(any(), any(), any());
 
                 when(suggestionGenerator.generate(eq(AiChatMode.HINT), any(), anyBoolean(), anyBoolean(), eq(true)))
                                 .thenReturn(List.of());

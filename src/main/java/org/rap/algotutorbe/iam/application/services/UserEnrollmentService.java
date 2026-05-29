@@ -71,7 +71,7 @@ public class UserEnrollmentService {
 
     public List<RoadmapResponseDTO> getUserRoadmaps(UUID userId) {
         User user = getUserOrThrow(userId);
-        if (user.getEnrollments().isEmpty()) {
+        if (user.getEnrollments() == null || user.getEnrollments().isEmpty()) {
             return List.of();
         }
         return user.getEnrollments().stream()
@@ -132,11 +132,17 @@ public class UserEnrollmentService {
 
     private Lesson findFirstUncompletedLesson(Enrollment enrollment, Set<Long> completedLessonIds) {
         LearningPath roadmap = enrollment.getLearningPath();
+        if (roadmap == null || roadmap.getTopics() == null) {
+            return null;
+        }
         List<Topic> sortedTopics = roadmap.getTopics().stream()
                 .sorted(Comparator.comparing(Topic::getDisplayOrder))
                 .toList();
 
         for (Topic topic : sortedTopics) {
+            if (topic.getLessons() == null) {
+                continue;
+            }
             List<Lesson> sortedLessons = topic.getLessons().stream()
                     .sorted(Comparator.comparing(Lesson::getDisplayOrder))
                     .toList();
@@ -203,6 +209,9 @@ public class UserEnrollmentService {
     }
 
     private int calculateCompletionPercentage(Enrollment enrollment) {
+        if (enrollment.getLearningPath() == null) {
+            return 0;
+        }
         int totalLessons = countTotalLessons(enrollment.getLearningPath());
         if (totalLessons == 0) return 0;
 
@@ -211,7 +220,11 @@ public class UserEnrollmentService {
     }
 
     private int countTotalLessons(LearningPath roadmap) {
+        if (roadmap == null || roadmap.getTopics() == null) {
+            return 0;
+        }
         return roadmap.getTopics().stream()
+                .filter(topic -> topic.getLessons() != null)
                 .mapToInt(topic -> topic.getLessons().size())
                 .sum();
     }

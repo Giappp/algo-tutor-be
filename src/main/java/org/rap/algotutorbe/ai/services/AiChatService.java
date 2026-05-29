@@ -48,7 +48,6 @@ public class AiChatService {
     private static final int MAX_MESSAGE_LENGTH = 5_000;
     private static final int MAX_CODE_LENGTH = 10_000;
     private static final int MAX_TITLE_LENGTH = 255;
-    private static final int HISTORY_LIMIT = 10;
     private static final int MAX_CODING_HINTS = 5;
 
     private static final String DEFAULT_CONVERSATION_TITLE = "New Conversation";
@@ -59,8 +58,7 @@ public class AiChatService {
     private static final Set<AiChatMode> CODE_REQUIRED_MODES = Set.of(
             AiChatMode.DEBUG,
             AiChatMode.REVIEW,
-            AiChatMode.COMPLEXITY
-    );
+            AiChatMode.COMPLEXITY);
 
     private final AiContextService aiContextService;
     private final AiPromptService aiPromptService;
@@ -91,8 +89,7 @@ public class AiChatService {
         ChatResponseWithTokens llmResult = callLlmWithTokens(
                 request.provider(),
                 session.messages(),
-                algoTutorAiTools
-        );
+                algoTutorAiTools);
 
         persistConversationTurn(session.conversationId(), userId, request, llmResult);
 
@@ -104,8 +101,7 @@ public class AiChatService {
                 session.mode().name(),
                 buildQuickActions(session, request, canAskNextHint),
                 Collections.emptyList(),
-                canAskNextHint
-        );
+                canAskNextHint);
     }
 
     public void chatStream(AiChatRequest request, UUID userId, SseEmitter emitter) {
@@ -128,26 +124,22 @@ public class AiChatService {
                             session.mode().name(),
                             buildQuickActions(session, request, canAskNextHint),
                             Collections.emptyList(),
-                            canAskNextHint
-                    );
+                            canAskNextHint);
 
                     sendSseEvent(emitter, "metadata", metadata);
-                }
-        );
+                });
     }
 
     public AiGeneralChatResponse generalChat(
             AiChatRequest request,
             UUID userId,
-            List<RoadmapInfo> availableRoadmaps
-    ) {
+            List<RoadmapInfo> availableRoadmaps) {
         GeneralChatSession session = prepareGeneralChatSession(request, userId, availableRoadmaps);
 
         ChatResponseWithTokens llmResult = callLlmWithTokens(
                 request.provider(),
                 session.messages(),
-                session.advisoryTools()
-        );
+                session.advisoryTools());
 
         persistConversationTurn(session.conversationId(), userId, request, llmResult);
 
@@ -157,17 +149,14 @@ public class AiChatService {
                 resolveRecommendedRoadmaps(
                         session.advisoryTools().getRecommendedSlugs(),
                         availableRoadmaps,
-                        llmResult.responseText()
-                )
-        );
+                        llmResult.responseText()));
     }
 
     public void generalChatStream(
             AiChatRequest request,
             UUID userId,
             SseEmitter emitter,
-            List<RoadmapInfo> availableRoadmaps
-    ) {
+            List<RoadmapInfo> availableRoadmaps) {
         GeneralChatSession session = prepareGeneralChatSession(request, userId, availableRoadmaps);
 
         streamLlmResponse(
@@ -184,13 +173,10 @@ public class AiChatService {
                             resolveRecommendedRoadmaps(
                                     session.advisoryTools().getRecommendedSlugs(),
                                     availableRoadmaps,
-                                    streamResult.responseText()
-                            )
-                    );
+                                    streamResult.responseText()));
 
                     sendSseEvent(emitter, "metadata", metadata);
-                }
-        );
+                });
     }
 
     public AiChatResponse bootstrap(UUID userId, String lessonSlug) {
@@ -203,8 +189,7 @@ public class AiChatService {
                 BOOTSTRAP_MODE,
                 null,
                 Collections.emptyList(),
-                true
-        );
+                true);
     }
 
     @Transactional(readOnly = true)
@@ -223,8 +208,7 @@ public class AiChatService {
         AIConversation conversation = resolveAndSaveConversation(request, userId, provider);
         LessonChatMetadata lessonMetadata = resolveLessonChatMetadata(
                 conversation.getId(),
-                conversation.getLessonId()
-        );
+                conversation.getLessonId());
 
         enforceHintLimit(mode, lessonMetadata.hintPolicy());
 
@@ -236,15 +220,13 @@ public class AiChatService {
                 mode,
                 lessonMetadata.lessonType(),
                 lessonMetadata.hintPolicy(),
-                buildNativeMessages(systemPrompt, userPrompt, conversation.getId())
-        );
+                buildNativeMessages(systemPrompt, userPrompt, conversation.getId()));
     }
 
     private GeneralChatSession prepareGeneralChatSession(
             AiChatRequest request,
             UUID userId,
-            List<RoadmapInfo> availableRoadmaps
-    ) {
+            List<RoadmapInfo> availableRoadmaps) {
         validateGeneralChatRequest(request);
 
         LLMProvider provider = providerRouter.resolveProvider(request.provider());
@@ -257,8 +239,7 @@ public class AiChatService {
         return new GeneralChatSession(
                 conversation.getId(),
                 buildNativeMessages(systemPrompt, userPrompt, conversation.getId()),
-                advisoryTools
-        );
+                advisoryTools);
     }
 
     private void validateGeneralChatRequest(AiChatRequest request) {
@@ -305,8 +286,7 @@ public class AiChatService {
     private AIConversation resolveAndSaveConversation(
             AiChatRequest request,
             UUID userId,
-            LLMProvider provider
-    ) {
+            LLMProvider provider) {
         AIConversation conversation = findOrCreateConversation(request, userId, provider);
         return conversationRepository.save(conversation);
     }
@@ -380,8 +360,7 @@ public class AiChatService {
     ChatResponseWithTokens callLlmWithTokens(
             String providerName,
             List<Message> messages,
-            Object tools
-    ) {
+            Object tools) {
         try {
             ChatResponse chatResponse = providerRouter.route(providerName)
                     .prompt()
@@ -396,8 +375,7 @@ public class AiChatService {
             return new ChatResponseWithTokens(
                     responseText,
                     tokenUsage.inputTokens(),
-                    tokenUsage.outputTokens()
-            );
+                    tokenUsage.outputTokens());
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
@@ -412,8 +390,7 @@ public class AiChatService {
             Object tools,
             SseEmitter emitter,
             String errorLogMessage,
-            StreamCompletionHandler completionHandler
-    ) {
+            StreamCompletionHandler completionHandler) {
         try {
             ChatClient chatClient = providerRouter.route(providerName);
             Flux<ChatResponse> stream = chatClient.prompt()
@@ -427,8 +404,7 @@ public class AiChatService {
             Disposable subscription = stream.subscribe(
                     chatResponse -> handleStreamChunk(chatResponse, accumulator, emitter),
                     error -> handleStreamError(providerName, emitter, errorLogMessage, error),
-                    () -> handleStreamCompleted(emitter, accumulator, completionHandler)
-            );
+                    () -> handleStreamCompleted(emitter, accumulator, completionHandler));
 
             emitter.onCompletion(subscription::dispose);
             emitter.onTimeout(subscription::dispose);
@@ -442,8 +418,7 @@ public class AiChatService {
     private void handleStreamChunk(
             ChatResponse chatResponse,
             StreamAccumulator accumulator,
-            SseEmitter emitter
-    ) {
+            SseEmitter emitter) {
         if (chatResponse == null) {
             return;
         }
@@ -463,8 +438,7 @@ public class AiChatService {
             String providerName,
             SseEmitter emitter,
             String errorLogMessage,
-            Throwable error
-    ) {
+            Throwable error) {
         log.error("{} for provider [{}]", errorLogMessage, providerName, error);
         emitter.completeWithError(new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE, error));
     }
@@ -472,8 +446,7 @@ public class AiChatService {
     private void handleStreamCompleted(
             SseEmitter emitter,
             StreamAccumulator accumulator,
-            StreamCompletionHandler completionHandler
-    ) {
+            StreamCompletionHandler completionHandler) {
         try {
             ChatResponseWithTokens result = accumulator.toChatResponseWithTokens();
             completionHandler.onCompleted(result);
@@ -517,8 +490,7 @@ public class AiChatService {
             UUID conversationId,
             UUID userId,
             AiChatRequest request,
-            ChatResponseWithTokens llmResult
-    ) {
+            ChatResponseWithTokens llmResult) {
         aiMessagePersister.saveMessage(
                 conversationId,
                 userId,
@@ -526,8 +498,7 @@ public class AiChatService {
                 resolveUserMessageContent(request),
                 request.mode().toUpperCase(),
                 llmResult.inputTokens(),
-                null
-        );
+                null);
 
         aiMessagePersister.saveMessage(
                 conversationId,
@@ -536,8 +507,7 @@ public class AiChatService {
                 llmResult.responseText(),
                 request.mode().toUpperCase(),
                 null,
-                llmResult.outputTokens()
-        );
+                llmResult.outputTokens());
     }
 
     private String resolveUserMessageContent(AiChatRequest request) {
@@ -558,21 +528,18 @@ public class AiChatService {
         if (!(lesson instanceof CodingLesson codingLesson)) {
             return new LessonChatMetadata(
                     lesson.getType(),
-                    HintPolicy.notApplicable()
-            );
+                    HintPolicy.notApplicable());
         }
 
         int maxAllowedHints = Math.min(MAX_CODING_HINTS, codingLesson.getHints().size());
         long hintMessagesCount = aiMessageRepository.countByConversationIdAndRoleAndMode(
                 conversationId,
                 AiMessageRole.ASSISTANT,
-                HINT_MODE
-        );
+                HINT_MODE);
 
         return new LessonChatMetadata(
                 lesson.getType(),
-                new HintPolicy(true, maxAllowedHints, hintMessagesCount)
-        );
+                new HintPolicy(true, maxAllowedHints, hintMessagesCount));
     }
 
     private void enforceHintLimit(AiChatMode mode, HintPolicy hintPolicy) {
@@ -596,15 +563,13 @@ public class AiChatService {
     private List<AiQuickAction> buildQuickActions(
             LessonChatSession session,
             AiChatRequest request,
-            Boolean canAskNextHint
-    ) {
+            Boolean canAskNextHint) {
         return suggestionGenerator.generate(
                 session.mode(),
                 session.lessonType(),
                 !isBlank(request.code()),
                 !isBlank(request.errorMessage()),
-                Boolean.TRUE.equals(canAskNextHint)
-        );
+                Boolean.TRUE.equals(canAskNextHint));
     }
 
     private Lesson resolveLessonBySlug(String lessonSlug) {
@@ -640,26 +605,26 @@ public class AiChatService {
         if (lesson == null) {
             return """
                     Xin chào, mình là AlgoTutor AI.
-                    
+
                     Mình có thể giúp bạn:
                     - Giải thích kiến thức thuật toán
                     - Gợi ý hướng giải từng bước
                     - Kiểm tra và debug code
                     - Phân tích độ phức tạp
-                    
+
                     Bạn muốn bắt đầu với phần nào?
                     """;
         }
 
         return """
                 Bạn đang học bài "%s".
-                
+
                 Mình có thể hỗ trợ bạn theo từng bước:
                 - Giải thích lại nội dung bài học
                 - Đưa gợi ý nhẹ trước, không tiết lộ lời giải ngay
                 - Kiểm tra code nếu bạn gửi lên
                 - Phân tích độ phức tạp và edge cases
-                
+
                 Bạn muốn mình hỗ trợ theo hướng nào?
                 """.formatted(safeTitle(lesson.getTitle()));
     }
@@ -677,8 +642,7 @@ public class AiChatService {
                 learningPath.getThumbnailUrl(),
                 countTopics(learningPath),
                 countLessons(learningPath),
-                Boolean.TRUE.equals(learningPath.getIsPremium())
-        );
+                Boolean.TRUE.equals(learningPath.getIsPremium()));
     }
 
     private int countTopics(LearningPath learningPath) {
@@ -699,8 +663,7 @@ public class AiChatService {
     private List<RoadmapInfo> resolveRecommendedRoadmaps(
             List<String> recommendedSlugs,
             List<RoadmapInfo> availableRoadmaps,
-            String answer
-    ) {
+            String answer) {
         Map<String, RoadmapInfo> result = new LinkedHashMap<>();
 
         recommendedSlugs.stream()
@@ -717,8 +680,7 @@ public class AiChatService {
 
     private java.util.Optional<RoadmapInfo> findRoadmapBySlug(
             List<RoadmapInfo> roadmaps,
-            String slug
-    ) {
+            String slug) {
         return roadmaps.stream()
                 .filter(roadmap -> roadmap.slug().equalsIgnoreCase(slug))
                 .findFirst();
@@ -727,8 +689,7 @@ public class AiChatService {
     private void addRoadmapsMentionedInAnswer(
             Map<String, RoadmapInfo> result,
             List<RoadmapInfo> availableRoadmaps,
-            String answer
-    ) {
+            String answer) {
         if (isBlank(answer)) {
             return;
         }
@@ -797,21 +758,18 @@ public class AiChatService {
             AiChatMode mode,
             LessonType lessonType,
             HintPolicy hintPolicy,
-            List<Message> messages
-    ) {
+            List<Message> messages) {
     }
 
     private record GeneralChatSession(
             UUID conversationId,
             List<Message> messages,
-            RoadmapAdvisoryTools advisoryTools
-    ) {
+            RoadmapAdvisoryTools advisoryTools) {
     }
 
     private record LessonChatMetadata(
             LessonType lessonType,
-            HintPolicy hintPolicy
-    ) {
+            HintPolicy hintPolicy) {
         static LessonChatMetadata defaultMetadata() {
             return new LessonChatMetadata(LessonType.THEORY, HintPolicy.notApplicable());
         }
@@ -820,8 +778,7 @@ public class AiChatService {
     private record HintPolicy(
             boolean applicable,
             int maxAllowedHints,
-            long hintMessagesCount
-    ) {
+            long hintMessagesCount) {
         static HintPolicy notApplicable() {
             return new HintPolicy(false, 0, 0);
         }
@@ -863,8 +820,7 @@ public class AiChatService {
             return new ChatResponseWithTokens(
                     answer.toString(),
                     inputTokens.get() > 0 ? inputTokens.get() : null,
-                    outputTokens.get() > 0 ? outputTokens.get() : null
-            );
+                    outputTokens.get() > 0 ? outputTokens.get() : null);
         }
     }
 }

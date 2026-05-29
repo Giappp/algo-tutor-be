@@ -15,10 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Service for auto-updating lesson progress and managing path completion/unlock triggers.
+ * Service for auto-updating lesson progress and managing path completion/unlock
+ * triggers.
  */
 @Slf4j
 @Service
@@ -35,9 +35,11 @@ public class LessonProgressUpdater {
                 .orElse(null);
 
         Topic topic = lesson.getTopic();
-        if (topic == null) return false;
+        if (topic == null)
+            return false;
         LearningPath learningPath = topic.getLearningPath();
-        if (learningPath == null) return false;
+        if (learningPath == null)
+            return false;
 
         Enrollment enrollment = null;
 
@@ -46,7 +48,8 @@ public class LessonProgressUpdater {
             enrollment = enrollmentRepository
                     .findByUserAndLearningPathIdAndStatus(user, learningPath.getId(), EnrollmentStatus.IN_PROGRESS)
                     .orElse(null);
-            if (enrollment == null) return false;
+            if (enrollment == null)
+                return false;
 
             progress = new LessonProgress();
             progress.setUser(user);
@@ -80,26 +83,35 @@ public class LessonProgressUpdater {
     }
 
     private void unlockNextTopicIfAllLessonsCompleted(LearningPath learningPath, Topic completedTopic, User user) {
-        List<Topic> orderedTopics = learningPath.getTopics().stream()
-                .sorted(Comparator.comparing(Topic::getDisplayOrder))
-                .toList();
+        if (completedTopic.getLessons() == null || completedTopic.getLessons().isEmpty()) {
+            return;
+        }
+
+        List<Topic> orderedTopics = learningPath.getTopics() != null
+                ? learningPath.getTopics().stream()
+                        .sorted(Comparator.comparing(Topic::getDisplayOrder))
+                        .toList()
+                : List.of();
 
         List<Lesson> completedTopicLessons = completedTopic.getLessons().stream()
                 .sorted(Comparator.comparing(Lesson::getDisplayOrder))
                 .toList();
 
-        boolean allCompleted = completedTopicLessons.stream()
-                .allMatch(lesson -> {
-                    Optional<LessonProgress> progress = lessonProgressRepository.findByUserAndLesson(user, lesson);
-                    return progress.isPresent() && Boolean.TRUE.equals(progress.get().getIsCompleted());
-                });
+        List<LessonProgress> progressList = lessonProgressRepository.findAllByUserAndLessons(user,
+                completedTopicLessons);
+
+        long completedCount = progressList.stream()
+                .filter(progress -> Boolean.TRUE.equals(progress.getIsCompleted()))
+                .count();
+
+        boolean allCompleted = completedCount == completedTopicLessons.size();
 
         if (!allCompleted) {
             return;
         }
 
         int currentIndex = orderedTopics.indexOf(completedTopic);
-        if (currentIndex < orderedTopics.size() - 1) {
+        if (currentIndex >= 0 && currentIndex < orderedTopics.size() - 1) {
             Topic nextTopic = orderedTopics.get(currentIndex + 1);
             if (Boolean.TRUE.equals(nextTopic.getIsLocked())) {
                 nextTopic.setIsLocked(false);
@@ -111,14 +123,20 @@ public class LessonProgressUpdater {
 
     public void updateEnrollmentProgress(Enrollment enrollment) {
         LearningPath learningPath = enrollment.getLearningPath();
+        if (learningPath == null)
+            return;
 
         // Count total published lessons in this path
-        long totalLessons = learningPath.getTopics().stream()
-                .flatMap(t -> t.getLessons().stream())
-                .filter(Lesson::getIsPublished)
-                .count();
+        long totalLessons = learningPath.getTopics() != null
+                ? learningPath.getTopics().stream()
+                        .filter(t -> t.getLessons() != null)
+                        .flatMap(t -> t.getLessons().stream())
+                        .filter(l -> Boolean.TRUE.equals(l.getIsPublished()))
+                        .count()
+                : 0;
 
-        if (totalLessons == 0) return;
+        if (totalLessons == 0)
+            return;
 
         // Count completed lessons for this enrollment
         long completedCount = lessonProgressRepository.findCompletedByEnrollment(enrollment).size();

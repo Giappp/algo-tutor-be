@@ -12,7 +12,6 @@ import org.rap.algotutorbe.submission.dto.SubmissionResponse;
 import org.rap.algotutorbe.submission.entities.Submission;
 import org.rap.algotutorbe.submission.entities.Verdict;
 import org.rap.algotutorbe.submission.mapper.SubmissionMapper;
-import org.rap.algotutorbe.submission.repositories.SubmissionDetailRepository;
 import org.rap.algotutorbe.submission.repositories.SubmissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +29,6 @@ import java.util.UUID;
 public class SubmissionService extends BaseService {
     private final SubmissionRepository submissionRepository;
     private final SubmissionMapper submissionMapper;
-    private final SubmissionDetailRepository submissionDetailRepository;
 
     @Transactional(readOnly = true)
     public SubmissionDetailResponse getSubmissionDetail(UUID id) {
@@ -51,15 +49,28 @@ public class SubmissionService extends BaseService {
             String status,
             String language,
             Integer page,
-            Integer limit
-    ) {
+            Integer limit) {
         UUID userId = getCurrentUserIdOrThrow();
         int pageNum = page == null || page < 1 ? 1 : page;
         int size = limit == null ? 20 : Math.clamp(limit, 1, 100);
 
-        Verdict verdict = status != null && !status.isBlank() ? Verdict.fromApiValue(status.trim()) : null;
-        ProgrammingLanguage lang = language != null && !language.isBlank()
-                ? ProgrammingLanguage.fromApiValue(language.trim()) : null;
+        Verdict verdict = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                verdict = Verdict.fromApiValue(status.trim());
+            } catch (IllegalArgumentException e) {
+                throw new AppException(ErrorCode.INVALID_PROGRESS_STATUS);
+            }
+        }
+
+        ProgrammingLanguage lang = null;
+        if (language != null && !language.isBlank()) {
+            try {
+                lang = ProgrammingLanguage.fromApiValue(language.trim());
+            } catch (IllegalArgumentException e) {
+                throw new AppException(ErrorCode.UNSUPPORTED_PROGRAMMING_LANGUAGE);
+            }
+        }
 
         var pageable = org.springframework.data.domain.PageRequest.of(pageNum - 1, size);
         var submissionsPage = submissionRepository.findMySubmissions(userId, lessonSlug, verdict, lang, pageable);

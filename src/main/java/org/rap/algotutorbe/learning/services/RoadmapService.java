@@ -20,7 +20,6 @@ import org.rap.algotutorbe.judge.LessonProgressUpdater;
 import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
 import org.rap.algotutorbe.learning.repositories.LearningPathRepository;
 import org.rap.algotutorbe.learning.repositories.LessonProgressRepository;
-import org.rap.algotutorbe.learning.repositories.TopicRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -35,7 +34,6 @@ public class RoadmapService extends BaseService {
     private final LearningPathRepository learningPathRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
-    private final TopicRepository topicRepository;
     private final UserRepository userRepository;
     private final RoadmapMapper roadmapMapper;
     private final LessonProgressUpdater lessonProgressUpdater;
@@ -155,8 +153,7 @@ public class RoadmapService extends BaseService {
         return ApiResponse.buildSuccess(new LessonProgressUpdateResponse(
                 lesson.getId(),
                 status,
-                Instant.now()
-        ));
+                Instant.now()));
     }
 
     @Transactional(readOnly = true)
@@ -178,8 +175,7 @@ public class RoadmapService extends BaseService {
                     return new LessonProgressionDTO(
                             lp.getLesson().getId(),
                             status,
-                            lp.getUpdatedAt()
-                    );
+                            lp.getUpdatedAt());
                 })
                 .toList();
 
@@ -191,16 +187,17 @@ public class RoadmapService extends BaseService {
                 enrollment.getStatus(),
                 enrollment.getCompletedAt(),
                 enrollment.getEnrolledAt(),
-                progressions
-        );
+                progressions);
 
         return ApiResponse.buildSuccess(dto);
     }
 
     private RoadmapDetailResponseDTO buildDetailDto(LearningPath learningPath, boolean enrolled, User user) {
-        List<Topic> orderedTopics = learningPath.getTopics().stream()
-                .sorted(Comparator.comparing(Topic::getDisplayOrder))
-                .toList();
+        List<Topic> orderedTopics = learningPath.getTopics() != null
+                ? learningPath.getTopics().stream()
+                        .sorted(Comparator.comparing(Topic::getDisplayOrder))
+                        .toList()
+                : List.of();
 
         Map<Long, ProgressStatus> progressMap = new HashMap<>();
         if (enrolled && user != null) {
@@ -239,14 +236,15 @@ public class RoadmapService extends BaseService {
                 enrolled,
                 learningPath.getCreatedAt(),
                 learningPath.getUpdatedAt(),
-                topicDtos
-        );
+                topicDtos);
     }
 
     private TopicWithLessonsDTO buildTopicDto(Topic topic, Map<Long, ProgressStatus> progressMap) {
-        List<Lesson> orderedLessons = topic.getLessons().stream()
-                .sorted(Comparator.comparing(Lesson::getDisplayOrder))
-                .toList();
+        List<Lesson> orderedLessons = topic.getLessons() != null
+                ? topic.getLessons().stream()
+                        .sorted(Comparator.comparing(Lesson::getDisplayOrder))
+                        .toList()
+                : List.of();
 
         List<LessonWithProgressDTO> lessonDtos = orderedLessons.stream()
                 .map(lesson -> new LessonWithProgressDTO(
@@ -258,8 +256,7 @@ public class RoadmapService extends BaseService {
                         lesson.getDifficulty(),
                         progressMap.getOrDefault(lesson.getId(), null),
                         lesson.getCreatedAt(),
-                        lesson.getUpdatedAt()
-                ))
+                        lesson.getUpdatedAt()))
                 .toList();
 
         return new TopicWithLessonsDTO(
@@ -271,17 +268,18 @@ public class RoadmapService extends BaseService {
                 orderedLessons.size(),
                 topic.getCreatedAt(),
                 topic.getUpdatedAt(),
-                lessonDtos
-        );
+                lessonDtos);
     }
 
     private void initializeLessonProgressions(Enrollment enrollment, LearningPath learningPath, User user) {
-        List<Topic> orderedTopics = learningPath.getTopics().stream()
-                .sorted(Comparator.comparing(Topic::getDisplayOrder))
-                .toList();
+        List<Topic> orderedTopics = learningPath.getTopics() != null
+                ? learningPath.getTopics().stream()
+                        .sorted(Comparator.comparing(Topic::getDisplayOrder))
+                        .toList()
+                : List.of();
 
         for (Topic topic : orderedTopics) {
-            if (Boolean.FALSE.equals(topic.getIsLocked())) {
+            if (Boolean.FALSE.equals(topic.getIsLocked()) && topic.getLessons() != null) {
                 List<Lesson> lessons = topic.getLessons().stream()
                         .sorted(Comparator.comparing(Lesson::getDisplayOrder))
                         .toList();
@@ -299,7 +297,11 @@ public class RoadmapService extends BaseService {
     }
 
     private Lesson findLessonInLearningPath(LearningPath learningPath, String lessonSlug) {
+        if (learningPath.getTopics() == null) {
+            throw new AppException(ErrorCode.LESSON_NOT_FOUND);
+        }
         return learningPath.getTopics().stream()
+                .filter(t -> t.getLessons() != null)
                 .flatMap(t -> t.getLessons().stream())
                 .filter(l -> l.getSlug().equals(lessonSlug))
                 .findFirst()
@@ -318,7 +320,6 @@ public class RoadmapService extends BaseService {
                 enrollment.getLearningPath().getName(),
                 enrollment.getStatus(),
                 enrollment.getCompletedAt(),
-                enrollment.getEnrolledAt()
-        );
+                enrollment.getEnrolledAt());
     }
 }

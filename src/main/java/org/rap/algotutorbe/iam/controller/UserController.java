@@ -8,7 +8,6 @@ import org.rap.algotutorbe.iam.application.dto.UpdateProfileRequest;
 import org.rap.algotutorbe.iam.application.dto.ChangePasswordRequest;
 import org.rap.algotutorbe.iam.application.services.AuthService;
 import org.rap.algotutorbe.iam.application.services.UserEnrollmentService;
-import org.rap.algotutorbe.iam.application.services.UserService;
 import org.rap.algotutorbe.iam.dto.CurrentLessonResponse;
 import org.rap.algotutorbe.iam.dto.EnrollmentProgressResponse;
 import org.rap.algotutorbe.iam.dto.UserProfileResponse;

@@ -96,26 +96,26 @@ public class QuizAttemptService {
     }
 
     private boolean judge(QuizQuestion quizQuestion, QuestionAnswer questionAnswer) {
+        List<String> selected = questionAnswer.selectedOptionIds();
+        if (selected == null || selected.isEmpty()) {
+            return false;
+        }
         if (quizQuestion.getType() == QuestionType.MULTIPLE_CHOICE) {
             Set<String> correctAnswer = quizQuestion.getChoices()
                     .stream().filter(QuizChoice::getIsCorrect)
                     .map(QuizChoice::getId)
                     .collect(Collectors.toSet());
             
-            List<String> selected = questionAnswer.selectedOptionIds();
-            if (selected == null || selected.isEmpty()) {
-                return false;
-            }
             Set<String> selectedSet = new HashSet<>(selected);
             return correctAnswer.size() == selectedSet.size() && correctAnswer.containsAll(selectedSet);
         }
-        if (quizQuestion.getType() == QuestionType.SINGLE_CHOICE && questionAnswer.selectedOptionIds().size() == 1) {
+        if (quizQuestion.getType() == QuestionType.SINGLE_CHOICE && selected.size() == 1) {
             QuizChoice correctQuizChoice = quizQuestion.getChoices()
                     .stream()
                     .filter(QuizChoice::getIsCorrect)
                     .findFirst()
                     .orElseThrow(() -> new AppException(ErrorCode.QUIZ_QUESTION_NOT_FOUND));
-            return questionAnswer.selectedOptionIds().getFirst().equals(correctQuizChoice.getId());
+            return selected.getFirst().equals(correctQuizChoice.getId());
         }
 
         return false;

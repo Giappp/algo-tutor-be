@@ -3,7 +3,6 @@ package org.rap.algotutorbe.learning.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
-import org.rap.algotutorbe.common.services.S3Service;
 import org.rap.algotutorbe.learning.dto.testcase.SaveTestCaseRequest;
 import org.rap.algotutorbe.learning.dto.testcase.TestCaseDTO;
 import org.rap.algotutorbe.learning.services.TestCaseService;
@@ -18,7 +17,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TestCaseController {
     private final TestCaseService testCaseService;
-    private final S3Service s3Service;
 
     @PostMapping("/lessons/{lessonId}")
     @PreAuthorize("hasRole('ADMIN')")

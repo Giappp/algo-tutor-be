@@ -80,9 +80,11 @@ public class JudgeService extends BaseService {
         ProgrammingLanguage language = parseLanguage(request.language());
         CodingLesson lesson = findCodingLesson(request.lessonSlug());
 
-        List<Testcase> sampleTestcases = lesson.getTestCases().stream()
-                .filter(testcase -> Boolean.TRUE.equals(testcase.getIsSample()))
-                .toList();
+        List<Testcase> sampleTestcases = lesson.getTestCases() != null
+                ? lesson.getTestCases().stream()
+                        .filter(testcase -> Boolean.TRUE.equals(testcase.getIsSample()))
+                        .toList()
+                : List.of();
 
         if (sampleTestcases.isEmpty()) {
             return emptyResponse();
@@ -219,12 +221,30 @@ public class JudgeService extends BaseService {
                     limits.memoryLimitMb()
             );
 
+            if (response == null) {
+                return new SingleTestCaseResult(
+                        Verdict.SYSTEM_ERROR,
+                        0,
+                        0,
+                        "No response from judging engine"
+                );
+            }
+
             if (hasCompileError(response)) {
                 return new SingleTestCaseResult(
                         Verdict.COMPILATION_ERROR,
                         0,
                         0,
-                        response.compile().stderr()
+                        response.compile() != null ? response.compile().stderr() : "Compilation error"
+                );
+            }
+
+            if (response.run() == null) {
+                return new SingleTestCaseResult(
+                        Verdict.SYSTEM_ERROR,
+                        0,
+                        0,
+                        "No execution result from judging engine"
                 );
             }
 
