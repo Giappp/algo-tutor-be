@@ -16,6 +16,7 @@ import org.rap.algotutorbe.learning.enums.Level;
 import org.rap.algotutorbe.learning.enums.ProgressStatus;
 import org.rap.algotutorbe.learning.mapper.RoadmapMapper;
 import org.rap.algotutorbe.learning.models.*;
+import org.rap.algotutorbe.judge.LessonProgressUpdater;
 import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
 import org.rap.algotutorbe.learning.repositories.LearningPathRepository;
 import org.rap.algotutorbe.learning.repositories.LessonProgressRepository;
@@ -37,6 +38,7 @@ public class RoadmapService extends BaseService {
     private final TopicRepository topicRepository;
     private final UserRepository userRepository;
     private final RoadmapMapper roadmapMapper;
+    private final LessonProgressUpdater lessonProgressUpdater;
 
     @Transactional(readOnly = true)
     public PageResponse<RoadmapResponseDTO> getPublishedRoadmaps(Pageable pageable, String level) {
@@ -131,21 +133,23 @@ public class RoadmapService extends BaseService {
             throw new AppException(ErrorCode.TOPIC_LOCKED);
         }
 
-        LessonProgress progress = lessonProgressRepository.findByUserAndLesson(user, lesson)
-                .orElseGet(() -> {
-                    LessonProgress lp = new LessonProgress();
-                    lp.setUser(user);
-                    lp.setLesson(lesson);
-                    return lp;
-                });
-        progress.setEnrollment(enrollment);
-        progress.setStatus(status);
-        progress.setIsCompleted(status == ProgressStatus.COMPLETED);
-        progress.setCompletedAt(status == ProgressStatus.COMPLETED ? Instant.now() : null);
-        lessonProgressRepository.save(progress);
-
         if (status == ProgressStatus.COMPLETED) {
-            unlockNextTopicIfAllLessonsCompleted(learningPath, topic, user);
+            lessonProgressUpdater.markLessonCompleted(user, lesson);
+        } else {
+            LessonProgress progress = lessonProgressRepository.findByUserAndLesson(user, lesson)
+                    .orElseGet(() -> {
+                        LessonProgress lp = new LessonProgress();
+                        lp.setUser(user);
+                        lp.setLesson(lesson);
+                        return lp;
+                    });
+            progress.setEnrollment(enrollment);
+            progress.setStatus(status);
+            progress.setIsCompleted(false);
+            progress.setCompletedAt(null);
+            lessonProgressRepository.save(progress);
+
+            lessonProgressUpdater.updateEnrollmentProgress(enrollment);
         }
 
         return ApiResponse.buildSuccess(new LessonProgressUpdateResponse(
@@ -300,35 +304,6 @@ public class RoadmapService extends BaseService {
                 .filter(l -> l.getSlug().equals(lessonSlug))
                 .findFirst()
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
-    }
-
-    private void unlockNextTopicIfAllLessonsCompleted(LearningPath learningPath, Topic completedTopic, User user) {
-        List<Topic> orderedTopics = learningPath.getTopics().stream()
-                .sorted(Comparator.comparing(Topic::getDisplayOrder))
-                .toList();
-
-        List<Lesson> completedTopicLessons = completedTopic.getLessons().stream()
-                .sorted(Comparator.comparing(Lesson::getDisplayOrder))
-                .toList();
-
-        boolean allCompleted = completedTopicLessons.stream()
-                .allMatch(lesson -> {
-                    Optional<LessonProgress> progress = lessonProgressRepository.findByUserAndLesson(user, lesson);
-                    return progress.isPresent() && Boolean.TRUE.equals(progress.get().getIsCompleted());
-                });
-
-        if (!allCompleted) {
-            return;
-        }
-
-        int currentIndex = orderedTopics.indexOf(completedTopic);
-        if (currentIndex < orderedTopics.size() - 1) {
-            Topic nextTopic = orderedTopics.get(currentIndex + 1);
-            if (Boolean.TRUE.equals(nextTopic.getIsLocked())) {
-                nextTopic.setIsLocked(false);
-                topicRepository.save(nextTopic);
-            }
-        }
     }
 
     private ProgressStatus toProgressStatus(LessonProgress progress) {

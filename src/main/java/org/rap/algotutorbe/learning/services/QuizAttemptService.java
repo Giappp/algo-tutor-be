@@ -1,9 +1,11 @@
 package org.rap.algotutorbe.learning.services;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
+import org.rap.algotutorbe.judge.LessonProgressUpdater;
 import org.rap.algotutorbe.learning.dto.quiz.QuizAttemptResponse;
 import org.rap.algotutorbe.learning.dto.quiz.QuizAttemptSummary;
 import org.rap.algotutorbe.learning.dto.quiz.QuizSubmitAnswer;
@@ -13,13 +15,16 @@ import org.rap.algotutorbe.learning.repositories.QuizAttemptRepository;
 import org.rap.algotutorbe.learning.repositories.QuizLessonRepository;
 import org.rap.algotutorbe.learning.repositories.QuizQuestionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class QuizAttemptService {
@@ -27,7 +32,9 @@ public class QuizAttemptService {
     private final QuizLessonRepository quizLessonRepository;
     private final QuizQuestionRepository quizQuestionRepository;
     private final QuizAttemptMapper quizAttemptMapper;
+    private final LessonProgressUpdater lessonProgressUpdater;
 
+    @Transactional
     public QuizAttemptResponse submitQuiz(String lessonSlug, QuizSubmitAnswer payload, SecurityUser authentication) {
         QuizLesson quizLesson = getOrThrow(lessonSlug);
         QuizAttempt quizAttempt = new QuizAttempt();
@@ -59,13 +66,32 @@ public class QuizAttemptService {
                             isCorrect, correctOptionIds);
                     questionResults.add(questionResult);
                 });
-        float point = correctCount.floatValue() / quizLesson.getQuestions().size();
+        
+        // Calculate score as a percentage between 0 and 100
+        float point = 0.0f;
+        if (quizLesson.getQuestions() != null && !quizLesson.getQuestions().isEmpty()) {
+            point = (correctCount.floatValue() / quizLesson.getQuestions().size()) * 100.0f;
+        }
+        
         quizAttempt.setScore(point);
         quizAttempt.setCorrectCount(correctCount.get());
         quizAttempt.setQuestionResults(questionResults);
         quizAttempt.setTotalQuestions(quizLesson.getQuestions().size());
-        quizAttempt.setPassed(Float.compare(quizLesson.getPassingScore(), point) <= 0);
+        
+        // Compare scores correctly (e.g. point >= passingScore, where both are 0-100)
+        quizAttempt.setPassed(point >= quizLesson.getPassingScore());
         QuizAttempt saved = quizAttemptRepository.save(quizAttempt);
+
+        // Auto-update student lesson progress to COMPLETED if passed
+        if (saved.getPassed()) {
+            try {
+                lessonProgressUpdater.markLessonCompleted(authentication.getUser(), quizLesson);
+            } catch (Exception e) {
+                log.error("Failed to auto-update lesson progress for user [{}] on passed quiz [{}]",
+                        authentication.getUser().getId(), quizLesson.getSlug(), e);
+            }
+        }
+
         return quizAttemptMapper.toResponse(saved);
     }
 
@@ -75,7 +101,13 @@ public class QuizAttemptService {
                     .stream().filter(QuizChoice::getIsCorrect)
                     .map(QuizChoice::getId)
                     .collect(Collectors.toSet());
-            return correctAnswer.containsAll(questionAnswer.selectedOptionIds());
+            
+            List<String> selected = questionAnswer.selectedOptionIds();
+            if (selected == null || selected.isEmpty()) {
+                return false;
+            }
+            Set<String> selectedSet = new HashSet<>(selected);
+            return correctAnswer.size() == selectedSet.size() && correctAnswer.containsAll(selectedSet);
         }
         if (quizQuestion.getType() == QuestionType.SINGLE_CHOICE && questionAnswer.selectedOptionIds().size() == 1) {
             QuizChoice correctQuizChoice = quizQuestion.getChoices()

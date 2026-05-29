@@ -102,7 +102,7 @@ public class LearningPathService extends BaseService {
         LearningPath learningPath = getOrThrow(slug);
         User user = userRepository.findById(getCurrentUserIdOrThrow())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        if (enrollmentRepository.existsEnrollmentByUser(user)) {
+        if (enrollmentRepository.existsByUserIdAndLearningPathId(user.getId(), learningPath.getId())) {
             throw new AppException(ErrorCode.ALREADY_ENROLL);
         }
         Enrollment enrollment = new Enrollment();

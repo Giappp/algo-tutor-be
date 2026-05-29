@@ -58,6 +58,10 @@ public class LessonContentService extends BaseService {
             throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
         }
 
+        SecurityUser currentUser = getCurrentUser().orElse(null);
+        boolean isAdminOrEditor = currentUser != null &&
+                ("ADMIN".equals(currentUser.getRoleCode()) || "EDITOR".equals(currentUser.getRoleCode()));
+
         List<QuizContentResponse.QuizQuestionItem> questionItems = new ArrayList<>();
 
         for (QuizQuestion question : quiz.getQuestions()) {
@@ -81,8 +85,8 @@ public class LessonContentService extends BaseService {
                     question.getQuestion(),
                     question.getType().name(),
                     options,
-                    question.getExplanation(),
-                    correctOptionIds
+                    isAdminOrEditor ? question.getExplanation() : null,
+                    isAdminOrEditor ? correctOptionIds : List.of()
             ));
         }
 

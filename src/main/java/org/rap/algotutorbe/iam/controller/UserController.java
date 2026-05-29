@@ -31,7 +31,6 @@ import java.util.*;
 @RequiredArgsConstructor
 public class UserController {
     private final AuthService authService;
-    private final UserService userService;
     private final UserEnrollmentService userEnrollmentService;
     private final SubmissionRepository submissionRepository;
     private final QuizAttemptRepository quizAttemptRepository;
@@ -69,8 +68,8 @@ public class UserController {
             @AuthenticationPrincipal SecurityUser principal) {
         Optional<CurrentLessonResponse> result = userEnrollmentService.getCurrentLesson(principal.getId());
 
-        return result.map(currentLessonResponse ->
-                ResponseEntity.ok(ApiResponse.buildSuccess(currentLessonResponse))).orElseGet(() -> ResponseEntity.noContent().build());
+        return result.map(currentLessonResponse -> ResponseEntity.ok(ApiResponse.buildSuccess(currentLessonResponse)))
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @GetMapping("/me/enrollments")
