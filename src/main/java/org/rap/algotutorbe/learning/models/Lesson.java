@@ -9,7 +9,9 @@ import org.rap.algotutorbe.learning.enums.Difficulty;
 import org.rap.algotutorbe.learning.enums.LessonType;
 
 @Entity
-@Table(name = "lessons")
+@Table(name = "lessons", indexes = {
+    @Index(name = "idx_lessons_topic_id", columnList = "topic_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

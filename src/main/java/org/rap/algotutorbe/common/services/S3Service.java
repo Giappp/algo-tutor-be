@@ -114,53 +114,65 @@ public class S3Service {
         return fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
-    /**
-     * Lấy file testcase từ local cache, nếu không có sẽ tải từ S3 về đĩa.
-     *
-     * @param lessonId ID của bài tập (để phân thư mục gọn gàng)
-     * @param s3Url    Link đầy đủ của file lưu trong DB (VD: https://.../input.in)
-     * @return Path dẫn tới file vật lý trên ổ đĩa Server
-     */
     public Path getOrCreateLocalTestCaseFile(Long lessonId, String s3Url) {
-        // 1. Trích xuất S3 Key từ URL
-        String s3Key = s3Url.substring(s3Url.indexOf(".amazonaws.com/") + 15);
+        String s3Key = extractS3KeyFromUrl(s3Url);
 
-        // Tách lấy tên file gốc (input.in hoặc output.out) từ S3 Key
-        String fileName = s3Key.substring(s3Key.lastIndexOf("/") + 1);
-
-        // Lấy chuỗi định danh độc nhất của bộ testcase (UUID) từ cấu trúc thư mục S3
         String[] parts = s3Key.split("/");
+        if (parts.length < 4) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+
+        String fileName = sanitizeFileName(parts[parts.length - 1]);
         String testCaseUuid = parts[parts.length - 2];
 
-        Path localFilePath = Paths.get(localStoragePath, lessonId.toString(), testCaseUuid, fileName);
+        Path baseDir = Paths.get(localStoragePath)
+                .toAbsolutePath()
+                .normalize();
 
-        // 3. Nếu file đã tồn tại cục bộ, trả về luôn (Hit Cache)
+        Path localFilePath = baseDir
+                .resolve(lessonId.toString())
+                .resolve(testCaseUuid)
+                .resolve(fileName)
+                .normalize();
+
+        if (!localFilePath.startsWith(baseDir)) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+
         if (Files.exists(localFilePath)) {
-            log.info("Cache Hit: File đã tồn tại cục bộ tại -> {}", localFilePath);
+            log.info("Cache hit: {}", localFilePath);
             return localFilePath;
         }
 
-        // 4. Nếu chưa tồn tại (Miss Cache), tiến hành tạo thư mục cha và tải từ S3 về
         try {
             Files.createDirectories(localFilePath.getParent());
-            log.info("Cache Miss: Đang tải file từ S3 về ổ đĩa -> {}", localFilePath);
 
             GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                     .bucket(bucketName)
                     .key(s3Key)
                     .build();
 
-            // Stream trực tiếp từ S3 ghi vào ổ cứng thông qua SDK v2
             s3Client.getObject(getObjectRequest, localFilePath);
 
             return localFilePath;
         } catch (IOException e) {
-            log.error("Lỗi khi tạo thư mục hoặc ghi file cục bộ: {}", e.getMessage());
+            log.error("Cannot create local testcase file: {}", localFilePath, e);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, e);
         } catch (Exception e) {
-            log.error("Lỗi kết nối hoặc tải dữ liệu từ AWS S3: {}", e.getMessage());
+            log.error("Cannot download testcase from S3. key={}", s3Key, e);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, e);
         }
+    }
+
+    private String extractS3KeyFromUrl(String s3Url) {
+        String marker = ".amazonaws.com/";
+
+        int index = s3Url.indexOf(marker);
+        if (index < 0) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+
+        return s3Url.substring(index + marker.length());
     }
 
     public Path downloadFileToTempDisk(String s3Url, String prefix) {
@@ -184,12 +196,9 @@ public class S3Service {
         }
     }
 
-    /**
-     * Tạo đường dẫn công khai (hoặc private bản chuẩn) của file sau khi upload thành công
-     */
     public String getDisplayUrl(Long lessonId, String testCaseUuid, String fileName) {
-        return String.format("https://%s.s3.%s.amazonaws.com/problems/%d/testcases/%s/%s",
-                bucketName, region, lessonId, testCaseUuid, fileName);
+        String objectKey = buildTestCaseObjectKey(lessonId, testCaseUuid, fileName);
+        return buildFileUrl(objectKey);
     }
 
     private void validateImage(MultipartFile file) {

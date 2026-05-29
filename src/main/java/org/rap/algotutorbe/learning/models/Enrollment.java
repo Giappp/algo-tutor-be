@@ -15,6 +15,8 @@ import java.util.Set;
 @Entity
 @Table(name = "enrollments", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"user_id", "learning_path_id"})
+}, indexes = {
+        @Index(name = "idx_enrollments_learning_path_id", columnList = "learning_path_id")
 })
 @Getter
 @Setter

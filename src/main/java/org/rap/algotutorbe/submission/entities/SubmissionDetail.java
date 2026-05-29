@@ -7,7 +7,10 @@ import org.rap.algotutorbe.common.domain.BaseEntity;
 import org.rap.algotutorbe.learning.models.Testcase;
 
 @Entity
-@Table(name = "submission_detail")
+@Table(name = "submission_detail", indexes = {
+    @Index(name = "idx_submission_detail_submission_id", columnList = "submission_id"),
+    @Index(name = "idx_submission_detail_testcase_id", columnList = "testcase_id")
+})
 @Getter
 @Setter
 public class SubmissionDetail extends BaseEntity {

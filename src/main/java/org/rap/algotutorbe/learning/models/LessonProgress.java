@@ -13,6 +13,9 @@ import java.time.Instant;
 @Entity
 @Table(name = "lesson_progresses", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"user_id", "lesson_id"})
+}, indexes = {
+        @Index(name = "idx_lesson_progresses_enrollment_id", columnList = "enrollment_id"),
+        @Index(name = "idx_lesson_progresses_lesson_id", columnList = "lesson_id")
 })
 @Getter
 @Setter

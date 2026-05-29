@@ -1,0 +1,151 @@
+services:
+  # ==========================================
+  # Database: PostgreSQL
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: algotutor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: onlinejudge
+      POSTGRES_USER: ${DATABASE_USERNAME:-ojuser}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-ojpass}
+    # Bind database port to localhost to prevent public internet access.
+    # Connect securely via SSH tunnel if external client connection is needed.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-ojuser} -d onlinejudge" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - algotutor-net
+
+  # ==========================================
+  # Cache: Redis
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: algotutor-redis
+    restart: unless-stopped
+    # Bind cache port to localhost for security
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - algotutor-net
+
+  # ==========================================
+  # Message Queue: RabbitMQ
+  # ==========================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: algotutor-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-ojuser}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-ojpass}
+    # Bind queue & management ports to localhost for security
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - algotutor-net
+
+  # ==========================================
+  # Sandbox Code Runner: Piston (Judge API)
+  # ==========================================
+  judge:
+    image: ghcr.io/engineer-man/piston
+    container_name: algotutor-judge
+    restart: unless-stopped
+    privileged: true
+    # No ports exposed to the host for safety.
+    # Backend accesses this judge container internally via 'algotutor-net' at http://judge:2000.
+    volumes:
+      - ./data/piston/packages:/piston/packages
+    tmpfs:
+      - /tmp:exec
+    environment:
+      - PISTON_RUN_TIMEOUT=5000
+      - PISTON_COMPILE_TIMEOUT=11000
+      - PISTON_RUN_CPU_TIME=5000
+      - PISTON_COMPILE_CPU_TIME=11000
+    networks:
+      - algotutor-net
+
+  # ==========================================
+  # Core Service: AlgoTutor Spring Boot Backend
+  # ==========================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: algotutor-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    # Ensure databases and dependencies are healthy before booting the application
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      judge:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      # Override hostnames to match Docker service network names
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/onlinejudge
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - PISTON_API_URL=http://judge:2000
+      - JUDGE_STORAGE_PATH=/app/algotutor/testcases
+    volumes:
+      - ./data/testcases:/algotutor/testcases
+    networks:
+      - algotutor-net
+
+  # ==========================================
+  # Database Tool: pgAdmin (Optional)
+  # ==========================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: algotutor-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@oj.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    # Bind admin panel to localhost to prevent public scanning
+    ports:
+      - "127.0.0.1:5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - algotutor-net
+    profiles:
+      - tools
+
+networks:
+  algotutor-net:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:

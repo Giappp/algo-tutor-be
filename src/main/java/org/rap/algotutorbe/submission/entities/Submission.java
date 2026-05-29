@@ -12,7 +12,10 @@ import org.rap.algotutorbe.learning.models.CodingLesson;
 import java.util.List;
 
 @Entity
-@Table(name = "submissions")
+@Table(name = "submissions", indexes = {
+    @Index(name = "idx_submissions_user_id", columnList = "user_id"),
+    @Index(name = "idx_submissions_coding_lesson_id", columnList = "coding_lesson_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

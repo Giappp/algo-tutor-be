@@ -8,7 +8,9 @@ import lombok.Setter;
 import org.rap.algotutorbe.common.domain.BaseEntity;
 
 @Entity
-@Table(name = "test_cases")
+@Table(name = "test_cases", indexes = {
+    @Index(name = "idx_test_cases_coding_lesson_id", columnList = "coding_lesson_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

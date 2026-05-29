@@ -1,8 +1,6 @@
 package org.rap.algotutorbe.ai.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +10,9 @@ import org.rap.algotutorbe.common.domain.BaseUuidEntity;
 import java.util.UUID;
 
 @Entity
-@Table(name = "ai_conversation_state")
+@Table(name = "ai_conversation_state", indexes = {
+    @Index(name = "idx_ai_conversation_state_conversation_id", columnList = "conversation_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

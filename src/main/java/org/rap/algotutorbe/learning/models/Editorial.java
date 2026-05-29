@@ -9,7 +9,9 @@ import org.rap.algotutorbe.common.domain.BaseEntity;
 import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
 
 @Entity
-@Table(name = "editorials")
+@Table(name = "editorials", indexes = {
+    @Index(name = "idx_editorials_coding_lesson_id", columnList = "coding_lesson_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

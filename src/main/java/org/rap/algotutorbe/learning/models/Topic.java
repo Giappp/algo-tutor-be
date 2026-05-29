@@ -10,7 +10,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "topics")
+@Table(name = "topics", indexes = {
+    @Index(name = "idx_topics_learning_path_id", columnList = "learning_path_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
