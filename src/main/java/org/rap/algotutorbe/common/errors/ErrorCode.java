@@ -14,7 +14,7 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(1000, "errors.invalid-credential", HttpStatus.NOT_FOUND),
     EMAIL_ALREADY_INUSE(1001, "errors.email-already-in-use", HttpStatus.BAD_REQUEST),
     USERNAME_TAKEN(1002, "errors.username-taken", HttpStatus.BAD_REQUEST),
-    PASSWORD_MISMATCH(1003, "errors.password-mismatch", HttpStatus.NOT_FOUND),
+    PASSWORD_MISMATCH(1003, "errors.password-mismatch", HttpStatus.BAD_REQUEST),
     TOKEN_EXPIRED(1004, "errors.token-expired", HttpStatus.UNAUTHORIZED),
     INVALID_TOKEN(1005, "errors.invalid-token", HttpStatus.UNAUTHORIZED),
     USER_NOT_FOUND(1006, "errors.user-not-found", HttpStatus.NOT_FOUND),

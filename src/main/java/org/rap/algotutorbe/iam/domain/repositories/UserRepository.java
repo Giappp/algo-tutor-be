@@ -1,6 +1,8 @@
 package org.rap.algotutorbe.iam.domain.repositories;
 
 import org.rap.algotutorbe.iam.domain.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,4 +22,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsername(String username);
 
     boolean existsByUsername(String username);
+
+    boolean existsByEmail(String email);
+
+    @Query(value = "SELECT u FROM User u LEFT JOIN FETCH u.role WHERE " +
+            "(:search IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))",
+            countQuery = "SELECT COUNT(u) FROM User u WHERE " +
+            "(:search IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<User> searchUsers(@Param("search") String search, Pageable pageable);
 }

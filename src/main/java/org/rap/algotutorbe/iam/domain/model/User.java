@@ -28,6 +28,9 @@ public class User extends BaseUuidEntity {
 
     private boolean enabled;
 
+    @Column(name = "block_reason")
+    private String blockReason;
+
     private String avatar;
     @ManyToOne
     @JoinColumn(name = "role_id")

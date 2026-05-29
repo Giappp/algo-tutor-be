@@ -5,6 +5,7 @@ public record EnrollmentProgressResponse(
         String roadmapSlug,
         int completionPercentage,
         String nextLessonSlug,
-        String nextLessonTitle
+        String nextLessonTitle,
+        String thumbnailUrl
 ) {
 }

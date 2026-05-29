@@ -13,4 +13,6 @@ public class UserResponse {
     private String email;
     private String role;
     private String avatar;
+    private boolean enabled;
+    private String blockReason;
 }

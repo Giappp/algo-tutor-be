@@ -171,7 +171,8 @@ public class UserEnrollmentService {
         return new EnrollmentProgressResponse(
                 roadmap.getName(), roadmap.getSlug(), percentage,
                 nextLesson != null ? nextLesson.getSlug() : null,
-                nextLesson != null ? nextLesson.getTitle() : null
+                nextLesson != null ? nextLesson.getTitle() : null,
+                roadmap.getThumbnailUrl()
         );
     }
 
