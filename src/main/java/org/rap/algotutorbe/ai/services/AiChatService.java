@@ -79,7 +79,6 @@ public class AiChatService {
         if (value == null || value.length() <= AiChatService.MAX_TITLE_LENGTH) {
             return value;
         }
-
         return value.substring(0, AiChatService.MAX_TITLE_LENGTH);
     }
 
@@ -102,6 +101,30 @@ public class AiChatService {
                 buildQuickActions(session, request, canAskNextHint),
                 Collections.emptyList(),
                 canAskNextHint);
+    }
+
+    private String buildHistoryContext(UUID conversationId) {
+        List<AiMessage> dbMessages = aiMessageRepository
+                .findTop10ByConversationIdOrderByCreatedAtDesc(conversationId);
+
+        if (dbMessages.isEmpty()) {
+            return "No previous messages.";
+        }
+
+        Collections.reverse(dbMessages);
+
+        StringBuilder builder = new StringBuilder();
+
+        for (AiMessage message : dbMessages) {
+            String role = message.getRole() == AiMessageRole.USER ? "User" : "Assistant";
+
+            builder.append(role)
+                    .append(": ")
+                    .append(message.getContent())
+                    .append("\n");
+        }
+
+        return builder.toString();
     }
 
     public void chatStream(AiChatRequest request, UUID userId, SseEmitter emitter) {
@@ -157,26 +180,47 @@ public class AiChatService {
             UUID userId,
             SseEmitter emitter,
             List<RoadmapInfo> availableRoadmaps) {
-        GeneralChatSession session = prepareGeneralChatSession(request, userId, availableRoadmaps);
+        try {
+            GeneralChatSession session = prepareGeneralChatSession(request, userId, availableRoadmaps);
 
-        streamLlmResponse(
-                request.provider(),
-                session.messages(),
-                session.advisoryTools(),
-                emitter,
-                "General LLM stream error",
-                streamResult -> {
-                    persistConversationTurn(session.conversationId(), userId, request, streamResult);
+            ChatResponseWithTokens llmResult = callLlmWithTokens(
+                    request.provider(),
+                    session.messages(),
+                    session.advisoryTools());
 
-                    AiRoadmapAdvisoryResponse metadata = new AiRoadmapAdvisoryResponse(
-                            session.conversationId(),
-                            resolveRecommendedRoadmaps(
-                                    session.advisoryTools().getRecommendedSlugs(),
-                                    availableRoadmaps,
-                                    streamResult.responseText()));
+            ChatResponseWithTokens normalizedResult = new ChatResponseWithTokens(
+                    normalizeAiText(llmResult.responseText()),
+                    llmResult.inputTokens(),
+                    llmResult.outputTokens());
 
-                    sendSseEvent(emitter, "metadata", metadata);
-                });
+            persistConversationTurn(session.conversationId(), userId, request, normalizedResult);
+
+            sendSseEvent(emitter, "message", new AiChunkResponse(normalizedResult.responseText()));
+
+            AiRoadmapAdvisoryResponse metadata = new AiRoadmapAdvisoryResponse(
+                    session.conversationId(),
+                    resolveRecommendedRoadmaps(
+                            session.advisoryTools().getRecommendedSlugs(),
+                            availableRoadmaps,
+                            normalizedResult.responseText()));
+
+            sendSseEvent(emitter, "metadata", metadata);
+            emitter.complete();
+        } catch (Exception e) {
+            log.error("General LLM stream error", e);
+            emitter.completeWithError(new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE, e));
+        }
+    }
+
+    private String normalizeAiText(String text) {
+        if (text == null) {
+            return null;
+        }
+
+        return text
+                .replace("\r\n", "\n")
+                .replaceAll("\\n{3,}", "\n\n")
+                .trim();
     }
 
     public AiChatResponse bootstrap(UUID userId, String lessonSlug) {
@@ -227,18 +271,33 @@ public class AiChatService {
             AiChatRequest request,
             UUID userId,
             List<RoadmapInfo> availableRoadmaps) {
+
         validateGeneralChatRequest(request);
 
         LLMProvider provider = providerRouter.resolveProvider(request.provider());
         AIConversation conversation = resolveAndSaveConversation(request, userId, provider);
 
         String systemPrompt = aiPromptService.buildGeneralSystemPrompt();
-        String userPrompt = aiPromptService.buildUserPrompt(request, "", "");
+        String historyContext = buildHistoryContext(conversation.getId());
+
+        String userPrompt = """
+                Conversation history:
+                %s
+                
+                Current user message:
+                %s
+                """.formatted(
+                historyContext,
+                aiPromptService.buildUserPrompt(request, "", ""));
+
         RoadmapAdvisoryTools advisoryTools = new RoadmapAdvisoryTools(availableRoadmaps);
 
         return new GeneralChatSession(
                 conversation.getId(),
-                buildNativeMessages(systemPrompt, userPrompt, conversation.getId()),
+                List.of(
+                        new SystemMessage(systemPrompt),
+                        new UserMessage(userPrompt)
+                ),
                 advisoryTools);
     }
 
@@ -605,26 +664,26 @@ public class AiChatService {
         if (lesson == null) {
             return """
                     Xin chào, mình là AlgoTutor AI.
-
+                    
                     Mình có thể giúp bạn:
                     - Giải thích kiến thức thuật toán
                     - Gợi ý hướng giải từng bước
                     - Kiểm tra và debug code
                     - Phân tích độ phức tạp
-
+                    
                     Bạn muốn bắt đầu với phần nào?
                     """;
         }
 
         return """
                 Bạn đang học bài "%s".
-
+                
                 Mình có thể hỗ trợ bạn theo từng bước:
                 - Giải thích lại nội dung bài học
                 - Đưa gợi ý nhẹ trước, không tiết lộ lời giải ngay
                 - Kiểm tra code nếu bạn gửi lên
                 - Phân tích độ phức tạp và edge cases
-
+                
                 Bạn muốn mình hỗ trợ theo hướng nào?
                 """.formatted(safeTitle(lesson.getTitle()));
     }
