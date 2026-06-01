@@ -95,7 +95,6 @@ public class JudgeService extends BaseService {
         return toRunResponse(result);
     }
 
-    @Transactional
     public JudgeResponse submit(JudgeRequest request) {
         User user = findCurrentUser();
         ProgrammingLanguage language = parseLanguage(request.language());

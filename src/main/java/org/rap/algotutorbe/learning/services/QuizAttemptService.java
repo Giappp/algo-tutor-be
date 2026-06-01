@@ -17,11 +17,8 @@ import org.rap.algotutorbe.learning.repositories.QuizQuestionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,87 +32,139 @@ public class QuizAttemptService {
     private final LessonProgressUpdater lessonProgressUpdater;
 
     @Transactional
-    public QuizAttemptResponse submitQuiz(String lessonSlug, QuizSubmitAnswer payload, SecurityUser authentication) {
+    public QuizAttemptResponse submitQuiz(
+            String lessonSlug,
+            QuizSubmitAnswer payload,
+            SecurityUser authentication
+    ) {
         QuizLesson quizLesson = getOrThrow(lessonSlug);
+
+        ScoreResult scoreResult = gradeQuiz(quizLesson, payload.answers());
+
         QuizAttempt quizAttempt = new QuizAttempt();
         quizAttempt.setUser(authentication.getUser());
         quizAttempt.setQuiz(quizLesson);
         quizAttempt.setRoadmapSlug(quizLesson.getTopic().getLearningPath().getSlug());
         quizAttempt.setLessonSlug(quizLesson.getSlug());
         quizAttempt.setStartedAt(payload.startedAt());
-        quizAttempt.setTimeSpentSeconds(payload.timeSpentSeconds());
         quizAttempt.setCompletedAt(payload.completedAt());
+        quizAttempt.setTimeSpentSeconds(payload.timeSpentSeconds());
         quizAttempt.setAttemptNumber(quizAttemptRepository.getNextAttemptNumber(quizLesson.getId()));
         quizAttempt.setAnswersSnapshot(payload.answers());
-        AtomicInteger correctCount = new AtomicInteger();
-        List<QuestionResult> questionResults = new ArrayList<>();
-        payload.answers()
-                .forEach(questionAnswer -> {
-                    QuizQuestion quizQuestion = quizQuestionRepository.findById(questionAnswer.questionId())
-                            .orElseThrow(() -> new AppException(ErrorCode.QUIZ_QUESTION_NOT_FOUND));
-                    List<String> correctOptionIds = quizQuestion.getChoices().stream()
-                            .filter(QuizChoice::getIsCorrect)
-                            .map(QuizChoice::getId)
-                            .toList();
-                    boolean isCorrect = judge(quizQuestion, questionAnswer);
-                    if (isCorrect) {
-                        correctCount.getAndIncrement();
-                    }
-                    QuestionResult questionResult = new QuestionResult(
-                            quizQuestion.getId(),
-                            isCorrect, correctOptionIds);
-                    questionResults.add(questionResult);
-                });
-        
-        // Calculate score as a percentage between 0 and 100
-        float point = 0.0f;
-        if (quizLesson.getQuestions() != null && !quizLesson.getQuestions().isEmpty()) {
-            point = (correctCount.floatValue() / quizLesson.getQuestions().size()) * 100.0f;
-        }
-        
-        quizAttempt.setScore(point);
-        quizAttempt.setCorrectCount(correctCount.get());
-        quizAttempt.setQuestionResults(questionResults);
+
+        quizAttempt.setScore(scoreResult.score());
+        quizAttempt.setCorrectCount(scoreResult.correctCount());
+        quizAttempt.setQuestionResults(scoreResult.questionResults());
         quizAttempt.setTotalQuestions(quizLesson.getQuestions().size());
-        
-        // Compare scores correctly (e.g. point >= passingScore, where both are 0-100)
-        quizAttempt.setPassed(point >= quizLesson.getPassingScore());
+
+        int passingScore = quizLesson.getPassingScore() != null
+                ? quizLesson.getPassingScore()
+                : 70;
+
+        quizAttempt.setPassed(scoreResult.score() >= passingScore);
+
         QuizAttempt saved = quizAttemptRepository.save(quizAttempt);
 
-        // Auto-update student lesson progress to COMPLETED if passed
-        if (saved.getPassed()) {
+        if (Boolean.TRUE.equals(saved.getPassed())) {
             try {
                 lessonProgressUpdater.markLessonCompleted(authentication.getUser(), quizLesson);
             } catch (Exception e) {
-                log.error("Failed to auto-update lesson progress for user [{}] on passed quiz [{}]",
-                        authentication.getUser().getId(), quizLesson.getSlug(), e);
+                log.error(
+                        "Failed to auto-update lesson progress for user [{}] on passed quiz [{}]",
+                        authentication.getUser().getId(),
+                        quizLesson.getSlug(),
+                        e
+                );
             }
         }
 
         return quizAttemptMapper.toResponse(saved);
     }
 
+    private ScoreResult gradeQuiz(QuizLesson quizLesson, List<QuestionAnswer> submittedAnswers) {
+        Map<Long, QuestionAnswer> answerByQuestionId = submittedAnswers == null
+                ? Map.of()
+                : submittedAnswers.stream()
+                .collect(Collectors.toMap(
+                        QuestionAnswer::questionId,
+                        Function.identity(),
+                        (first, duplicate) -> first
+                ));
+
+        int correctCount = 0;
+        int earnedPoints = 0;
+        int totalPoints = 0;
+
+        List<QuestionResult> questionResults = new ArrayList<>();
+
+        for (QuizQuestion question : quizLesson.getQuestions()) {
+            int questionPoints = question.getPoints() != null ? question.getPoints() : 1;
+            totalPoints += questionPoints;
+
+            QuestionAnswer answer = answerByQuestionId.get(question.getId());
+
+            boolean isCorrect = answer != null && judge(question, answer);
+
+            if (isCorrect) {
+                correctCount++;
+                earnedPoints += questionPoints;
+            }
+
+            List<String> correctOptionIds = question.getChoices().stream()
+                    .filter(choice -> Boolean.TRUE.equals(choice.getIsCorrect()))
+                    .map(QuizChoice::getId)
+                    .toList();
+
+            questionResults.add(new QuestionResult(
+                    question.getId(),
+                    isCorrect,
+                    correctOptionIds
+            ));
+        }
+
+        float score = totalPoints == 0
+                ? 0.0f
+                : (earnedPoints * 100.0f) / totalPoints;
+
+        return new ScoreResult(score, correctCount, questionResults);
+    }
+
     private boolean judge(QuizQuestion quizQuestion, QuestionAnswer questionAnswer) {
         List<String> selected = questionAnswer.selectedOptionIds();
+
+        log.info("Judging questionId={}", quizQuestion.getId());
+        log.info("Selected option ids={}", selected);
+
+        quizQuestion.getChoices().forEach(choice -> {
+            log.info(
+                    "Choice id={}, text={}, isCorrect={}",
+                    choice.getId(),
+                    choice.getText(),
+                    choice.getIsCorrect()
+            );
+        });
+
         if (selected == null || selected.isEmpty()) {
             return false;
         }
+
+        Set<String> correctAnswer = quizQuestion.getChoices()
+                .stream()
+                .filter(choice -> Boolean.TRUE.equals(choice.getIsCorrect()))
+                .map(QuizChoice::getId)
+                .collect(Collectors.toSet());
+
+        log.info("Correct option ids={}", correctAnswer);
+
+        Set<String> selectedSet = new HashSet<>(selected);
+        log.info("Selected set={}", selectedSet);
+
         if (quizQuestion.getType() == QuestionType.MULTIPLE_CHOICE) {
-            Set<String> correctAnswer = quizQuestion.getChoices()
-                    .stream().filter(QuizChoice::getIsCorrect)
-                    .map(QuizChoice::getId)
-                    .collect(Collectors.toSet());
-            
-            Set<String> selectedSet = new HashSet<>(selected);
-            return correctAnswer.size() == selectedSet.size() && correctAnswer.containsAll(selectedSet);
+            return selectedSet.equals(correctAnswer);
         }
-        if (quizQuestion.getType() == QuestionType.SINGLE_CHOICE && selected.size() == 1) {
-            QuizChoice correctQuizChoice = quizQuestion.getChoices()
-                    .stream()
-                    .filter(QuizChoice::getIsCorrect)
-                    .findFirst()
-                    .orElseThrow(() -> new AppException(ErrorCode.QUIZ_QUESTION_NOT_FOUND));
-            return selected.getFirst().equals(correctQuizChoice.getId());
+
+        if (quizQuestion.getType() == QuestionType.SINGLE_CHOICE) {
+            return selected.size() == 1 && correctAnswer.contains(selected.get(0));
         }
 
         return false;
@@ -131,5 +180,12 @@ public class QuizAttemptService {
                 .stream()
                 .map(quizAttemptMapper::toSummary)
                 .toList();
+    }
+
+    private record ScoreResult(
+            float score,
+            int correctCount,
+            List<QuestionResult> questionResults
+    ) {
     }
 }
