@@ -6,6 +6,8 @@ import java.time.Instant;
 
 public record LessonProgressUpdateResponse(
         Long lessonId,
+        Long roadmapId,
         ProgressStatus status,
         Instant updatedAt
-) {}
+) {
+}

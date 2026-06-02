@@ -24,6 +24,7 @@ public class LessonContentService extends BaseService {
 
     private final LessonRepository lessonRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final LearningAccessService learningAccessService;
 
     @Transactional(readOnly = true)
     public TheoryContentResponse getTheoryContent(String slug) {
@@ -126,7 +127,7 @@ public class LessonContentService extends BaseService {
 
     private void validateLessonAccess(Lesson lesson) {
         SecurityUser currentUser = getCurrentUser()
-                .orElseThrow(() -> new AppException(ErrorCode.NEED_AUTHENTICATION));
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
 
         String role = currentUser.getRoleCode();
         if ("ADMIN".equals(role) || "EDITOR".equals(role)) {
@@ -143,6 +144,9 @@ public class LessonContentService extends BaseService {
         boolean isEnrolled = enrollmentRepository.existsByUserIdAndLearningPathId(userId, learningPathId);
         if (!isEnrolled) {
             throw new AppException(ErrorCode.NOT_ENROLLED);
+        }
+        if (!learningAccessService.canAccessLesson(currentUser.getId(), lesson.getId())) {
+            throw new AppException(ErrorCode.LESSON_LOCKED);
         }
     }
 

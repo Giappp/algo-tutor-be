@@ -8,7 +8,6 @@ public record TopicResponseDTO(
         String name,
         String description,
         Integer displayOrder,
-        Boolean isLocked,
         Long learningPathId,
         int lessonCount,
         Instant createdAt,

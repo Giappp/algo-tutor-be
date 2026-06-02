@@ -38,6 +38,18 @@ public interface SubmissionRepository extends JpaRepository<Submission, UUID> {
             Pageable pageable
     );
 
+    @Query("""
+            SELECT s FROM Submission s
+            JOIN s.codingLesson l
+            WHERE s.user.id = :userId
+              AND l.slug = :lessonSlug
+            ORDER BY s.createdAt DESC
+            """)
+    List<Submission> findMySubmissionsByLessonSlug(
+            @Param("userId") UUID userId,
+            @Param("lessonSlug") String lessonSlug
+    );
+
     Optional<Submission> findTopByUserIdAndCodingLessonIdOrderByCreatedAtDesc(UUID userId, Long codingLessonId);
 
     @Query("SELECT s.createdAt FROM Submission s WHERE s.user.id = :userId AND s.createdAt >= :startDate AND s.createdAt < :endDate")

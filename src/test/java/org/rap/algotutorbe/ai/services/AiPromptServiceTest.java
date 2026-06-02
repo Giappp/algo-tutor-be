@@ -55,15 +55,12 @@ class AiPromptServiceTest {
         );
 
         String context = "Lesson Context Title: Two Sum";
-        String history = "User: Hello\nAssistant: Hi";
 
-        String userPrompt = aiPromptService.buildUserPrompt(request, context, history);
+        String userPrompt = aiPromptService.buildUserPrompt(request, context);
 
-        assertThat(userPrompt).contains("[CONTEXT]");
         assertThat(userPrompt).contains("Lesson Context Title: Two Sum");
-        assertThat(userPrompt).contains("[CONVERSATION_HISTORY]");
-        assertThat(userPrompt).contains("User: Hello");
-        assertThat(userPrompt).contains("[CURRENT_REQUEST]");
+        assertThat(userPrompt).contains("[SUBMISSION_STATE]");
+        assertThat(userPrompt).contains("[USER_QUERY]");
         assertThat(userPrompt).contains("Mode: HINT");
         assertThat(userPrompt).contains("User message: How to solve this?");
         assertThat(userPrompt).contains("User code:");

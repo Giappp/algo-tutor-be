@@ -11,7 +11,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "topics", indexes = {
-    @Index(name = "idx_topics_learning_path_id", columnList = "learning_path_id")
+        @Index(name = "idx_topics_learning_path_id", columnList = "learning_path_id")
 })
 @Getter
 @Setter
@@ -25,9 +25,6 @@ public class Topic extends BaseEntity {
 
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder;
-
-    @Column(name = "is_locked", nullable = false)
-    private Boolean isLocked = true;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "learning_path_id", nullable = false)

@@ -82,12 +82,12 @@ public class GeneralExceptionHandler {
     ) {
         log.error(ex.getMessage(), ex);
 
-        String message = resolveMessage(ErrorCode.NEED_AUTHENTICATION);
+        String message = resolveMessage(ErrorCode.UNAUTHORIZED);
 
-        return ResponseEntity.status(ErrorCode.NEED_AUTHENTICATION.getHttpStatus())
+        return ResponseEntity.status(ErrorCode.UNAUTHORIZED.getHttpStatus())
                 .body(ErrorResponse.buildError(
                         message,
-                        ErrorCode.NEED_AUTHENTICATION.getCode()
+                        ErrorCode.UNAUTHORIZED.getCode()
                 ));
     }
 
@@ -97,12 +97,12 @@ public class GeneralExceptionHandler {
     ) {
         log.error(ex.getMessage(), ex);
 
-        String message = resolveMessage(ErrorCode.NEED_AUTHENTICATION);
+        String message = resolveMessage(ErrorCode.UNAUTHORIZED);
 
-        return ResponseEntity.status(ErrorCode.NEED_AUTHENTICATION.getHttpStatus())
+        return ResponseEntity.status(ErrorCode.UNAUTHORIZED.getHttpStatus())
                 .body(ErrorResponse.buildError(
                         message,
-                        ErrorCode.NEED_AUTHENTICATION.getCode()
+                        ErrorCode.UNAUTHORIZED.getCode()
                 ));
     }
 

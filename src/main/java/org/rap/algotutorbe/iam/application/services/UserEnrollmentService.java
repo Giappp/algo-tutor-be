@@ -5,12 +5,11 @@ import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.iam.domain.model.User;
 import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
-import org.rap.algotutorbe.iam.dto.CurrentLessonResponse;
 import org.rap.algotutorbe.iam.dto.EnrollmentProgressResponse;
-import org.rap.algotutorbe.learning.dto.landing.RoadmapResponseDTO;
 import org.rap.algotutorbe.learning.enums.ProgressStatus;
 import org.rap.algotutorbe.learning.mapper.RoadmapMapper;
 import org.rap.algotutorbe.learning.models.*;
+import org.rap.algotutorbe.learning.repositories.EnrollmentLastActivityProjection;
 import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
 import org.rap.algotutorbe.learning.repositories.LessonProgressRepository;
 import org.springframework.stereotype.Service;
@@ -30,112 +29,105 @@ public class UserEnrollmentService {
     private final LessonProgressRepository lessonProgressRepository;
     private final RoadmapMapper roadmapMapper;
 
-    public Optional<CurrentLessonResponse> getCurrentLesson(UUID userId) {
-        User user = getUserOrThrow(userId);
-        List<Enrollment> enrollments = enrollmentRepository.findActiveEnrollmentsWithLessons(user);
-
-        if (enrollments.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return findInProgressLesson(user, enrollments)
-                .or(() -> findFirstNotStartedLesson(enrollments));
-    }
-
-    public List<EnrollmentProgressResponse> getEnrollments(UUID userId) {
-        User user = getUserOrThrow(userId);
-        List<Enrollment> enrollments = enrollmentRepository.findActiveEnrollmentsWithLessons(user);
-
-        if (enrollments.isEmpty()) {
-            return List.of();
-        }
-
-        return enrollments.stream()
-                .map(this::buildEnrollmentResponse)
-                .sorted(Comparator.comparing(EnrollmentProgressResponse::completionPercentage).reversed())
-                .toList();
-    }
-
+    @Transactional(readOnly = true)
     public List<EnrollmentProgressResponse> getEnrollmentsSorted(UUID userId) {
         User user = getUserOrThrow(userId);
-        List<Enrollment> enrollments = enrollmentRepository.findActiveEnrollmentsWithLessons(user);
+
+        List<Enrollment> enrollments = enrollmentRepository.findUserLearningEnrollments(user);
 
         if (enrollments.isEmpty()) {
             return List.of();
         }
 
-        return sortEnrollmentsByActivity(enrollments).stream()
+        List<UUID> enrollmentIds = enrollments.stream()
+                .map(Enrollment::getId)
+                .toList();
+
+        Map<UUID, Instant> lastActivityMap = lessonProgressRepository
+                .findLastActivityByEnrollmentIds(enrollmentIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        EnrollmentLastActivityProjection::getEnrollmentId,
+                        EnrollmentLastActivityProjection::getLastActivityAt
+                ));
+
+        return enrollments.stream()
+                .sorted((a, b) -> {
+                    Instant activityA = resolveActivityAt(a, lastActivityMap);
+                    Instant activityB = resolveActivityAt(b, lastActivityMap);
+
+                    return activityB.compareTo(activityA);
+                })
                 .map(this::buildEnrollmentResponse)
                 .toList();
     }
 
-    public List<RoadmapResponseDTO> getUserRoadmaps(UUID userId) {
-        User user = getUserOrThrow(userId);
-        if (user.getEnrollments() == null || user.getEnrollments().isEmpty()) {
-            return List.of();
-        }
-        return user.getEnrollments().stream()
-                .map(Enrollment::getLearningPath)
-                .map(roadmapMapper::toResponse)
-                .toList();
+    private EnrollmentProgressResponse buildEnrollmentResponse(Enrollment enrollment) {
+        LearningPath learningPath = enrollment.getLearningPath();
+
+        Lesson nextLesson = findNextLesson(enrollment);
+
+        return new EnrollmentProgressResponse(
+                enrollment.getId(),
+                learningPath.getId(),
+                learningPath.getName(),
+                learningPath.getSlug(),
+                learningPath.getThumbnailUrl(),
+                learningPath.getLevel() != null
+                        ? learningPath.getLevel().name()
+                        : null,
+                enrollment.getStatus() != null
+                        ? enrollment.getStatus().name()
+                        : null,
+                enrollment.getProgressPercentage() != null
+                        ? enrollment.getProgressPercentage()
+                        : 0.0,
+                enrollment.getEnrolledAt(),
+                enrollment.getCompletedAt(),
+                nextLesson != null ? nextLesson.getSlug() : null,
+                nextLesson != null ? nextLesson.getTitle() : null
+        );
     }
 
-    private Optional<CurrentLessonResponse> findInProgressLesson(User user, List<Enrollment> enrollments) {
-        List<LessonProgress> inProgressLessons = lessonProgressRepository
-                .findByUserAndStatusOrderByUpdatedAtDesc(user, ProgressStatus.IN_PROGRESS);
+    private Instant resolveActivityAt(
+            Enrollment enrollment,
+            Map<UUID, Instant> lastActivityMap
+    ) {
+        Instant lastProgressAt = lastActivityMap.get(enrollment.getId());
 
-        if (inProgressLessons.isEmpty()) {
-            return Optional.empty();
+        if (lastProgressAt != null) {
+            return lastProgressAt;
         }
 
-        LessonProgress latest = inProgressLessons.getFirst();
-        Lesson lesson = latest.getLesson();
-        LearningPath roadmap = lesson.getTopic().getLearningPath();
+        if (enrollment.getUpdatedAt() != null) {
+            return enrollment.getUpdatedAt();
+        }
 
-        Enrollment enrollment = findEnrollmentForRoadmap(enrollments, roadmap.getId());
-        int percentage = calculateCompletionPercentage(enrollment);
-
-        return Optional.of(new CurrentLessonResponse(
-                roadmap.getSlug(), lesson.getSlug(), lesson.getTitle(),
-                roadmap.getName(), percentage
-        ));
+        return enrollment.getEnrolledAt();
     }
 
-    private Optional<CurrentLessonResponse> findFirstNotStartedLesson(List<Enrollment> enrollments) {
-        Enrollment latestEnrollment = enrollments.stream()
-                .max(Comparator.comparing(Enrollment::getCreatedAt))
-                .orElse(null);
+    private Lesson findNextLesson(Enrollment enrollment) {
+        LearningPath learningPath = enrollment.getLearningPath();
 
-        if (latestEnrollment == null) {
-            return Optional.empty();
-        }
-
-        List<LessonProgress> progresses = lessonProgressRepository.findByEnrollment(latestEnrollment);
-        Set<Long> progressedLessonIds = progresses.stream()
-                .filter(lp -> lp.getStatus() == ProgressStatus.COMPLETED)
-                .map(lp -> lp.getLesson().getId())
-                .collect(Collectors.toSet());
-
-        Lesson firstNotStarted = findFirstUncompletedLesson(latestEnrollment, progressedLessonIds);
-        if (firstNotStarted == null) {
-            return Optional.empty();
-        }
-
-        LearningPath roadmap = latestEnrollment.getLearningPath();
-        int percentage = calculateCompletionPercentage(latestEnrollment);
-
-        return Optional.of(new CurrentLessonResponse(
-                roadmap.getSlug(), firstNotStarted.getSlug(), firstNotStarted.getTitle(),
-                roadmap.getName(), percentage
-        ));
-    }
-
-    private Lesson findFirstUncompletedLesson(Enrollment enrollment, Set<Long> completedLessonIds) {
-        LearningPath roadmap = enrollment.getLearningPath();
-        if (roadmap == null || roadmap.getTopics() == null) {
+        if (learningPath == null || learningPath.getTopics() == null) {
             return null;
         }
-        List<Topic> sortedTopics = roadmap.getTopics().stream()
+
+        List<LessonProgress> progresses = lessonProgressRepository.findByEnrollment(enrollment);
+
+        Set<Long> completedLessonIds = progresses.stream()
+                .filter(progress -> progress.getStatus() == ProgressStatus.COMPLETED)
+                .map(progress -> progress.getLesson().getId())
+                .collect(Collectors.toSet());
+
+        return findFirstUncompletedPublishedLesson(learningPath, completedLessonIds);
+    }
+
+    private Lesson findFirstUncompletedPublishedLesson(
+            LearningPath learningPath,
+            Set<Long> completedLessonIds
+    ) {
+        List<Topic> sortedTopics = learningPath.getTopics().stream()
                 .sorted(Comparator.comparing(Topic::getDisplayOrder))
                 .toList();
 
@@ -143,7 +135,9 @@ public class UserEnrollmentService {
             if (topic.getLessons() == null) {
                 continue;
             }
+
             List<Lesson> sortedLessons = topic.getLessons().stream()
+                    .filter(lesson -> Boolean.TRUE.equals(lesson.getIsPublished()))
                     .sorted(Comparator.comparing(Lesson::getDisplayOrder))
                     .toList();
 
@@ -153,88 +147,8 @@ public class UserEnrollmentService {
                 }
             }
         }
+
         return null;
-    }
-
-    private EnrollmentProgressResponse buildEnrollmentResponse(Enrollment enrollment) {
-        LearningPath roadmap = enrollment.getLearningPath();
-        int percentage = calculateCompletionPercentage(enrollment);
-
-        List<LessonProgress> progresses = lessonProgressRepository.findByEnrollment(enrollment);
-        Set<Long> completedLessonIds = progresses.stream()
-                .filter(lp -> lp.getStatus() == ProgressStatus.COMPLETED)
-                .map(lp -> lp.getLesson().getId())
-                .collect(Collectors.toSet());
-
-        Lesson nextLesson = findNextLesson(enrollment, progresses, completedLessonIds);
-
-        return new EnrollmentProgressResponse(
-                roadmap.getName(), roadmap.getSlug(), percentage,
-                nextLesson != null ? nextLesson.getSlug() : null,
-                nextLesson != null ? nextLesson.getTitle() : null,
-                roadmap.getThumbnailUrl()
-        );
-    }
-
-    private Lesson findNextLesson(Enrollment enrollment, List<LessonProgress> progresses, Set<Long> completedIds) {
-        Optional<LessonProgress> inProgress = progresses.stream()
-                .filter(lp -> lp.getStatus() == ProgressStatus.IN_PROGRESS)
-                .max(Comparator.comparing(LessonProgress::getUpdatedAt));
-
-        if (inProgress.isPresent()) {
-            return inProgress.get().getLesson();
-        }
-
-        return findFirstUncompletedLesson(enrollment, completedIds);
-    }
-
-    private List<Enrollment> sortEnrollmentsByActivity(List<Enrollment> enrollments) {
-        Map<UUID, Instant> latestActivityMap = new HashMap<>();
-
-        for (Enrollment enrollment : enrollments) {
-            List<LessonProgress> progresses = lessonProgressRepository.findByEnrollment(enrollment);
-            Instant latestUpdate = progresses.stream()
-                    .map(LessonProgress::getUpdatedAt)
-                    .filter(Objects::nonNull)
-                    .max(Instant::compareTo)
-                    .orElse(null);
-
-            latestActivityMap.put(enrollment.getId(), latestUpdate != null ? latestUpdate : enrollment.getCreatedAt());
-        }
-
-        return enrollments.stream()
-                .sorted(Comparator.comparing(
-                        (Enrollment e) -> latestActivityMap.get(e.getId())
-                ).reversed())
-                .toList();
-    }
-
-    private int calculateCompletionPercentage(Enrollment enrollment) {
-        if (enrollment.getLearningPath() == null) {
-            return 0;
-        }
-        int totalLessons = countTotalLessons(enrollment.getLearningPath());
-        if (totalLessons == 0) return 0;
-
-        long completedLessons = lessonProgressRepository.findCompletedByEnrollment(enrollment).size();
-        return (int) Math.floor((double) completedLessons / totalLessons * 100);
-    }
-
-    private int countTotalLessons(LearningPath roadmap) {
-        if (roadmap == null || roadmap.getTopics() == null) {
-            return 0;
-        }
-        return roadmap.getTopics().stream()
-                .filter(topic -> topic.getLessons() != null)
-                .mapToInt(topic -> topic.getLessons().size())
-                .sum();
-    }
-
-    private Enrollment findEnrollmentForRoadmap(List<Enrollment> enrollments, Long roadmapId) {
-        return enrollments.stream()
-                .filter(e -> e.getLearningPath().getId().equals(roadmapId))
-                .findFirst()
-                .orElse(enrollments.getFirst());
     }
 
     private User getUserOrThrow(UUID id) {

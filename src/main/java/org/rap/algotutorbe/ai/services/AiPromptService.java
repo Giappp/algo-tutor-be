@@ -1,13 +1,15 @@
 package org.rap.algotutorbe.ai.services;
 
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.ai.dto.AiChatRequest;
 import org.rap.algotutorbe.ai.enums.AiChatMode;
+import org.rap.algotutorbe.common.errors.ErrorCode;
+import org.rap.algotutorbe.common.exception.AppException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
-import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -18,36 +20,27 @@ import java.util.Map;
 @Service
 public class AiPromptService {
 
+    private final Map<AiChatMode, String> modePrompts = new EnumMap<>(AiChatMode.class);
     @Value("classpath:/prompts/base_system.st")
     private Resource baseSystemPromptResource;
-
     @Value("classpath:/prompts/hint.st")
     private Resource hintPromptResource;
-
     @Value("classpath:/prompts/explain.st")
     private Resource explainPromptResource;
-
     @Value("classpath:/prompts/debug.st")
     private Resource debugPromptResource;
-
     @Value("classpath:/prompts/review.st")
     private Resource reviewPromptResource;
-
     @Value("classpath:/prompts/complexity.st")
     private Resource complexityPromptResource;
-
     @Value("classpath:/prompts/solution.st")
     private Resource solutionPromptResource;
-
     @Value("classpath:/prompts/next_step.st")
     private Resource nextStepPromptResource;
-
     @Value("classpath:/prompts/general_chat.st")
     private Resource generalChatPromptResource;
-
     private String baseSystemPrompt = "";
     private String generalChatPrompt = "";
-    private final Map<AiChatMode, String> modePrompts = new EnumMap<>(AiChatMode.class);
 
     @PostConstruct
     public void init() {
@@ -64,7 +57,7 @@ public class AiPromptService {
             log.info("AI Prompt templates loaded successfully from resources.");
         } catch (IOException e) {
             log.error("Failed to load prompt templates from resources", e);
-            throw new RuntimeException("Initialization of AI Prompts failed", e);
+            throw new AppException(ErrorCode.LOAD_TEMPLATE_FAILED, e);
         }
     }
 
@@ -88,48 +81,37 @@ public class AiPromptService {
      * Builds a structured user prompt assembling context, conversation history,
      * and the current request into labeled sections.
      */
-    public String buildUserPrompt(AiChatRequest request, String context, String history) {
+    public String buildUserPrompt(AiChatRequest request, String context) {
         StringBuilder prompt = new StringBuilder();
 
-        // Context section
+        // 1. Context Section (contains lesson instructions and judge compile results)
         if (context != null && !context.isBlank()) {
-            prompt.append("[CONTEXT]\n");
             prompt.append(context);
-            prompt.append("\n[/CONTEXT]\n\n");
         }
 
-        // Conversation history section
-        if (history != null && !history.isBlank()) {
-            prompt.append("[CONVERSATION_HISTORY]\n");
-            prompt.append(history);
-            prompt.append("\n[/CONVERSATION_HISTORY]\n\n");
+        // 2. Submission State Section
+        boolean hasCode = request.code() != null && !request.code().isBlank();
+        if (hasCode) {
+            prompt.append("[SUBMISSION_STATE]\n");
+            if (request.language() != null && !request.language().isBlank()) {
+                prompt.append("Programming language: ").append(request.language()).append("\n");
+            }
+            prompt.append("User code:\n");
+            prompt.append("```");
+            if (request.language() != null && !request.language().isBlank()) {
+                prompt.append(request.language());
+            }
+            prompt.append("\n").append(request.code()).append("\n```\n");
+            prompt.append("[/SUBMISSION_STATE]\n\n");
         }
 
-        // Current request section
-        prompt.append("[CURRENT_REQUEST]\n");
+        // 3. User Query Section
+        prompt.append("[USER_QUERY]\n");
         prompt.append("Mode: ").append(request.mode()).append("\n");
-
         if (request.message() != null && !request.message().isBlank()) {
             prompt.append("User message: ").append(request.message()).append("\n");
         }
-
-        boolean isProvideCode = request.language() != null && !request.language().isBlank();
-        if (request.code() != null && !request.code().isBlank()) {
-            prompt.append("User code:\n");
-            if (isProvideCode) {
-                prompt.append("```").append(request.language()).append("\n");
-            } else {
-                prompt.append("```\n");
-            }
-            prompt.append(request.code()).append("\n");
-            prompt.append("```\n");
-        }
-
-        if (isProvideCode) {
-            prompt.append("Programming language: ").append(request.language()).append("\n");
-        }
-
-        prompt.append("[/CURRENT_REQUEST]");
+        prompt.append("[/USER_QUERY]");
 
         return prompt.toString();
     }

@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     INVALID_PAYLOAD(1, "errors.invalid-payload", HttpStatus.BAD_REQUEST),
     ACCESS_DENIED(2, "errors.access-denied", HttpStatus.UNAUTHORIZED),
-    NEED_AUTHENTICATION(3, "errors.need-authentication", HttpStatus.UNAUTHORIZED),
+    UNAUTHORIZED(3, "errors.need-authentication", HttpStatus.UNAUTHORIZED),
     CONFLICT_RESOURCE(4, "errors.conflict-resource", HttpStatus.CONFLICT),
     NOT_FOUND(5, "errors.not-found", HttpStatus.NOT_FOUND),
     FORBIDDEN(6, "errors.forbidden", HttpStatus.FORBIDDEN),
@@ -47,6 +47,7 @@ public enum ErrorCode {
     QUIZ_LESSON_REQUIRED(4014, "errors.quiz-lesson-required", HttpStatus.BAD_REQUEST),
     CODING_LESSON_REQUIRED(4015, "errors.coding-lesson-required", HttpStatus.BAD_REQUEST),
     INVALID_QUIZ_QUESTION(4016, "errors.quiz-choice-invalid", HttpStatus.INTERNAL_SERVER_ERROR),
+    LESSON_LOCKED(4017, "errors.lesson-locked", HttpStatus.FORBIDDEN),
 
     // Enroll Errors
     ALREADY_ENROLL(5000, "errors.already-enroll", HttpStatus.CONFLICT),
@@ -70,7 +71,7 @@ public enum ErrorCode {
     AI_SERVICE_UNAVAILABLE(8005, "errors.ai.service-unavailable", HttpStatus.SERVICE_UNAVAILABLE),
     NO_MORE_HINTS(8006, "errors.ai.no-more-hints", HttpStatus.BAD_REQUEST),
     PROVIDER_NOT_CONFIGURED(8007, "errors.ai.provider-not-configured", HttpStatus.SERVICE_UNAVAILABLE),
-
+    LOAD_TEMPLATE_FAILED(8008, "errors.ai.load-template-failed", HttpStatus.INTERNAL_SERVER_ERROR),
 
     FILE_EMPTY(9000, "errors.file.empty", HttpStatus.BAD_REQUEST),
     IMAGE_TYPE_ERROR(9001, "errors.image.type", HttpStatus.BAD_REQUEST),

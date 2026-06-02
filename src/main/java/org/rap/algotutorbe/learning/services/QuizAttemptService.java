@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
-import org.rap.algotutorbe.judge.LessonProgressUpdater;
 import org.rap.algotutorbe.learning.dto.quiz.QuizAttemptResponse;
 import org.rap.algotutorbe.learning.dto.quiz.QuizAttemptSummary;
 import org.rap.algotutorbe.learning.dto.quiz.QuizSubmitAnswer;
@@ -135,14 +134,12 @@ public class QuizAttemptService {
         log.info("Judging questionId={}", quizQuestion.getId());
         log.info("Selected option ids={}", selected);
 
-        quizQuestion.getChoices().forEach(choice -> {
-            log.info(
-                    "Choice id={}, text={}, isCorrect={}",
-                    choice.getId(),
-                    choice.getText(),
-                    choice.getIsCorrect()
-            );
-        });
+        quizQuestion.getChoices().forEach(choice -> log.info(
+                "Choice id={}, text={}, isCorrect={}",
+                choice.getId(),
+                choice.getText(),
+                choice.getIsCorrect()
+        ));
 
         if (selected == null || selected.isEmpty()) {
             return false;

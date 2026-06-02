@@ -91,7 +91,5 @@ class AiContextServiceTest {
         assertThat(context).contains("[ERROR_MESSAGE]\nArrayOutOfBounds");
         assertThat(context).contains("[FAILED_TEST_CASES]");
         assertThat(context).contains("Test Case 1: Input: [3,2,4], Target: 6 | Got: [0,0]");
-        assertThat(context).contains("[USER_CODE language=\"java\"]");
-        assertThat(context).contains("class Solution {}");
     }
 }

@@ -3,13 +3,10 @@ package org.rap.algotutorbe.submission.controller;
 import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.api.ApiResponse;
 import org.rap.algotutorbe.common.api.PageResponse;
-import org.rap.algotutorbe.submission.dto.SubmissionDetailResponse;
 import org.rap.algotutorbe.submission.dto.SubmissionResponse;
 import org.rap.algotutorbe.submission.service.SubmissionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 /**
  * Submission history endpoints.
@@ -21,9 +18,10 @@ import java.util.UUID;
 public class SubmissionController {
     private final SubmissionService submissionService;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<SubmissionDetailResponse>> getSubmission(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.buildSuccess(submissionService.getSubmissionDetail(id)));
+    @GetMapping("/{lessonSlug}")
+    public ResponseEntity<ApiResponse<?>> getSubmissionOrHistory(@PathVariable String lessonSlug) {
+        var res = submissionService.getSubmissionsByLessonSlug(lessonSlug);
+        return ResponseEntity.ok(ApiResponse.buildSuccess(res));
     }
 
     @GetMapping
@@ -32,8 +30,7 @@ public class SubmissionController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String language,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer limit
-    ) {
+            @RequestParam(required = false) Integer limit) {
         return ResponseEntity.ok(submissionService.listMySubmissions(lessonSlug, status, language, page, limit));
     }
 }

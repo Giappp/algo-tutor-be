@@ -13,7 +13,9 @@ public record LessonWithProgressDTO(
         LessonType type,
         Integer displayOrder,
         Difficulty difficulty,
-        ProgressStatus progress,
+        ProgressStatus status,
+        Boolean unlocked,
         Instant createdAt,
         Instant updatedAt
-) {}
+) {
+}

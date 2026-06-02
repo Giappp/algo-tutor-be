@@ -45,6 +45,12 @@ public class RoadmapController {
         return ResponseEntity.ok(roadmapService.updateLessonProgress(slug, lessonSlug, request.status()));
     }
 
+    @PostMapping("/{slug}/lessons/{lessonSlug}/start")
+    public ResponseEntity<ApiResponse<LessonProgressUpdateResponse>> startLesson(@PathVariable String slug,
+                                                                                 @PathVariable String lessonSlug) {
+        return ResponseEntity.ok(roadmapService.startLesson(slug, lessonSlug));
+    }
+
     @GetMapping("/{slug}/enrollment")
     public ResponseEntity<ApiResponse<EnrollmentDetailResponseDTO>> getEnrollment(@PathVariable String slug) {
         return ResponseEntity.ok(roadmapService.getEnrollment(slug));

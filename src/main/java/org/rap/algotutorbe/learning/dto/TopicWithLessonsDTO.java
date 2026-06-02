@@ -8,9 +8,13 @@ public record TopicWithLessonsDTO(
         String name,
         String description,
         Integer displayOrder,
-        Boolean isLocked,
         Integer lessonCount,
+        Boolean unlocked,
+        Boolean completed,
+        Integer completedLessons,
+        Integer totalLessons,
         Instant createdAt,
         Instant updatedAt,
         List<LessonWithProgressDTO> lessons
-) {}
+) {
+}

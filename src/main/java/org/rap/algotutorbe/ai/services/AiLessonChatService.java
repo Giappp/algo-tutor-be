@@ -3,23 +3,20 @@ package org.rap.algotutorbe.ai.services;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.ai.dto.*;
-import org.rap.algotutorbe.ai.dto.AiRoadmapAdvisoryResponse.RoadmapInfo;
 import org.rap.algotutorbe.ai.entity.AIConversation;
 import org.rap.algotutorbe.ai.entity.AiMessage;
 import org.rap.algotutorbe.ai.enums.AiChatMode;
 import org.rap.algotutorbe.ai.enums.AiMessageRole;
+import org.rap.algotutorbe.ai.enums.ConversationType;
 import org.rap.algotutorbe.ai.enums.LLMProvider;
 import org.rap.algotutorbe.ai.repository.AiMessageRepository;
 import org.rap.algotutorbe.ai.repository.ConversationRepository;
 import org.rap.algotutorbe.ai.tools.AlgoTutorAiTools;
-import org.rap.algotutorbe.ai.tools.RoadmapAdvisoryTools;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.learning.enums.LessonType;
 import org.rap.algotutorbe.learning.models.CodingLesson;
-import org.rap.algotutorbe.learning.models.LearningPath;
 import org.rap.algotutorbe.learning.models.Lesson;
-import org.rap.algotutorbe.learning.repositories.LearningPathRepository;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -29,7 +26,6 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -43,7 +39,7 @@ import java.util.stream.Stream;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiChatService {
+public class AiLessonChatService {
 
     private static final int MAX_MESSAGE_LENGTH = 5_000;
     private static final int MAX_CODE_LENGTH = 10_000;
@@ -69,20 +65,19 @@ public class AiChatService {
     private final AlgoTutorAiTools algoTutorAiTools;
     private final SuggestionGenerator suggestionGenerator;
     private final AiMessagePersister aiMessagePersister;
-    private final LearningPathRepository learningPathRepository;
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
 
     private static String truncate(String value) {
-        if (value == null || value.length() <= AiChatService.MAX_TITLE_LENGTH) {
+        if (value == null || value.length() <= MAX_TITLE_LENGTH) {
             return value;
         }
-        return value.substring(0, AiChatService.MAX_TITLE_LENGTH);
+        return value.substring(0, MAX_TITLE_LENGTH);
     }
 
-    public AiChatResponse chat(AiChatRequest request, UUID userId) {
+    public AiChatResponse chat(AiLessonChatRequest request, UUID userId) {
         LessonChatSession session = prepareLessonChatSession(request, userId);
 
         ChatResponseWithTokens llmResult = callLlmWithTokens(
@@ -103,31 +98,7 @@ public class AiChatService {
                 canAskNextHint);
     }
 
-    private String buildHistoryContext(UUID conversationId) {
-        List<AiMessage> dbMessages = aiMessageRepository
-                .findTop10ByConversationIdOrderByCreatedAtDesc(conversationId);
-
-        if (dbMessages.isEmpty()) {
-            return "No previous messages.";
-        }
-
-        Collections.reverse(dbMessages);
-
-        StringBuilder builder = new StringBuilder();
-
-        for (AiMessage message : dbMessages) {
-            String role = message.getRole() == AiMessageRole.USER ? "User" : "Assistant";
-
-            builder.append(role)
-                    .append(": ")
-                    .append(message.getContent())
-                    .append("\n");
-        }
-
-        return builder.toString();
-    }
-
-    public void chatStream(AiChatRequest request, UUID userId, SseEmitter emitter) {
+    public void chatStream(AiLessonChatRequest request, UUID userId, SseEmitter emitter) {
         LessonChatSession session = prepareLessonChatSession(request, userId);
 
         streamLlmResponse(
@@ -153,76 +124,6 @@ public class AiChatService {
                 });
     }
 
-    public AiGeneralChatResponse generalChat(
-            AiChatRequest request,
-            UUID userId,
-            List<RoadmapInfo> availableRoadmaps) {
-        GeneralChatSession session = prepareGeneralChatSession(request, userId, availableRoadmaps);
-
-        ChatResponseWithTokens llmResult = callLlmWithTokens(
-                request.provider(),
-                session.messages(),
-                session.advisoryTools());
-
-        persistConversationTurn(session.conversationId(), userId, request, llmResult);
-
-        return new AiGeneralChatResponse(
-                session.conversationId(),
-                llmResult.responseText(),
-                resolveRecommendedRoadmaps(
-                        session.advisoryTools().getRecommendedSlugs(),
-                        availableRoadmaps,
-                        llmResult.responseText()));
-    }
-
-    public void generalChatStream(
-            AiChatRequest request,
-            UUID userId,
-            SseEmitter emitter,
-            List<RoadmapInfo> availableRoadmaps) {
-        try {
-            GeneralChatSession session = prepareGeneralChatSession(request, userId, availableRoadmaps);
-
-            ChatResponseWithTokens llmResult = callLlmWithTokens(
-                    request.provider(),
-                    session.messages(),
-                    session.advisoryTools());
-
-            ChatResponseWithTokens normalizedResult = new ChatResponseWithTokens(
-                    normalizeAiText(llmResult.responseText()),
-                    llmResult.inputTokens(),
-                    llmResult.outputTokens());
-
-            persistConversationTurn(session.conversationId(), userId, request, normalizedResult);
-
-            sendSseEvent(emitter, "message", new AiChunkResponse(normalizedResult.responseText()));
-
-            AiRoadmapAdvisoryResponse metadata = new AiRoadmapAdvisoryResponse(
-                    session.conversationId(),
-                    resolveRecommendedRoadmaps(
-                            session.advisoryTools().getRecommendedSlugs(),
-                            availableRoadmaps,
-                            normalizedResult.responseText()));
-
-            sendSseEvent(emitter, "metadata", metadata);
-            emitter.complete();
-        } catch (Exception e) {
-            log.error("General LLM stream error", e);
-            emitter.completeWithError(new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE, e));
-        }
-    }
-
-    private String normalizeAiText(String text) {
-        if (text == null) {
-            return null;
-        }
-
-        return text
-                .replace("\r\n", "\n")
-                .replaceAll("\\n{3,}", "\n\n")
-                .trim();
-    }
-
     public AiChatResponse bootstrap(UUID userId, String lessonSlug) {
         Lesson lesson = resolveLessonBySlug(lessonSlug);
         AIConversation conversation = findOrCreateBootstrapConversation(userId, lesson);
@@ -236,15 +137,7 @@ public class AiChatService {
                 true);
     }
 
-    @Transactional(readOnly = true)
-    public List<RoadmapInfo> getRoadmapsForAdvisory() {
-        return learningPathRepository.findByDeletedFalseAndIsPublishedTrue()
-                .stream()
-                .map(this::toRoadmapInfo)
-                .toList();
-    }
-
-    private LessonChatSession prepareLessonChatSession(AiChatRequest request, UUID userId) {
+    private LessonChatSession prepareLessonChatSession(AiLessonChatRequest request, UUID userId) {
         validateRequest(request);
 
         AiChatMode mode = parseMode(request.mode());
@@ -257,7 +150,16 @@ public class AiChatService {
         enforceHintLimit(mode, lessonMetadata.hintPolicy());
 
         String systemPrompt = aiPromptService.buildSystemPrompt(mode);
-        String userPrompt = aiPromptService.buildUserPrompt(request, aiContextService.buildContext(request), "");
+        String userPrompt = aiPromptService.buildUserPrompt(new AiChatRequest(
+                        request.conversationId(), request.lessonId(), request.lessonSlug(),
+                        request.provider(), request.mode(), request.message(), request.code(),
+                        request.language(), request.judgeResult(), request.errorMessage(),
+                        request.failedTestCases()),
+                aiContextService.buildContext(new AiChatRequest(
+                        request.conversationId(), request.lessonId(), request.lessonSlug(),
+                        request.provider(), request.mode(), request.message(), request.code(),
+                        request.language(), request.judgeResult(), request.errorMessage(),
+                        request.failedTestCases())));
 
         return new LessonChatSession(
                 conversation.getId(),
@@ -267,51 +169,7 @@ public class AiChatService {
                 buildNativeMessages(systemPrompt, userPrompt, conversation.getId()));
     }
 
-    private GeneralChatSession prepareGeneralChatSession(
-            AiChatRequest request,
-            UUID userId,
-            List<RoadmapInfo> availableRoadmaps) {
-
-        validateGeneralChatRequest(request);
-
-        LLMProvider provider = providerRouter.resolveProvider(request.provider());
-        AIConversation conversation = resolveAndSaveConversation(request, userId, provider);
-
-        String systemPrompt = aiPromptService.buildGeneralSystemPrompt();
-        String historyContext = buildHistoryContext(conversation.getId());
-
-        String userPrompt = """
-                Conversation history:
-                %s
-                
-                Current user message:
-                %s
-                """.formatted(
-                historyContext,
-                aiPromptService.buildUserPrompt(request, "", ""));
-
-        RoadmapAdvisoryTools advisoryTools = new RoadmapAdvisoryTools(availableRoadmaps);
-
-        return new GeneralChatSession(
-                conversation.getId(),
-                List.of(
-                        new SystemMessage(systemPrompt),
-                        new UserMessage(userPrompt)
-                ),
-                advisoryTools);
-    }
-
-    private void validateGeneralChatRequest(AiChatRequest request) {
-        if (isBlank(request.message())) {
-            throw new AppException(ErrorCode.INVALID_PAYLOAD);
-        }
-
-        if (request.message().length() > MAX_MESSAGE_LENGTH) {
-            throw new AppException(ErrorCode.INVALID_PAYLOAD);
-        }
-    }
-
-    void validateRequest(AiChatRequest request) {
+    void validateRequest(AiLessonChatRequest request) {
         AiChatMode mode = parseMode(request.mode());
 
         if (request.message() != null && request.message().length() > MAX_MESSAGE_LENGTH) {
@@ -343,16 +201,17 @@ public class AiChatService {
     }
 
     private AIConversation resolveAndSaveConversation(
-            AiChatRequest request,
+            AiLessonChatRequest request,
             UUID userId,
             LLMProvider provider) {
         AIConversation conversation = findOrCreateConversation(request, userId, provider);
         return conversationRepository.save(conversation);
     }
 
-    AIConversation findOrCreateConversation(AiChatRequest request, UUID userId, LLMProvider provider) {
+    AIConversation findOrCreateConversation(AiLessonChatRequest request, UUID userId, LLMProvider provider) {
         if (request.conversationId() != null) {
-            return conversationRepository.findByIdAndUserId(request.conversationId(), userId)
+            return conversationRepository
+                    .findByIdAndUserIdAndType(request.conversationId(), userId, ConversationType.LESSON)
                     .orElseThrow(() -> new AppException(ErrorCode.CONVERSATION_NOT_FOUND));
         }
 
@@ -360,12 +219,13 @@ public class AiChatService {
         conversation.setUserId(userId);
         conversation.setLessonId(request.lessonId());
         conversation.setProvider(provider);
+        conversation.setType(ConversationType.LESSON);
         conversation.setTitle(generateTitle(request));
 
         return conversation;
     }
 
-    private String generateTitle(AiChatRequest request) {
+    private String generateTitle(AiLessonChatRequest request) {
         if (!isBlank(request.message())) {
             return truncate(request.message().trim());
         }
@@ -377,7 +237,7 @@ public class AiChatService {
         return lessonRepository.findById(request.lessonId())
                 .map(Lesson::getTitle)
                 .filter(title -> !isBlank(title))
-                .map(AiChatService::truncate)
+                .map(AiLessonChatService::truncate)
                 .orElse(DEFAULT_CONVERSATION_TITLE);
     }
 
@@ -529,8 +389,6 @@ public class AiChatService {
     private String extractNullableResponseText(ChatResponse chatResponse) {
         if (chatResponse == null) {
             return null;
-        } else {
-            chatResponse.getResult();
         }
 
         return chatResponse.getResult().getOutput().getText();
@@ -548,7 +406,7 @@ public class AiChatService {
     private void persistConversationTurn(
             UUID conversationId,
             UUID userId,
-            AiChatRequest request,
+            AiLessonChatRequest request,
             ChatResponseWithTokens llmResult) {
         aiMessagePersister.saveMessage(
                 conversationId,
@@ -569,7 +427,7 @@ public class AiChatService {
                 llmResult.outputTokens());
     }
 
-    private String resolveUserMessageContent(AiChatRequest request) {
+    private String resolveUserMessageContent(AiLessonChatRequest request) {
         return !isBlank(request.message()) ? request.message() : request.code();
     }
 
@@ -621,7 +479,7 @@ public class AiChatService {
 
     private List<AiQuickAction> buildQuickActions(
             LessonChatSession session,
-            AiChatRequest request,
+            AiLessonChatRequest request,
             Boolean canAskNextHint) {
         return suggestionGenerator.generate(
                 session.mode(),
@@ -639,13 +497,15 @@ public class AiChatService {
     private AIConversation findOrCreateBootstrapConversation(UUID userId, Lesson lesson) {
         if (lesson != null && lesson.getId() != null) {
             return conversationRepository
-                    .findTopByUserIdAndLessonIdOrderByUpdatedAtDesc(userId, lesson.getId())
+                    .findTopByUserIdAndLessonIdAndTypeOrderByUpdatedAtDesc(userId, lesson.getId(),
+                            ConversationType.LESSON)
                     .orElseGet(() -> createBootstrapConversation(userId, lesson));
         }
 
         AIConversation conversation = new AIConversation();
         conversation.setUserId(userId);
         conversation.setTitle(DEFAULT_AI_ASSISTANT_TITLE);
+        conversation.setType(ConversationType.LESSON);
 
         return conversationRepository.save(conversation);
     }
@@ -655,6 +515,7 @@ public class AiChatService {
         conversation.setUserId(userId);
         conversation.setLessonId(lesson.getId());
         conversation.setProvider(LLMProvider.OPENAI);
+        conversation.setType(ConversationType.LESSON);
         conversation.setTitle("Chat về " + safeTitle(lesson.getTitle()));
 
         return conversationRepository.save(conversation);
@@ -667,7 +528,7 @@ public class AiChatService {
                     
                     Mình có thể giúp bạn:
                     - Giải thích kiến thức thuật toán
-                    - Gợi ý hướng giải từng bước
+                     - Gợi ý hướng giải từng bước
                     - Kiểm tra và debug code
                     - Phân tích độ phức tạp
                     
@@ -690,79 +551,6 @@ public class AiChatService {
 
     private String safeTitle(String title) {
         return isBlank(title) ? "bài học này" : truncate(title);
-    }
-
-    private RoadmapInfo toRoadmapInfo(LearningPath learningPath) {
-        return new RoadmapInfo(
-                learningPath.getName(),
-                learningPath.getSlug(),
-                learningPath.getLevel() != null ? learningPath.getLevel().name() : null,
-                learningPath.getDescription(),
-                learningPath.getThumbnailUrl(),
-                countTopics(learningPath),
-                countLessons(learningPath),
-                Boolean.TRUE.equals(learningPath.getIsPremium()));
-    }
-
-    private int countTopics(LearningPath learningPath) {
-        return learningPath.getTopics() == null ? 0 : learningPath.getTopics().size();
-    }
-
-    private int countLessons(LearningPath learningPath) {
-        if (learningPath.getTopics() == null) {
-            return 0;
-        }
-
-        return learningPath.getTopics().stream()
-                .filter(topic -> topic.getLessons() != null)
-                .mapToInt(topic -> topic.getLessons().size())
-                .sum();
-    }
-
-    private List<RoadmapInfo> resolveRecommendedRoadmaps(
-            List<String> recommendedSlugs,
-            List<RoadmapInfo> availableRoadmaps,
-            String answer) {
-        Map<String, RoadmapInfo> result = new LinkedHashMap<>();
-
-        recommendedSlugs.stream()
-                .filter(slug -> !isBlank(slug))
-                .forEach(slug -> findRoadmapBySlug(availableRoadmaps, slug)
-                        .ifPresent(roadmap -> result.putIfAbsent(roadmap.slug(), roadmap)));
-
-        if (result.isEmpty()) {
-            addRoadmapsMentionedInAnswer(result, availableRoadmaps, answer);
-        }
-
-        return new ArrayList<>(result.values());
-    }
-
-    private java.util.Optional<RoadmapInfo> findRoadmapBySlug(
-            List<RoadmapInfo> roadmaps,
-            String slug) {
-        return roadmaps.stream()
-                .filter(roadmap -> roadmap.slug().equalsIgnoreCase(slug))
-                .findFirst();
-    }
-
-    private void addRoadmapsMentionedInAnswer(
-            Map<String, RoadmapInfo> result,
-            List<RoadmapInfo> availableRoadmaps,
-            String answer) {
-        if (isBlank(answer)) {
-            return;
-        }
-
-        String normalizedAnswer = answer.toLowerCase();
-
-        availableRoadmaps.stream()
-                .filter(roadmap -> containsRoadmapReference(normalizedAnswer, roadmap))
-                .forEach(roadmap -> result.putIfAbsent(roadmap.slug(), roadmap));
-    }
-
-    private boolean containsRoadmapReference(String normalizedAnswer, RoadmapInfo roadmap) {
-        return normalizedAnswer.contains(roadmap.slug().toLowerCase())
-                || normalizedAnswer.contains(roadmap.name().toLowerCase());
     }
 
     private void sendSseEvent(SseEmitter emitter, String eventName, Object data) {
@@ -818,12 +606,6 @@ public class AiChatService {
             LessonType lessonType,
             HintPolicy hintPolicy,
             List<Message> messages) {
-    }
-
-    private record GeneralChatSession(
-            UUID conversationId,
-            List<Message> messages,
-            RoadmapAdvisoryTools advisoryTools) {
     }
 
     private record LessonChatMetadata(

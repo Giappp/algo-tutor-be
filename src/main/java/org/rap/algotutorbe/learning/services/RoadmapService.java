@@ -16,7 +16,6 @@ import org.rap.algotutorbe.learning.enums.Level;
 import org.rap.algotutorbe.learning.enums.ProgressStatus;
 import org.rap.algotutorbe.learning.mapper.RoadmapMapper;
 import org.rap.algotutorbe.learning.models.*;
-import org.rap.algotutorbe.judge.LessonProgressUpdater;
 import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
 import org.rap.algotutorbe.learning.repositories.LearningPathRepository;
 import org.rap.algotutorbe.learning.repositories.LessonProgressRepository;
@@ -54,29 +53,14 @@ public class RoadmapService extends BaseService {
 
     @Transactional(readOnly = true)
     public ApiResponse<RoadmapDetailResponseDTO> getRoadmapBySlug(String slug) {
-        Optional<LearningPath> published = learningPathRepository.findBySlugWithTopicsAndLessons(slug);
-        if (published.isEmpty()) {
-            Optional<LearningPath> exists = learningPathRepository.findBySlug(slug);
-            if (exists.isPresent()) {
-                throw new AppException(ErrorCode.LEARNING_PATH_NOT_PUBLISHED);
-            }
-            throw new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND);
-        }
-        LearningPath learningPath = published.get();
+        LearningPath learningPath = getLearningPath(slug);
 
-        UUID userId;
-        User user = null;
         boolean enrolled = false;
-
-        Optional<SecurityUser> currentUser = getCurrentUser();
-        if (currentUser.isPresent()) {
-            userId = currentUser.get().getId();
-            user = userRepository.findById(userId).orElse(null);
-            if (user != null) {
-                enrolled = enrollmentRepository
-                        .findByUserAndLearningPathIdAndStatus(user, learningPath.getId(), EnrollmentStatus.IN_PROGRESS)
-                        .isPresent();
-            }
+        User user = null;
+        Optional<SecurityUser> securityUserOpt = getCurrentUser();
+        if (securityUserOpt.isPresent()) {
+            user = securityUserOpt.get().getUser();
+            enrolled = enrollmentRepository.existsByUserIdAndLearningPathId(user.getId(), learningPath.getId());
         }
 
         RoadmapDetailResponseDTO dto = buildDetailDto(learningPath, enrolled, user);
@@ -86,13 +70,19 @@ public class RoadmapService extends BaseService {
 
     @Transactional
     public ApiResponse<EnrollmentResponseDTO> enroll(String slug) {
-        LearningPath learningPath = learningPathRepository.findBySlugWithTopicsAndLessons(slug)
-                .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
+        LearningPath learningPath = getLearningPath(slug);
+
+        if (!Boolean.TRUE.equals(learningPath.getIsPublished())) {
+            throw new AppException(ErrorCode.LEARNING_PATH_NOT_PUBLISHED);
+        }
 
         UUID userId = getCurrentUserIdOrThrow();
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        Optional<Enrollment> existing = enrollmentRepository.findByUserAndLearningPathId(user, learningPath.getId());
+
+        Optional<Enrollment> existing = enrollmentRepository
+                .findByUserAndLearningPathId(user, learningPath.getId());
 
         if (existing.isPresent()) {
             return ApiResponse.buildSuccess(toEnrollmentResponse(existing.get()));
@@ -102,10 +92,11 @@ public class RoadmapService extends BaseService {
         enrollment.setUser(user);
         enrollment.setLearningPath(learningPath);
         enrollment.setStatus(EnrollmentStatus.IN_PROGRESS);
+        enrollment.setProgressPercentage(0.0);
+        enrollment.setCompletedAt(null);
         enrollment.setEnrolledAt(Instant.now());
-        Enrollment saved = enrollmentRepository.save(enrollment);
 
-        initializeLessonProgressions(saved, learningPath, user);
+        Enrollment saved = enrollmentRepository.save(enrollment);
 
         return ApiResponse.buildSuccess(toEnrollmentResponse(saved));
     }
@@ -113,60 +104,94 @@ public class RoadmapService extends BaseService {
     @Transactional
     public ApiResponse<LessonProgressUpdateResponse> updateLessonProgress(
             String slug, String lessonSlug, ProgressStatus status) {
-        LearningPath learningPath = learningPathRepository.findBySlugWithTopicsAndLessons(slug)
-                .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
+        LearningPath learningPath = getLearningPath(slug);
 
-        UUID userId = getCurrentUserIdOrThrow();
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        var securityUser = getCurrentUser().orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
 
         Enrollment enrollment = enrollmentRepository
-                .findByUserAndLearningPathIdAndStatus(user, learningPath.getId(), EnrollmentStatus.IN_PROGRESS)
+                .findByUserAndLearningPathId(securityUser.getUser(), learningPath.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_ENROLLED));
 
         Lesson lesson = findLessonInLearningPath(learningPath, lessonSlug);
 
-        Topic topic = lesson.getTopic();
-        if (Boolean.TRUE.equals(topic.getIsLocked())) {
-            throw new AppException(ErrorCode.TOPIC_LOCKED);
+        if (!canAccessLesson(learningPath, lesson, securityUser.getUser())) {
+            throw new AppException(ErrorCode.LESSON_LOCKED);
         }
 
-        if (status == ProgressStatus.COMPLETED) {
-            lessonProgressUpdater.markLessonCompleted(user, lesson);
-        } else {
-            LessonProgress progress = lessonProgressRepository.findByUserAndLesson(user, lesson)
-                    .orElseGet(() -> {
-                        LessonProgress lp = new LessonProgress();
-                        lp.setUser(user);
-                        lp.setLesson(lesson);
-                        return lp;
-                    });
-            progress.setEnrollment(enrollment);
-            progress.setStatus(status);
-            progress.setIsCompleted(false);
-            progress.setCompletedAt(null);
-            lessonProgressRepository.save(progress);
+        LessonProgress progress = lessonProgressRepository
+                .findByEnrollmentAndLesson(enrollment, lesson)
+                .orElseGet(() -> {
+                    LessonProgress lp = new LessonProgress();
+                    lp.setUser(securityUser.getUser());
+                    lp.setEnrollment(enrollment);
+                    lp.setLesson(lesson);
+                    return lp;
+                });
 
-            lessonProgressUpdater.updateEnrollmentProgress(enrollment);
-        }
+        progress.setStatus(status);
+
+        boolean completed = status == ProgressStatus.COMPLETED;
+        progress.setIsCompleted(completed);
+        progress.setCompletedAt(completed ? Instant.now() : null);
+
+        lessonProgressRepository.save(progress);
+
+        lessonProgressUpdater.updateEnrollmentProgress(enrollment);
 
         return ApiResponse.buildSuccess(new LessonProgressUpdateResponse(
                 lesson.getId(),
+                learningPath.getId(),
                 status,
-                Instant.now()));
+                Instant.now()
+        ));
+    }
+
+    private boolean canAccessLesson(LearningPath learningPath, Lesson lesson, User user) {
+        List<Topic> orderedTopics = learningPath.getTopics() != null
+                ? learningPath.getTopics().stream()
+                .sorted(Comparator.comparing(Topic::getDisplayOrder))
+                .toList()
+                : List.of();
+
+        List<Lesson> allLessons = orderedTopics.stream()
+                .flatMap(topic -> topic.getLessons() != null
+                        ? topic.getLessons().stream()
+                        : java.util.stream.Stream.empty())
+                .toList();
+
+        List<LessonProgress> progresses = lessonProgressRepository.findAllByUserAndLessons(user, allLessons);
+
+        Map<Long, ProgressStatus> progressMap = new HashMap<>();
+        for (LessonProgress progress : progresses) {
+            progressMap.put(progress.getLesson().getId(), progress.getEffectiveStatus());
+        }
+
+        boolean previousTopicCompleted = true;
+
+        for (Topic topic : orderedTopics) {
+            boolean topicUnlocked = previousTopicCompleted;
+
+            if (topic.getId().equals(lesson.getTopic().getId())) {
+                return topicUnlocked;
+            }
+
+            TopicProgressState state = calculateTopicProgressState(topic, progressMap);
+            previousTopicCompleted = state.completed();
+        }
+
+        return false;
     }
 
     @Transactional(readOnly = true)
     public ApiResponse<EnrollmentDetailResponseDTO> getEnrollment(String slug) {
-        LearningPath learningPath = learningPathRepository.findBySlugWithTopicsAndLessons(slug)
-                .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
+        LearningPath learningPath = getLearningPath(slug);
 
         UUID userId = getCurrentUserIdOrThrow();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         Enrollment enrollment = enrollmentRepository
-                .findByUserAndLearningPathIdAndStatus(user, learningPath.getId(), EnrollmentStatus.IN_PROGRESS)
+                .findByUserAndLearningPathId(user, learningPath.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_ENROLLED));
 
         List<LessonProgressionDTO> progressions = enrollment.getLessonProgressions().stream()
@@ -195,27 +220,36 @@ public class RoadmapService extends BaseService {
     private RoadmapDetailResponseDTO buildDetailDto(LearningPath learningPath, boolean enrolled, User user) {
         List<Topic> orderedTopics = learningPath.getTopics() != null
                 ? learningPath.getTopics().stream()
-                        .sorted(Comparator.comparing(Topic::getDisplayOrder))
-                        .toList()
+                .sorted(Comparator.comparing(Topic::getDisplayOrder))
+                .toList()
                 : List.of();
 
         Map<Long, ProgressStatus> progressMap = new HashMap<>();
+
         if (enrolled && user != null) {
             List<Lesson> allLessons = orderedTopics.stream()
-                    .flatMap(t -> t.getLessons() != null ? t.getLessons().stream() : java.util.stream.Stream.empty())
+                    .flatMap(topic -> topic.getLessons() != null
+                            ? topic.getLessons().stream()
+                            : java.util.stream.Stream.empty())
                     .toList();
-            List<LessonProgress> progresses = lessonProgressRepository.findAllByUserAndLessons(user, allLessons);
-            for (LessonProgress lp : progresses) {
-                progressMap.put(lp.getLesson().getId(), toProgressStatus(lp));
+
+            if (!allLessons.isEmpty()) {
+                List<LessonProgress> progresses = lessonProgressRepository.findAllByUserAndLessons(user, allLessons);
+
+                for (LessonProgress progress : progresses) {
+                    progressMap.put(progress.getLesson().getId(), progress.getEffectiveStatus());
+                }
             }
         }
 
-        List<TopicWithLessonsDTO> topicDtos = orderedTopics.stream()
-                .map(topic -> buildTopicDto(topic, progressMap))
-                .toList();
+        List<TopicWithLessonsDTO> topicDtos = buildTopicDtosWithUnlockState(
+                orderedTopics,
+                progressMap,
+                enrolled
+        );
 
         int lessonCount = orderedTopics.stream()
-                .mapToInt(t -> t.getLessons() != null ? t.getLessons().size() : 0)
+                .mapToInt(topic -> topic.getLessons() != null ? topic.getLessons().size() : 0)
                 .sum();
 
         int enrollmentCount = learningPathRepository.countActiveEnrollments(learningPath.getId());
@@ -236,17 +270,64 @@ public class RoadmapService extends BaseService {
                 enrolled,
                 learningPath.getCreatedAt(),
                 learningPath.getUpdatedAt(),
-                topicDtos);
+                topicDtos
+        );
     }
 
-    private TopicWithLessonsDTO buildTopicDto(Topic topic, Map<Long, ProgressStatus> progressMap) {
+    private List<TopicWithLessonsDTO> buildTopicDtosWithUnlockState(
+            List<Topic> orderedTopics,
+            Map<Long, ProgressStatus> progressMap,
+            boolean enrolled
+    ) {
+        List<TopicWithLessonsDTO> result = new ArrayList<>();
+
+        boolean previousTopicCompleted = true;
+
+        for (Topic topic : orderedTopics) {
+            TopicProgressState state = calculateTopicProgressState(topic, progressMap);
+
+            boolean topicUnlocked = enrolled && previousTopicCompleted;
+
+            List<LessonWithProgressDTO> lessonDtos = buildLessonDtosWithUnlockState(
+                    topic,
+                    progressMap,
+                    topicUnlocked
+            );
+
+            result.add(new TopicWithLessonsDTO(
+                    topic.getId(),
+                    topic.getName(),
+                    topic.getDescription(),
+                    topic.getDisplayOrder(),
+                    state.totalLessons(),
+                    topicUnlocked,
+                    state.completed(),
+                    state.completedLessons(),
+                    state.totalLessons(),
+                    topic.getCreatedAt(),
+                    topic.getUpdatedAt(),
+                    lessonDtos
+            ));
+
+            previousTopicCompleted = state.completed();
+        }
+
+        return result;
+    }
+
+    private List<LessonWithProgressDTO> buildLessonDtosWithUnlockState(
+            Topic topic,
+            Map<Long, ProgressStatus> progressMap,
+            boolean topicUnlocked
+    ) {
         List<Lesson> orderedLessons = topic.getLessons() != null
                 ? topic.getLessons().stream()
-                        .sorted(Comparator.comparing(Lesson::getDisplayOrder))
-                        .toList()
+                .filter(lesson -> Boolean.TRUE.equals(lesson.getIsPublished()))
+                .sorted(Comparator.comparing(Lesson::getDisplayOrder))
+                .toList()
                 : List.of();
 
-        List<LessonWithProgressDTO> lessonDtos = orderedLessons.stream()
+        return orderedLessons.stream()
                 .map(lesson -> new LessonWithProgressDTO(
                         lesson.getId(),
                         lesson.getTitle(),
@@ -255,45 +336,11 @@ public class RoadmapService extends BaseService {
                         lesson.getDisplayOrder(),
                         lesson.getDifficulty(),
                         progressMap.getOrDefault(lesson.getId(), null),
+                        topicUnlocked,
                         lesson.getCreatedAt(),
-                        lesson.getUpdatedAt()))
+                        lesson.getUpdatedAt()
+                ))
                 .toList();
-
-        return new TopicWithLessonsDTO(
-                topic.getId(),
-                topic.getName(),
-                topic.getDescription(),
-                topic.getDisplayOrder(),
-                topic.getIsLocked(),
-                orderedLessons.size(),
-                topic.getCreatedAt(),
-                topic.getUpdatedAt(),
-                lessonDtos);
-    }
-
-    private void initializeLessonProgressions(Enrollment enrollment, LearningPath learningPath, User user) {
-        List<Topic> orderedTopics = learningPath.getTopics() != null
-                ? learningPath.getTopics().stream()
-                        .sorted(Comparator.comparing(Topic::getDisplayOrder))
-                        .toList()
-                : List.of();
-
-        for (Topic topic : orderedTopics) {
-            if (Boolean.FALSE.equals(topic.getIsLocked()) && topic.getLessons() != null) {
-                List<Lesson> lessons = topic.getLessons().stream()
-                        .sorted(Comparator.comparing(Lesson::getDisplayOrder))
-                        .toList();
-                for (Lesson lesson : lessons) {
-                    LessonProgress progress = new LessonProgress();
-                    progress.setUser(user);
-                    progress.setLesson(lesson);
-                    progress.setIsCompleted(false);
-                    progress.setCompletedAt(null);
-                    progress.setEnrollment(enrollment);
-                    lessonProgressRepository.save(progress);
-                }
-            }
-        }
     }
 
     private Lesson findLessonInLearningPath(LearningPath learningPath, String lessonSlug) {
@@ -308,8 +355,29 @@ public class RoadmapService extends BaseService {
                 .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
     }
 
-    private ProgressStatus toProgressStatus(LessonProgress progress) {
-        return progress.getEffectiveStatus();
+    private TopicProgressState calculateTopicProgressState(
+            Topic topic,
+            Map<Long, ProgressStatus> progressMap
+    ) {
+        List<Lesson> publishedLessons = topic.getLessons() != null
+                ? topic.getLessons().stream()
+                .filter(lesson -> Boolean.TRUE.equals(lesson.getIsPublished()))
+                .toList()
+                : List.of();
+
+        int totalLessons = publishedLessons.size();
+
+        int completedLessons = (int) publishedLessons.stream()
+                .filter(lesson -> progressMap.get(lesson.getId()) == ProgressStatus.COMPLETED)
+                .count();
+
+        boolean completed = totalLessons > 0 && completedLessons == totalLessons;
+
+        return new TopicProgressState(
+                totalLessons,
+                completedLessons,
+                completed
+        );
     }
 
     private EnrollmentResponseDTO toEnrollmentResponse(Enrollment enrollment) {
@@ -321,5 +389,64 @@ public class RoadmapService extends BaseService {
                 enrollment.getStatus(),
                 enrollment.getCompletedAt(),
                 enrollment.getEnrolledAt());
+    }
+
+    @Transactional
+    public ApiResponse<LessonProgressUpdateResponse> startLesson(String slug, String lessonSlug) {
+        LearningPath learningPath = getLearningPath(slug);
+
+        UUID userId = getCurrentUserIdOrThrow();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        Enrollment enrollment = enrollmentRepository
+                .findByUserAndLearningPathId(user, learningPath.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_ENROLLED));
+
+        Lesson lesson = findLessonInLearningPath(learningPath, lessonSlug);
+
+        if (!canAccessLesson(learningPath, lesson, user)) {
+            throw new AppException(ErrorCode.LESSON_LOCKED);
+        }
+
+        LessonProgress progress = lessonProgressRepository
+                .findByEnrollmentAndLesson(enrollment, lesson)
+                .orElseGet(() -> {
+                    LessonProgress lp = new LessonProgress();
+                    lp.setUser(user);
+                    lp.setEnrollment(enrollment);
+                    lp.setLesson(lesson);
+                    lp.setIsCompleted(false);
+                    lp.setCompletedAt(null);
+                    return lp;
+                });
+
+        if (progress.getStatus() != ProgressStatus.COMPLETED) {
+            progress.setStatus(ProgressStatus.IN_PROGRESS);
+            progress.setIsCompleted(false);
+            progress.setCompletedAt(null);
+        }
+
+        lessonProgressRepository.save(progress);
+
+        return ApiResponse.buildSuccess(new LessonProgressUpdateResponse(
+                lesson.getId(),
+                learningPath.getId(),
+                progress.getStatus(),
+                Instant.now()
+        ));
+    }
+
+    private LearningPath getLearningPath(String slug) {
+        return learningPathRepository.findBySlugWithTopicsAndLessons(slug)
+                .orElseThrow(() -> new AppException(ErrorCode.LEARNING_PATH_NOT_FOUND));
+    }
+
+    private record TopicProgressState(
+            int totalLessons,
+            int completedLessons,
+            boolean completed
+    ) {
     }
 }

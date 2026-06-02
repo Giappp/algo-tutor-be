@@ -86,5 +86,14 @@ public class SubmissionService extends BaseService {
                 .totalPages(submissionsPage.getTotalPages())
                 .pageSize(size)
                 .build();
+     }
+
+    @Transactional(readOnly = true)
+    public List<SubmissionResponse> getSubmissionsByLessonSlug(String lessonSlug) {
+        UUID userId = getCurrentUserIdOrThrow();
+        List<Submission> submissions = submissionRepository.findMySubmissionsByLessonSlug(userId, lessonSlug);
+        return submissions.stream()
+                .map(submissionMapper::toResponse)
+                .toList();
     }
 }

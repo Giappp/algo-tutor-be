@@ -66,7 +66,7 @@ class ProviderRouterTest {
 
         assertThatThrownBy(() -> providerRouter.route("OPENAI"))
                 .isInstanceOf(AppException.class)
-                .hasFieldOrPropertyWithValue("error", ErrorCode.UNSUPPORTED_PROVIDER);
+                .hasFieldOrPropertyWithValue("error", ErrorCode.PROVIDER_NOT_CONFIGURED);
     }
 
     @Test

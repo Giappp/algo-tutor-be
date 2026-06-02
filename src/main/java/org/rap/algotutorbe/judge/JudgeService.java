@@ -15,6 +15,7 @@ import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Testcase;
 import org.rap.algotutorbe.learning.repositories.CodingLessonRepository;
+import org.rap.algotutorbe.learning.services.LessonProgressUpdater;
 import org.rap.algotutorbe.submission.entities.Submission;
 import org.rap.algotutorbe.submission.entities.SubmissionDetail;
 import org.rap.algotutorbe.submission.entities.Verdict;
@@ -82,8 +83,8 @@ public class JudgeService extends BaseService {
 
         List<Testcase> sampleTestcases = lesson.getTestCases() != null
                 ? lesson.getTestCases().stream()
-                        .filter(testcase -> Boolean.TRUE.equals(testcase.getIsSample()))
-                        .toList()
+                .filter(testcase -> Boolean.TRUE.equals(testcase.getIsSample()))
+                .toList()
                 : List.of();
 
         if (sampleTestcases.isEmpty()) {

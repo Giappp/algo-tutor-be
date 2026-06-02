@@ -5,9 +5,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
 import org.rap.algotutorbe.iam.domain.model.User;
-import org.rap.algotutorbe.judge.LessonProgressUpdater;
+import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
 import org.rap.algotutorbe.learning.dto.quiz.QuizAttemptResponse;
 import org.rap.algotutorbe.learning.dto.quiz.QuizSubmitAnswer;
 import org.rap.algotutorbe.learning.mapper.QuizAttemptMapper;
@@ -17,7 +16,9 @@ import org.rap.algotutorbe.learning.repositories.QuizLessonRepository;
 import org.rap.algotutorbe.learning.repositories.QuizQuestionRepository;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,7 +54,7 @@ class QuizAttemptServiceTest {
         quizLesson.setId(1L);
         quizLesson.setSlug("test-quiz");
         quizLesson.setPassingScore(70);
-        
+
         Topic topic = new Topic();
         LearningPath learningPath = new LearningPath();
         learningPath.setSlug("test-roadmap");
@@ -64,7 +65,7 @@ class QuizAttemptServiceTest {
         QuizQuestion question1 = new QuizQuestion();
         question1.setId(10L);
         question1.setType(QuestionType.SINGLE_CHOICE);
-        
+
         QuizChoice choice1 = new QuizChoice();
         choice1.setId("c1");
         choice1.setIsCorrect(true);
@@ -76,7 +77,7 @@ class QuizAttemptServiceTest {
         QuizQuestion question2 = new QuizQuestion();
         question2.setId(11L);
         question2.setType(QuestionType.MULTIPLE_CHOICE);
-        
+
         QuizChoice choice3 = new QuizChoice();
         choice3.setId("c3");
         choice3.setIsCorrect(true);
@@ -116,7 +117,7 @@ class QuizAttemptServiceTest {
         // Verify
         assertThat(result).isNotNull();
         assertThat(result.score()).isEqualTo(100.0f);
-        
+
         // Let's verify that quizAttempt had correct values set before save
         verify(quizAttemptRepository).save(argThat(attempt -> {
             assertThat(attempt.getScore()).isEqualTo(100.0f);
@@ -139,7 +140,7 @@ class QuizAttemptServiceTest {
         quizLesson.setId(1L);
         quizLesson.setSlug("test-quiz");
         quizLesson.setPassingScore(70);
-        
+
         Topic topic = new Topic();
         LearningPath learningPath = new LearningPath();
         learningPath.setSlug("test-roadmap");
@@ -150,7 +151,7 @@ class QuizAttemptServiceTest {
         QuizQuestion question1 = new QuizQuestion();
         question1.setId(10L);
         question1.setType(QuestionType.SINGLE_CHOICE);
-        
+
         QuizChoice choice1 = new QuizChoice();
         choice1.setId("c1");
         choice1.setIsCorrect(null); // Null value

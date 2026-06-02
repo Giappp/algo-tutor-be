@@ -44,24 +44,6 @@ public class AiContextService {
             context.append("[/FAILED_TEST_CASES]\n\n");
         }
 
-        if (request.code() != null && !request.code().isBlank()) {
-            if (request.language() != null) {
-                context.append("""
-                        [USER_CODE language="%s"]
-                        %s
-                        [/USER_CODE]
-                        
-                        """.formatted(request.language(), request.code()));
-            } else {
-                context.append("""
-                        [USER_CODE]
-                        %s
-                        [/USER_CODE]
-                        
-                        """.formatted(request.code()));
-            }
-        }
-
         return context.toString();
     }
 

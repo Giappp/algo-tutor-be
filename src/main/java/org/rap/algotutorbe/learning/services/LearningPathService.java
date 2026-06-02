@@ -8,7 +8,6 @@ import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.common.services.BaseService;
 import org.rap.algotutorbe.common.services.SlugGenerator;
-import org.rap.algotutorbe.learning.dto.EnrollmentResponseDTO;
 import org.rap.algotutorbe.learning.dto.LearningPathRequestDTO;
 import org.rap.algotutorbe.learning.dto.LearningPathResponseDTO;
 import org.rap.algotutorbe.learning.enums.Level;
@@ -87,11 +86,6 @@ public class LearningPathService extends BaseService {
         learningPath.setIsPublished(!Boolean.TRUE.equals(learningPath.getIsPublished()));
         learningPathRepository.save(learningPath);
         return ApiResponse.buildSuccess(learningPathMapper.toResponse(learningPath));
-    }
-
-    @Transactional
-    public ApiResponse<EnrollmentResponseDTO> enroll(String slug) {
-        return roadmapService.enroll(slug);
     }
 
     private LearningPath getOrThrow(Long id) {

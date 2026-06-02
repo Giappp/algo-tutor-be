@@ -27,4 +27,17 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     @Query("SELECT l.type, COUNT(l) FROM Lesson l GROUP BY l.type")
     List<Object[]> getLessonDistribution();
+
+    long countByTopicId(Long topicId);
+
+    @Query("""
+                SELECT COUNT(l)
+                FROM Lesson l
+                JOIN l.topic t
+                JOIN t.learningPath lp
+                WHERE lp.id = :learningPathId
+                  AND l.isPublished = true
+            """)
+    long countPublishedLessonsByLearningPathId(@Param("learningPathId") Long learningPathId);
+
 }

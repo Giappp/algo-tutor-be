@@ -26,7 +26,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Định nghĩa endpoint "/ws" để Next.js thực hiện handshake kết nối ban đầu
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("http://localhost:3000", "https://your-production-domain.com") // Cấu hình CORS cực kỳ quan trọng
-        // .withSockJS() // Bật dòng này nếu bạn muốn hỗ trợ fallback cho các trình duyệt quá cũ không hỗ trợ chuẩn WebSocket
+                .withSockJS() // Bật dòng này nếu bạn muốn hỗ trợ fallback cho các trình duyệt quá cũ không hỗ trợ chuẩn WebSocket
         ;
     }
 }
