@@ -8,23 +8,29 @@ import org.rap.algotutorbe.learning.models.TheoryLesson;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class AiContextService {
+    private static final int MAX_JUDGE_RESULT_LENGTH = 2_000;
+    private static final int MAX_ERROR_MESSAGE_LENGTH = 2_000;
+    private static final int MAX_FAILED_TEST_CASES = 5;
+    private static final int MAX_FAILED_TEST_CASE_LENGTH = 1_000;
+
     private final LessonRepository lessonRepository;
 
     public String buildContext(AiChatRequest request) {
         StringBuilder context = new StringBuilder();
-        if (request.lessonSlug() != null) {
-            lessonRepository.findBySlug(request.lessonSlug()).ifPresent(lesson -> buildLesson(lesson, context));
-        }
+        resolveLesson(request).ifPresent(lesson -> buildLesson(lesson, context));
+
         if (request.judgeResult() != null) {
             context.append("""
                     [JUDGE_RESULT]
                     %s
                     [/JUDGE_RESULT]
                     
-                    """.formatted(request.judgeResult()));
+                    """.formatted(truncate(request.judgeResult(), MAX_JUDGE_RESULT_LENGTH)));
         }
 
         if (request.errorMessage() != null) {
@@ -33,18 +39,42 @@ public class AiContextService {
                     %s
                     [/ERROR_MESSAGE]
                     
-                    """.formatted(request.errorMessage()));
+                    """.formatted(truncate(request.errorMessage(), MAX_ERROR_MESSAGE_LENGTH)));
         }
 
         if (request.failedTestCases() != null && !request.failedTestCases().isEmpty()) {
             context.append("[FAILED_TEST_CASES]\n");
-            for (int i = 0; i < request.failedTestCases().size(); i++) {
-                context.append("Test Case %d: %s%n".formatted(i + 1, request.failedTestCases().get(i)));
+            int limit = Math.min(MAX_FAILED_TEST_CASES, request.failedTestCases().size());
+            for (int i = 0; i < limit; i++) {
+                context.append("Test Case %d: %s%n".formatted(
+                        i + 1,
+                        truncate(request.failedTestCases().get(i), MAX_FAILED_TEST_CASE_LENGTH)));
+            }
+            if (request.failedTestCases().size() > limit) {
+                context.append("... %d more failed test case(s) omitted.\n".formatted(
+                        request.failedTestCases().size() - limit));
             }
             context.append("[/FAILED_TEST_CASES]\n\n");
         }
 
         return context.toString();
+    }
+
+    private Optional<Lesson> resolveLesson(AiChatRequest request) {
+        if (request.lessonId() != null) {
+            return lessonRepository.findById(request.lessonId());
+        }
+        if (request.lessonSlug() != null && !request.lessonSlug().isBlank()) {
+            return lessonRepository.findBySlug(request.lessonSlug());
+        }
+        return Optional.empty();
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength) + "\n...[truncated]";
     }
 
     private void buildLesson(Lesson lesson, StringBuilder context) {

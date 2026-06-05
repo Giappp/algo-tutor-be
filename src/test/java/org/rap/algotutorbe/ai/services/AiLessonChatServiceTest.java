@@ -18,6 +18,7 @@ import org.rap.algotutorbe.ai.tools.AlgoTutorAiTools;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.learning.models.CodingLesson;
+import org.rap.algotutorbe.learning.repositories.LessonProgressRepository;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
 
 import java.util.Collections;
@@ -51,6 +52,12 @@ class AiLessonChatServiceTest {
     private SuggestionGenerator suggestionGenerator;
     @Mock
     private AiMessagePersister aiMessagePersister;
+    @Mock
+    private AiLlmExecutor aiLlmExecutor;
+    @Mock
+    private AiResponseGuardrailService aiResponseGuardrailService;
+    @Mock
+    private LessonProgressRepository lessonProgressRepository;
 
     @InjectMocks
     @Spy
@@ -161,12 +168,14 @@ class AiLessonChatServiceTest {
                 .thenReturn(0L);
 
         when(aiContextService.buildContext(any())).thenReturn("Context");
-        when(aiPromptService.buildSystemPrompt(AiChatMode.HINT)).thenReturn("System Prompt");
+        when(aiPromptService.buildSystemPrompt(AiChatMode.HINT, false)).thenReturn("System Prompt");
         when(aiPromptService.buildUserPrompt(any(), any())).thenReturn("User Prompt");
 
         // Mock callLlmWithTokens to return AI answer
-        doReturn(new AiLessonChatService.ChatResponseWithTokens("Here is your hint.", null, null))
+        doReturn(new AiLlmExecutor.ChatResponseWithTokens("Here is your hint.", null, null))
                 .when(aiLessonChatService).callLlmWithTokens(any(), any(), any());
+        when(aiResponseGuardrailService.enforceLessonDisclosurePolicy("Here is your hint.", AiChatMode.HINT, false))
+                .thenReturn("Here is your hint.");
 
         when(suggestionGenerator.generate(eq(AiChatMode.HINT), any(), anyBoolean(), anyBoolean(), eq(true)))
                 .thenReturn(List.of());

@@ -70,13 +70,6 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.buildSuccess(enrollments));
     }
 
-    @GetMapping("/me/my-roadmaps")
-    public ResponseEntity<ApiResponse<List<EnrollmentProgressResponse>>> getUserRoadmaps(
-            @AuthenticationPrincipal SecurityUser principal) {
-        var response = userEnrollmentService.getEnrollmentsSorted(principal.getId());
-        return ResponseEntity.ok(ApiResponse.buildSuccess(response));
-    }
-
     @GetMapping("/me/activity-heatmap")
     public ResponseEntity<ApiResponse<Object>> getActivityHeatmap(
             @RequestParam(name = "year") int year,

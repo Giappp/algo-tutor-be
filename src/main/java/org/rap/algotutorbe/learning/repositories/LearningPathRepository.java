@@ -44,6 +44,6 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, Long
     @Query("SELECT lp FROM LearningPath lp WHERE lp.isPublished = true")
     List<LearningPath> findByDeletedFalseAndIsPublishedTrue();
 
-    @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.learningPath.id = :learningPathId AND e.status = 'ACTIVE'")
+    @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.learningPath.id = :learningPathId")
     int countActiveEnrollments(@Param("learningPathId") Long learningPathId);
 }

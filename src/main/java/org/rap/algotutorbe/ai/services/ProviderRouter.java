@@ -8,6 +8,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Component
 public class ProviderRouter {
 
@@ -65,5 +68,19 @@ public class ProviderRouter {
         } catch (IllegalArgumentException e) {
             throw new AppException(ErrorCode.UNSUPPORTED_PROVIDER);
         }
+    }
+
+    public List<LLMProvider> resolveFallbackChain(String providerName) {
+        LLMProvider preferred = resolveProvider(providerName);
+        List<LLMProvider> chain = new ArrayList<>();
+        chain.add(preferred);
+
+        for (LLMProvider provider : LLMProvider.values()) {
+            if (provider != preferred) {
+                chain.add(provider);
+            }
+        }
+
+        return chain;
     }
 }

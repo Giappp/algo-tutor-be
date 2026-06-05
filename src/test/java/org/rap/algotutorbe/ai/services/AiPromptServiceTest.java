@@ -19,6 +19,7 @@ class AiPromptServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(aiPromptService, "baseSystemPromptResource", new ByteArrayResource("You are AlgoTutor AI".getBytes()));
         ReflectionTestUtils.setField(aiPromptService, "generalChatPromptResource", new ByteArrayResource("General".getBytes()));
+        ReflectionTestUtils.setField(aiPromptService, "generalAssistantPromptResource", new ByteArrayResource("General assistant".getBytes()));
         ReflectionTestUtils.setField(aiPromptService, "hintPromptResource", new ByteArrayResource("MODE: HINT".getBytes()));
         ReflectionTestUtils.setField(aiPromptService, "explainPromptResource", new ByteArrayResource("MODE: EXPLAIN".getBytes()));
         ReflectionTestUtils.setField(aiPromptService, "debugPromptResource", new ByteArrayResource("MODE: DEBUG".getBytes()));
@@ -27,6 +28,15 @@ class AiPromptServiceTest {
         ReflectionTestUtils.setField(aiPromptService, "solutionPromptResource", new ByteArrayResource("MODE: SOLUTION".getBytes()));
         ReflectionTestUtils.setField(aiPromptService, "nextStepPromptResource", new ByteArrayResource("MODE: NEXT_STEP".getBytes()));
         aiPromptService.init();
+    }
+
+    @Test
+    void buildGeneralAssistantSystemPrompt_shouldLoadTemplateAndIntentInstructions() {
+        String prompt = aiPromptService.buildGeneralAssistantSystemPrompt(
+                org.rap.algotutorbe.ai.enums.AiGeneralChatIntent.CODING_HELP);
+
+        assertThat(prompt).contains("General assistant");
+        assertThat(prompt).contains("CODING_HELP");
     }
 
     @Test

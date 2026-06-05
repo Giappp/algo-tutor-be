@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.rap.algotutorbe.ai.dto.AiGeneralChatRequest;
 import org.rap.algotutorbe.ai.dto.AiGeneralChatResponse;
 import org.rap.algotutorbe.ai.entity.AIConversation;
+import org.rap.algotutorbe.ai.enums.AiGeneralChatIntent;
 import org.rap.algotutorbe.ai.enums.ConversationType;
 import org.rap.algotutorbe.ai.repository.AiMessageRepository;
 import org.rap.algotutorbe.ai.repository.ConversationRepository;
@@ -40,6 +41,10 @@ class AiGeneralChatServiceTest {
         private AiMessagePersister aiMessagePersister;
         @Mock
         private LearningPathRepository learningPathRepository;
+        @Mock
+        private AiLlmExecutor aiLlmExecutor;
+        @Mock
+        private AiGeneralChatIntentClassifier intentClassifier;
 
         @InjectMocks
         @Spy
@@ -87,11 +92,13 @@ class AiGeneralChatServiceTest {
                 when(conversationRepository.findByIdAndUserIdAndType(conversationId, userId, ConversationType.GENERAL))
                                 .thenReturn(Optional.of(conversation));
                 when(conversationRepository.save(any(AIConversation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                when(intentClassifier.classify(request.message(), conversation))
+                                .thenReturn(AiGeneralChatIntent.ROADMAP_ADVISORY);
 
                 when(aiPromptService.buildGeneralSystemPrompt()).thenReturn("System Prompt");
 
                 // Mock callLlmWithTokens to return AI answer
-                doReturn(new AiGeneralChatService.ChatResponseWithTokens("Here is your roadmap.", null, null))
+                doReturn(new AiLlmExecutor.ChatResponseWithTokens("Here is your roadmap.", null, null))
                                 .when(aiGeneralChatService).callLlmWithTokens(any(), any(), any());
 
                 AiGeneralChatResponse response = aiGeneralChatService.generalChat(request, userId, Collections.emptyList());

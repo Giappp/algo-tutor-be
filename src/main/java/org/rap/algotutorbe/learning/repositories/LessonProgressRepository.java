@@ -1,6 +1,7 @@
 package org.rap.algotutorbe.learning.repositories;
 
 import org.rap.algotutorbe.iam.domain.model.User;
+import org.rap.algotutorbe.learning.enums.ProgressStatus;
 import org.rap.algotutorbe.learning.models.Enrollment;
 import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.learning.models.LessonProgress;
@@ -48,6 +49,19 @@ public interface LessonProgressRepository extends JpaRepository<LessonProgress, 
                   AND lp.status = org.rap.algotutorbe.learning.enums.ProgressStatus.COMPLETED
             """)
     long countCompletedByEnrollmentId(@Param("enrollmentId") UUID enrollmentId);
+
+    @Query("""
+                SELECT CASE WHEN COUNT(lp) > 0 THEN true ELSE false END
+                FROM LessonProgress lp
+                WHERE lp.user.id = :userId
+                  AND lp.lesson.id = :lessonId
+                  AND lp.status = :status
+            """)
+    boolean existsByUserIdAndLessonIdAndStatus(
+            @Param("userId") UUID userId,
+            @Param("lessonId") Long lessonId,
+            @Param("status") ProgressStatus status
+    );
 
     @Query("""
                 SELECT lp.enrollment.id AS enrollmentId,

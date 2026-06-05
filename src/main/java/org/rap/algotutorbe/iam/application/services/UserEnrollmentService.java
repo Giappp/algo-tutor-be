@@ -80,7 +80,7 @@ public class UserEnrollmentService {
                         ? enrollment.getStatus().name()
                         : null,
                 enrollment.getProgressPercentage() != null
-                        ? enrollment.getProgressPercentage()
+                        ? enrollment.getProgressPercentage().intValue()
                         : 0.0,
                 enrollment.getEnrolledAt(),
                 enrollment.getCompletedAt(),

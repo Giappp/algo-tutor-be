@@ -3,6 +3,7 @@ package org.rap.algotutorbe.ai.services;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.ai.dto.AiChatRequest;
+import org.rap.algotutorbe.ai.enums.AiGeneralChatIntent;
 import org.rap.algotutorbe.ai.enums.AiChatMode;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
@@ -39,14 +40,19 @@ public class AiPromptService {
     private Resource nextStepPromptResource;
     @Value("classpath:/prompts/general_chat.st")
     private Resource generalChatPromptResource;
+    @Value("classpath:/prompts/general_assistant.st")
+    private Resource generalAssistantPromptResource;
     private String baseSystemPrompt = "";
     private String generalChatPrompt = "";
+    private String generalAssistantPrompt = "";
 
     @PostConstruct
     public void init() {
         try {
             baseSystemPrompt = StreamUtils.copyToString(baseSystemPromptResource.getInputStream(), StandardCharsets.UTF_8);
             generalChatPrompt = StreamUtils.copyToString(generalChatPromptResource.getInputStream(), StandardCharsets.UTF_8);
+            generalAssistantPrompt = StreamUtils.copyToString(generalAssistantPromptResource.getInputStream(), StandardCharsets.UTF_8);
+            modePrompts.put(AiChatMode.GENERAL, "MODE: GENERAL");
             modePrompts.put(AiChatMode.HINT, StreamUtils.copyToString(hintPromptResource.getInputStream(), StandardCharsets.UTF_8));
             modePrompts.put(AiChatMode.EXPLAIN, StreamUtils.copyToString(explainPromptResource.getInputStream(), StandardCharsets.UTF_8));
             modePrompts.put(AiChatMode.DEBUG, StreamUtils.copyToString(debugPromptResource.getInputStream(), StandardCharsets.UTF_8));
@@ -66,8 +72,12 @@ public class AiPromptService {
      * with mode-specific instructions.
      */
     public String buildSystemPrompt(AiChatMode mode) {
+        return buildSystemPrompt(mode, true);
+    }
+
+    public String buildSystemPrompt(AiChatMode mode, boolean lessonCompleted) {
         String modeInstruction = modePrompts.getOrDefault(mode, "");
-        return baseSystemPrompt + "\n" + modeInstruction;
+        return baseSystemPrompt + "\n" + modeInstruction + "\n" + buildLessonDisclosurePolicy(mode, lessonCompleted);
     }
 
     /**
@@ -75,6 +85,27 @@ public class AiPromptService {
      */
     public String buildGeneralSystemPrompt() {
         return generalChatPrompt;
+    }
+
+    public String buildGeneralAssistantSystemPrompt(AiGeneralChatIntent intent) {
+        String intentInstruction = switch (intent) {
+            case CODING_HELP -> """
+                    
+                    Ngữ cảnh intent: CODING_HELP
+                    - Trả lời như một trợ giảng lập trình.
+                    - Hỏi thêm code, input, output, hoặc lỗi cụ thể nếu thiếu dữ liệu.
+                    - Ưu tiên giải thích nguyên nhân và hướng sửa, không bịa test case.
+                    """;
+            case PLATFORM_HELP -> """
+                    
+                    Ngữ cảnh intent: PLATFORM_HELP
+                    - Giải thích ngắn gọn theo vai trò trợ lý nền tảng AlgoTutor.
+                    - Nếu không chắc một tính năng có tồn tại, nói rõ và hướng học viên kiểm tra trên giao diện.
+                    """;
+            case GENERAL, ROADMAP_ADVISORY -> "";
+        };
+
+        return generalAssistantPrompt + intentInstruction;
     }
 
     /**
@@ -114,5 +145,28 @@ public class AiPromptService {
         prompt.append("[/USER_QUERY]");
 
         return prompt.toString();
+    }
+
+    private String buildLessonDisclosurePolicy(AiChatMode mode, boolean lessonCompleted) {
+        if (mode == AiChatMode.SOLUTION) {
+            return """
+                    
+                    [DISCLOSURE_POLICY]
+                    Chế độ SOLUTION: được phép cung cấp lời giải hoàn chỉnh. Hãy giải thích ý tưởng trước, sau đó mới đưa code sạch.
+                    [/DISCLOSURE_POLICY]
+                    """;
+        }
+
+        String completionState = lessonCompleted ? "COMPLETED" : "NOT_COMPLETED";
+        return """
+                
+                [DISCLOSURE_POLICY]
+                Lesson progress: %s
+                - Chỉ chế độ SOLUTION mới được cung cấp lời giải hoặc toàn bộ code hoàn chỉnh.
+                - Nếu lesson chưa hoàn thành, hãy ưu tiên hướng dẫn từng bước, câu hỏi gợi mở, dry-run nhỏ, hoặc mã giả ngắn.
+                - Không viết lại toàn bộ hàm/class/chương trình cho học viên trong mode hiện tại.
+                - Code block chỉ dùng cho ví dụ cực ngắn hoặc pseudocode; tránh đưa cấu trúc lời giải đầy đủ.
+                [/DISCLOSURE_POLICY]
+                """.formatted(completionState);
     }
 }

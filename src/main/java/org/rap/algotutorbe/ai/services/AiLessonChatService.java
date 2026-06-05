@@ -15,25 +15,23 @@ import org.rap.algotutorbe.ai.tools.AlgoTutorAiTools;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.learning.enums.LessonType;
+import org.rap.algotutorbe.learning.enums.ProgressStatus;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
-import org.springframework.ai.chat.client.ChatClient;
+import org.rap.algotutorbe.learning.repositories.LessonProgressRepository;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.metadata.Usage;
-import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
 
-import java.net.SocketTimeoutException;
 import java.util.*;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -65,6 +63,15 @@ public class AiLessonChatService {
     private final AlgoTutorAiTools algoTutorAiTools;
     private final SuggestionGenerator suggestionGenerator;
     private final AiMessagePersister aiMessagePersister;
+    private final AiLlmExecutor aiLlmExecutor;
+    private final AiResponseGuardrailService aiResponseGuardrailService;
+    private final LessonProgressRepository lessonProgressRepository;
+
+    @Value("${ai.history.max-messages:16}")
+    private int maxHistoryMessages;
+
+    @Value("${ai.history.max-characters:12000}")
+    private int maxHistoryCharacters;
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
@@ -80,10 +87,11 @@ public class AiLessonChatService {
     public AiChatResponse chat(AiLessonChatRequest request, UUID userId) {
         LessonChatSession session = prepareLessonChatSession(request, userId);
 
-        ChatResponseWithTokens llmResult = callLlmWithTokens(
+        AiLlmExecutor.ChatResponseWithTokens llmResult = callLlmWithTokens(
                 request.provider(),
                 session.messages(),
                 algoTutorAiTools);
+        llmResult = applyResponseGuardrails(llmResult, session);
 
         persistConversationTurn(session.conversationId(), userId, request, llmResult);
 
@@ -100,6 +108,7 @@ public class AiLessonChatService {
 
     public void chatStream(AiLessonChatRequest request, UUID userId, SseEmitter emitter) {
         LessonChatSession session = prepareLessonChatSession(request, userId);
+        boolean bufferForGuardrails = aiResponseGuardrailService.shouldBufferStreamingResponse(session.mode());
 
         streamLlmResponse(
                 request.provider(),
@@ -107,8 +116,13 @@ public class AiLessonChatService {
                 algoTutorAiTools,
                 emitter,
                 "LLM stream error",
+                bufferForGuardrails,
                 streamResult -> {
-                    persistConversationTurn(session.conversationId(), userId, request, streamResult);
+                    AiLlmExecutor.ChatResponseWithTokens guardedResult = applyResponseGuardrails(streamResult, session);
+                    if (bufferForGuardrails) {
+                        sendSseEvent(emitter, "message", new AiChunkResponse(guardedResult.responseText()));
+                    }
+                    persistConversationTurn(session.conversationId(), userId, request, guardedResult);
 
                     Boolean canAskNextHint = computeCanAskNextHintAfter(session.mode(), session.hintPolicy());
 
@@ -145,27 +159,27 @@ public class AiLessonChatService {
         AIConversation conversation = resolveAndSaveConversation(request, userId, provider);
         LessonChatMetadata lessonMetadata = resolveLessonChatMetadata(
                 conversation.getId(),
-                conversation.getLessonId());
+                conversation.getLessonId(),
+                userId);
 
         enforceHintLimit(mode, lessonMetadata.hintPolicy());
 
-        String systemPrompt = aiPromptService.buildSystemPrompt(mode);
-        String userPrompt = aiPromptService.buildUserPrompt(new AiChatRequest(
-                        request.conversationId(), request.lessonId(), request.lessonSlug(),
-                        request.provider(), request.mode(), request.message(), request.code(),
-                        request.language(), request.judgeResult(), request.errorMessage(),
-                        request.failedTestCases()),
-                aiContextService.buildContext(new AiChatRequest(
-                        request.conversationId(), request.lessonId(), request.lessonSlug(),
-                        request.provider(), request.mode(), request.message(), request.code(),
-                        request.language(), request.judgeResult(), request.errorMessage(),
-                        request.failedTestCases())));
+        AiChatRequest chatRequest = new AiChatRequest(
+                request.conversationId(), request.lessonId(), request.lessonSlug(),
+                request.provider(), request.mode(), request.message(), request.code(),
+                request.language(), request.judgeResult(), request.errorMessage(),
+                request.failedTestCases());
+
+        String context = aiContextService.buildContext(chatRequest);
+        String systemPrompt = aiPromptService.buildSystemPrompt(mode, lessonMetadata.lessonCompleted());
+        String userPrompt = aiPromptService.buildUserPrompt(chatRequest, context);
 
         return new LessonChatSession(
                 conversation.getId(),
                 mode,
                 lessonMetadata.lessonType(),
                 lessonMetadata.hintPolicy(),
+                lessonMetadata.lessonCompleted(),
                 buildNativeMessages(systemPrompt, userPrompt, conversation.getId()));
     }
 
@@ -251,17 +265,40 @@ public class AiLessonChatService {
 
     private List<Message> getHistoryAsNativeMessages(UUID conversationId) {
         List<AiMessage> dbMessages = aiMessageRepository
-                .findTop10ByConversationIdOrderByCreatedAtDesc(conversationId);
+                .findByConversationIdOrderByCreatedAtDesc(
+                        conversationId,
+                        PageRequest.of(0, Math.max(1, maxHistoryMessages)));
 
         if (dbMessages.isEmpty()) {
             return Collections.emptyList();
         }
 
-        Collections.reverse(dbMessages);
+        List<AiMessage> budgetedMessages = applyHistoryCharacterBudget(dbMessages);
+        Collections.reverse(budgetedMessages);
 
-        return dbMessages.stream()
+        return budgetedMessages.stream()
                 .flatMap(this::toNativeMessage)
                 .toList();
+    }
+
+    private List<AiMessage> applyHistoryCharacterBudget(List<AiMessage> newestFirstMessages) {
+        int remainingCharacters = Math.max(0, maxHistoryCharacters);
+        List<AiMessage> selected = new ArrayList<>();
+
+        for (AiMessage message : newestFirstMessages) {
+            int messageSize = message.getContent() == null ? 0 : message.getContent().length();
+            if (!selected.isEmpty() && messageSize > remainingCharacters) {
+                break;
+            }
+
+            selected.add(message);
+            remainingCharacters -= messageSize;
+            if (remainingCharacters <= 0) {
+                break;
+            }
+        }
+
+        return selected;
     }
 
     private Stream<Message> toNativeMessage(AiMessage dbMessage) {
@@ -276,31 +313,11 @@ public class AiLessonChatService {
         return Stream.empty();
     }
 
-    ChatResponseWithTokens callLlmWithTokens(
+    AiLlmExecutor.ChatResponseWithTokens callLlmWithTokens(
             String providerName,
             List<Message> messages,
             Object tools) {
-        try {
-            ChatResponse chatResponse = providerRouter.route(providerName)
-                    .prompt()
-                    .messages(messages)
-                    .tools(tools)
-                    .call()
-                    .chatResponse();
-
-            String responseText = extractRequiredResponseText(chatResponse);
-            TokenUsage tokenUsage = extractTokenUsage(chatResponse);
-
-            return new ChatResponseWithTokens(
-                    responseText,
-                    tokenUsage.inputTokens(),
-                    tokenUsage.outputTokens());
-        } catch (AppException e) {
-            throw e;
-        } catch (Exception e) {
-            logLlmException(providerName, e);
-            throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE, e);
-        }
+        return aiLlmExecutor.callWithFallback(providerName, messages, tools);
     }
 
     private void streamLlmResponse(
@@ -309,66 +326,46 @@ public class AiLessonChatService {
             Object tools,
             SseEmitter emitter,
             String errorLogMessage,
-            StreamCompletionHandler completionHandler) {
-        try {
-            ChatClient chatClient = providerRouter.route(providerName);
-            Flux<ChatResponse> stream = chatClient.prompt()
-                    .messages(messages)
-                    .tools(tools)
-                    .stream()
-                    .chatResponse();
+            boolean bufferForGuardrails,
+            Consumer<AiLlmExecutor.ChatResponseWithTokens> completionHandler) {
+        StringBuilder guardedStreamBuffer = new StringBuilder();
 
-            StreamAccumulator accumulator = new StreamAccumulator();
+        Disposable subscription = aiLlmExecutor.streamWithFallback(
+                providerName,
+                messages,
+                tools,
+                chunk -> {
+                    if (bufferForGuardrails) {
+                        guardedStreamBuffer.append(chunk);
+                    } else {
+                        sendSseEvent(emitter, "message", new AiChunkResponse(chunk));
+                    }
+                },
+                result -> {
+                    AiLlmExecutor.ChatResponseWithTokens completedResult = bufferForGuardrails
+                            ? new AiLlmExecutor.ChatResponseWithTokens(
+                            guardedStreamBuffer.toString(),
+                            result.inputTokens(),
+                            result.outputTokens())
+                            : result;
+                    handleStreamCompleted(emitter, completedResult, completionHandler);
+                },
+                error -> {
+                    log.error("{} for provider [{}]", errorLogMessage, providerName, error);
+                    emitter.completeWithError(error);
+                });
 
-            Disposable subscription = stream.subscribe(
-                    chatResponse -> handleStreamChunk(chatResponse, accumulator, emitter),
-                    error -> handleStreamError(providerName, emitter, errorLogMessage, error),
-                    () -> handleStreamCompleted(emitter, accumulator, completionHandler));
-
-            emitter.onCompletion(subscription::dispose);
-            emitter.onTimeout(subscription::dispose);
-            emitter.onError(e -> subscription.dispose());
-        } catch (Exception e) {
-            log.error("Failed to initiate LLM stream for provider [{}]", providerName, e);
-            emitter.completeWithError(new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE, e));
-        }
-    }
-
-    private void handleStreamChunk(
-            ChatResponse chatResponse,
-            StreamAccumulator accumulator,
-            SseEmitter emitter) {
-        if (chatResponse == null) {
-            return;
-        }
-
-        accumulator.updateUsage(extractTokenUsage(chatResponse));
-
-        String chunkText = extractNullableResponseText(chatResponse);
-        if (chunkText == null) {
-            return;
-        }
-
-        accumulator.append(chunkText);
-        sendSseEvent(emitter, "message", new AiChunkResponse(chunkText));
-    }
-
-    private void handleStreamError(
-            String providerName,
-            SseEmitter emitter,
-            String errorLogMessage,
-            Throwable error) {
-        log.error("{} for provider [{}]", errorLogMessage, providerName, error);
-        emitter.completeWithError(new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE, error));
+        emitter.onCompletion(subscription::dispose);
+        emitter.onTimeout(subscription::dispose);
+        emitter.onError(e -> subscription.dispose());
     }
 
     private void handleStreamCompleted(
             SseEmitter emitter,
-            StreamAccumulator accumulator,
-            StreamCompletionHandler completionHandler) {
+            AiLlmExecutor.ChatResponseWithTokens result,
+            Consumer<AiLlmExecutor.ChatResponseWithTokens> completionHandler) {
         try {
-            ChatResponseWithTokens result = accumulator.toChatResponseWithTokens();
-            completionHandler.onCompleted(result);
+            completionHandler.accept(result);
             emitter.complete();
         } catch (Exception e) {
             log.error("Error in stream completion callback", e);
@@ -376,38 +373,11 @@ public class AiLessonChatService {
         }
     }
 
-    private String extractRequiredResponseText(ChatResponse chatResponse) {
-        String responseText = extractNullableResponseText(chatResponse);
-
-        if (isBlank(responseText)) {
-            throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE);
-        }
-
-        return responseText;
-    }
-
-    private String extractNullableResponseText(ChatResponse chatResponse) {
-        if (chatResponse == null) {
-            return null;
-        }
-
-        return chatResponse.getResult().getOutput().getText();
-    }
-
-    private TokenUsage extractTokenUsage(ChatResponse chatResponse) {
-        if (chatResponse == null || chatResponse.getMetadata().getUsage() == null) {
-            return TokenUsage.empty();
-        }
-
-        Usage usage = chatResponse.getMetadata().getUsage();
-        return new TokenUsage(usage.getPromptTokens(), usage.getCompletionTokens());
-    }
-
     private void persistConversationTurn(
             UUID conversationId,
             UUID userId,
             AiLessonChatRequest request,
-            ChatResponseWithTokens llmResult) {
+            AiLlmExecutor.ChatResponseWithTokens llmResult) {
         aiMessagePersister.saveMessage(
                 conversationId,
                 userId,
@@ -427,25 +397,47 @@ public class AiLessonChatService {
                 llmResult.outputTokens());
     }
 
+    private AiLlmExecutor.ChatResponseWithTokens applyResponseGuardrails(
+            AiLlmExecutor.ChatResponseWithTokens llmResult,
+            LessonChatSession session) {
+        String guardedText = aiResponseGuardrailService.enforceLessonDisclosurePolicy(
+                llmResult.responseText(),
+                session.mode(),
+                session.lessonCompleted());
+
+        return Objects.equals(guardedText, llmResult.responseText())
+                ? llmResult
+                : new AiLlmExecutor.ChatResponseWithTokens(
+                guardedText,
+                llmResult.inputTokens(),
+                llmResult.outputTokens());
+    }
+
     private String resolveUserMessageContent(AiLessonChatRequest request) {
         return !isBlank(request.message()) ? request.message() : request.code();
     }
 
-    private LessonChatMetadata resolveLessonChatMetadata(UUID conversationId, Long lessonId) {
+    private LessonChatMetadata resolveLessonChatMetadata(UUID conversationId, Long lessonId, UUID userId) {
         if (lessonId == null) {
             return LessonChatMetadata.defaultMetadata();
         }
 
         return lessonRepository.findById(lessonId)
-                .map(lesson -> toLessonChatMetadata(conversationId, lesson))
+                .map(lesson -> toLessonChatMetadata(conversationId, lesson, userId))
                 .orElseGet(LessonChatMetadata::defaultMetadata);
     }
 
-    private LessonChatMetadata toLessonChatMetadata(UUID conversationId, Lesson lesson) {
+    private LessonChatMetadata toLessonChatMetadata(UUID conversationId, Lesson lesson, UUID userId) {
+        boolean lessonCompleted = lessonProgressRepository.existsByUserIdAndLessonIdAndStatus(
+                userId,
+                lesson.getId(),
+                ProgressStatus.COMPLETED);
+
         if (!(lesson instanceof CodingLesson codingLesson)) {
             return new LessonChatMetadata(
                     lesson.getType(),
-                    HintPolicy.notApplicable());
+                    HintPolicy.notApplicable(),
+                    lessonCompleted);
         }
 
         int maxAllowedHints = Math.min(MAX_CODING_HINTS, codingLesson.getHints().size());
@@ -456,7 +448,8 @@ public class AiLessonChatService {
 
         return new LessonChatMetadata(
                 lesson.getType(),
-                new HintPolicy(true, maxAllowedHints, hintMessagesCount));
+                new HintPolicy(true, maxAllowedHints, hintMessagesCount),
+                lessonCompleted);
     }
 
     private void enforceHintLimit(AiChatMode mode, HintPolicy hintPolicy) {
@@ -561,58 +554,21 @@ public class AiLessonChatService {
         }
     }
 
-    private void logLlmException(String providerName, Exception e) {
-        if (isTimeoutException(e)) {
-            log.error("LLM call timed out for provider [{}]", providerName, e);
-            return;
-        }
-
-        log.error("LLM provider error for provider [{}]", providerName, e);
-    }
-
-    private boolean isTimeoutException(Exception e) {
-        Throwable current = e;
-
-        while (current != null) {
-            if (current instanceof SocketTimeoutException || current instanceof TimeoutException) {
-                return true;
-            }
-
-            String message = current.getMessage();
-            if (message != null && isTimeoutMessage(message)) {
-                return true;
-            }
-
-            current = current.getCause();
-        }
-
-        return false;
-    }
-
-    private boolean isTimeoutMessage(String message) {
-        String normalizedMessage = message.toLowerCase();
-        return normalizedMessage.contains("timed out")
-                || normalizedMessage.contains("timeout")
-                || normalizedMessage.contains("read timed out");
-    }
-
-    private interface StreamCompletionHandler {
-        void onCompleted(ChatResponseWithTokens result);
-    }
-
     private record LessonChatSession(
             UUID conversationId,
             AiChatMode mode,
             LessonType lessonType,
             HintPolicy hintPolicy,
+            boolean lessonCompleted,
             List<Message> messages) {
     }
 
     private record LessonChatMetadata(
             LessonType lessonType,
-            HintPolicy hintPolicy) {
+            HintPolicy hintPolicy,
+            boolean lessonCompleted) {
         static LessonChatMetadata defaultMetadata() {
-            return new LessonChatMetadata(LessonType.THEORY, HintPolicy.notApplicable());
+            return new LessonChatMetadata(LessonType.THEORY, HintPolicy.notApplicable(), false);
         }
     }
 
@@ -629,39 +585,4 @@ public class AiLessonChatService {
         }
     }
 
-    private record TokenUsage(Integer inputTokens, Integer outputTokens) {
-        static TokenUsage empty() {
-            return new TokenUsage(null, null);
-        }
-    }
-
-    record ChatResponseWithTokens(String responseText, Integer inputTokens, Integer outputTokens) {
-    }
-
-    private static final class StreamAccumulator {
-        private final StringBuilder answer = new StringBuilder();
-        private final AtomicInteger inputTokens = new AtomicInteger(0);
-        private final AtomicInteger outputTokens = new AtomicInteger(0);
-
-        void append(String chunkText) {
-            answer.append(chunkText);
-        }
-
-        void updateUsage(TokenUsage usage) {
-            if (usage.inputTokens() != null) {
-                inputTokens.set(usage.inputTokens());
-            }
-
-            if (usage.outputTokens() != null) {
-                outputTokens.set(usage.outputTokens());
-            }
-        }
-
-        ChatResponseWithTokens toChatResponseWithTokens() {
-            return new ChatResponseWithTokens(
-                    answer.toString(),
-                    inputTokens.get() > 0 ? inputTokens.get() : null,
-                    outputTokens.get() > 0 ? outputTokens.get() : null);
-        }
-    }
 }

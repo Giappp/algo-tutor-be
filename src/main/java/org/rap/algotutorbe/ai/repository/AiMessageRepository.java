@@ -1,6 +1,7 @@
 package org.rap.algotutorbe.ai.repository;
 
 import org.rap.algotutorbe.ai.entity.AiMessage;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,6 +11,8 @@ import java.util.UUID;
 
 public interface AiMessageRepository extends JpaRepository<AiMessage, UUID> {
     List<AiMessage> findTop10ByConversationIdOrderByCreatedAtDesc(UUID conversationId);
+
+    List<AiMessage> findByConversationIdOrderByCreatedAtDesc(UUID conversationId, Pageable pageable);
 
     long countByConversationIdAndRoleAndMode(UUID conversationId, org.rap.algotutorbe.ai.enums.AiMessageRole role, String mode);
 
@@ -42,4 +45,3 @@ public interface AiMessageRepository extends JpaRepository<AiMessage, UUID> {
                    "LIMIT :limit", nativeQuery = true)
     List<Object[]> getTopTokenConsumers(@Param("limit") int limit);
 }
-

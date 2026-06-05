@@ -9,6 +9,7 @@ import org.rap.algotutorbe.ai.dto.AiRoadmapAdvisoryResponse;
 import org.rap.algotutorbe.ai.dto.AiRoadmapAdvisoryResponse.RoadmapInfo;
 import org.rap.algotutorbe.ai.entity.AIConversation;
 import org.rap.algotutorbe.ai.entity.AiMessage;
+import org.rap.algotutorbe.ai.enums.AiGeneralChatIntent;
 import org.rap.algotutorbe.ai.enums.AiMessageRole;
 import org.rap.algotutorbe.ai.enums.ConversationType;
 import org.rap.algotutorbe.ai.enums.LLMProvider;
@@ -23,15 +24,14 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.metadata.Usage;
-import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.Disposable;
 
-import java.net.SocketTimeoutException;
 import java.util.*;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -43,22 +43,20 @@ public class AiGeneralChatService {
     private static final int MAX_TITLE_LENGTH = 255;
     private static final String DEFAULT_CONVERSATION_TITLE = "New Conversation";
 
-    private static final String GENERAL_ASSISTANT_SYSTEM_PROMPT = """
-            Bạn là Trợ lý Học tập trực thuộc nền tảng học lập trình AlgoTutor.
-            
-            Nhiệm vụ của bạn:
-            - Trả lời các câu hỏi chào hỏi, tự giới thiệu, và giải đáp các thắc mắc chung về lập trình, giải thuật của học viên một cách chính xác, ngắn gọn và hữu ích.
-            - Phản hồi bằng Tiếng Việt tự nhiên, thân thiện và kiên nhẫn.
-            - Trình bày câu trả lời đẹp mắt bằng định dạng Markdown (tiêu đề, bôi đậm, list).
-            - Nếu học viên có nhu cầu muốn tư vấn lộ trình học tập, hãy nhắc nhở hoặc gợi ý họ hỏi về lộ trình (Ví dụ: "Bạn có thể hỏi tôi về lộ trình học cấu trúc dữ liệu, giải thuật, Java, Python,... để tôi giới thiệu chi tiết nhất!").
-            """;
-
     private final AiPromptService aiPromptService;
     private final ConversationRepository conversationRepository;
     private final ProviderRouter providerRouter;
     private final AiMessageRepository aiMessageRepository;
     private final AiMessagePersister aiMessagePersister;
     private final LearningPathRepository learningPathRepository;
+    private final AiLlmExecutor aiLlmExecutor;
+    private final AiGeneralChatIntentClassifier intentClassifier;
+
+    @Value("${ai.history.max-messages:16}")
+    private int maxHistoryMessages;
+
+    @Value("${ai.history.max-characters:12000}")
+    private int maxHistoryCharacters;
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
@@ -77,7 +75,7 @@ public class AiGeneralChatService {
             List<RoadmapInfo> availableRoadmaps) {
         GeneralChatSession session = prepareGeneralChatSession(request, userId, availableRoadmaps);
 
-        ChatResponseWithTokens llmResult = callLlmWithTokens(
+        AiLlmExecutor.ChatResponseWithTokens llmResult = callLlmWithTokens(
                 request.provider(),
                 session.messages(),
                 session.advisoryTools());
@@ -98,22 +96,44 @@ public class AiGeneralChatService {
             UUID userId,
             SseEmitter emitter,
             List<RoadmapInfo> availableRoadmaps) {
+        GeneralChatSession session = prepareGeneralChatSession(request, userId, availableRoadmaps);
+
+        Disposable subscription = aiLlmExecutor.streamWithFallback(
+                request.provider(),
+                session.messages(),
+                session.advisoryTools(),
+                chunk -> sendSseEvent(emitter, "message", new AiChunkResponse(chunk)),
+                llmResult -> handleGeneralStreamCompleted(
+                        emitter,
+                        session,
+                        userId,
+                        request,
+                        availableRoadmaps,
+                        llmResult),
+                error -> {
+                    log.error("General LLM stream error", error);
+                    emitter.completeWithError(error);
+                });
+
+        emitter.onCompletion(subscription::dispose);
+        emitter.onTimeout(subscription::dispose);
+        emitter.onError(e -> subscription.dispose());
+    }
+
+    private void handleGeneralStreamCompleted(
+            SseEmitter emitter,
+            GeneralChatSession session,
+            UUID userId,
+            AiGeneralChatRequest request,
+            List<RoadmapInfo> availableRoadmaps,
+            AiLlmExecutor.ChatResponseWithTokens llmResult) {
         try {
-            GeneralChatSession session = prepareGeneralChatSession(request, userId, availableRoadmaps);
-
-            ChatResponseWithTokens llmResult = callLlmWithTokens(
-                    request.provider(),
-                    session.messages(),
-                    session.advisoryTools());
-
-            ChatResponseWithTokens normalizedResult = new ChatResponseWithTokens(
+            AiLlmExecutor.ChatResponseWithTokens normalizedResult = new AiLlmExecutor.ChatResponseWithTokens(
                     normalizeAiText(llmResult.responseText()),
                     llmResult.inputTokens(),
                     llmResult.outputTokens());
 
             persistConversationTurn(session.conversationId(), userId, request, normalizedResult);
-
-            sendSseEvent(emitter, "message", new AiChunkResponse(normalizedResult.responseText()));
 
             AiRoadmapAdvisoryResponse metadata = new AiRoadmapAdvisoryResponse(
                     session.conversationId(),
@@ -125,8 +145,8 @@ public class AiGeneralChatService {
             sendSseEvent(emitter, "metadata", metadata);
             emitter.complete();
         } catch (Exception e) {
-            log.error("General LLM stream error", e);
-            emitter.completeWithError(new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE, e));
+            log.error("Error in general stream completion callback", e);
+            emitter.completeWithError(e);
         }
     }
 
@@ -159,18 +179,18 @@ public class AiGeneralChatService {
         LLMProvider provider = providerRouter.resolveProvider(request.provider());
         AIConversation conversation = resolveAndSaveConversation(request, userId, provider);
 
-        boolean roadmapIntent = isRoadmapAdvisoryIntent(request.message(), conversation);
+        AiGeneralChatIntent intent = intentClassifier.classify(request.message(), conversation);
 
-        String systemPrompt = roadmapIntent
+        String systemPrompt = intent == AiGeneralChatIntent.ROADMAP_ADVISORY
                 ? aiPromptService.buildGeneralSystemPrompt()
-                : GENERAL_ASSISTANT_SYSTEM_PROMPT;
+                : aiPromptService.buildGeneralAssistantSystemPrompt(intent);
 
         List<Message> messages = new ArrayList<>();
         messages.add(new SystemMessage(systemPrompt));
         messages.addAll(getHistoryAsNativeMessages(conversation.getId()));
         messages.add(new UserMessage(request.message()));
 
-        RoadmapAdvisoryTools advisoryTools = roadmapIntent
+        RoadmapAdvisoryTools advisoryTools = intent == AiGeneralChatIntent.ROADMAP_ADVISORY
                 ? new RoadmapAdvisoryTools(availableRoadmaps)
                 : null;
 
@@ -178,32 +198,6 @@ public class AiGeneralChatService {
                 conversation.getId(),
                 messages,
                 advisoryTools);
-    }
-
-    private boolean isRoadmapAdvisoryIntent(String message, AIConversation conversation) {
-        if (isRoadmapAdvisoryKeyword(message)) {
-            return true;
-        }
-        return conversation != null && isRoadmapAdvisoryKeyword(conversation.getTitle());
-    }
-
-    private boolean isRoadmapAdvisoryKeyword(String text) {
-        if (isBlank(text)) {
-            return false;
-        }
-        String lower = text.toLowerCase();
-        return lower.contains("lộ trình")
-                || lower.contains("roadmap")
-                || lower.contains("học gì")
-                || lower.contains("bắt đầu")
-                || lower.contains("định hướng")
-                || lower.contains("tư vấn")
-                || lower.contains("khóa học")
-                || lower.contains("course")
-                || lower.contains("learning path")
-                || lower.contains("recommend")
-                || lower.contains("gợi ý")
-                || lower.contains("chọn");
     }
 
     private void validateGeneralChatRequest(AiGeneralChatRequest request) {
@@ -249,17 +243,40 @@ public class AiGeneralChatService {
 
     private List<Message> getHistoryAsNativeMessages(UUID conversationId) {
         List<AiMessage> dbMessages = aiMessageRepository
-                .findTop10ByConversationIdOrderByCreatedAtDesc(conversationId);
+                .findByConversationIdOrderByCreatedAtDesc(
+                        conversationId,
+                        PageRequest.of(0, Math.max(1, maxHistoryMessages)));
 
         if (dbMessages.isEmpty()) {
             return Collections.emptyList();
         }
 
-        Collections.reverse(dbMessages);
+        List<AiMessage> budgetedMessages = applyHistoryCharacterBudget(dbMessages);
+        Collections.reverse(budgetedMessages);
 
-        return dbMessages.stream()
+        return budgetedMessages.stream()
                 .flatMap(this::toNativeMessage)
                 .toList();
+    }
+
+    private List<AiMessage> applyHistoryCharacterBudget(List<AiMessage> newestFirstMessages) {
+        int remainingCharacters = Math.max(0, maxHistoryCharacters);
+        List<AiMessage> selected = new ArrayList<>();
+
+        for (AiMessage message : newestFirstMessages) {
+            int messageSize = message.getContent() == null ? 0 : message.getContent().length();
+            if (!selected.isEmpty() && messageSize > remainingCharacters) {
+                break;
+            }
+
+            selected.add(message);
+            remainingCharacters -= messageSize;
+            if (remainingCharacters <= 0) {
+                break;
+            }
+        }
+
+        return selected;
     }
 
     private Stream<Message> toNativeMessage(AiMessage dbMessage) {
@@ -274,70 +291,18 @@ public class AiGeneralChatService {
         return Stream.empty();
     }
 
-    ChatResponseWithTokens callLlmWithTokens(
+    AiLlmExecutor.ChatResponseWithTokens callLlmWithTokens(
             String providerName,
             List<Message> messages,
             Object tools) {
-        try {
-            var promptSpec = providerRouter.route(providerName)
-                    .prompt()
-                    .messages(messages);
-
-            if (tools != null) {
-                promptSpec = promptSpec.tools(tools);
-            }
-
-            ChatResponse chatResponse = promptSpec
-                    .call()
-                    .chatResponse();
-
-            String responseText = extractRequiredResponseText(chatResponse);
-            TokenUsage tokenUsage = extractTokenUsage(chatResponse);
-
-            return new ChatResponseWithTokens(
-                    responseText,
-                    tokenUsage.inputTokens(),
-                    tokenUsage.outputTokens());
-        } catch (AppException e) {
-            throw e;
-        } catch (Exception e) {
-            logLlmException(providerName, e);
-            throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE, e);
-        }
-    }
-
-    private String extractRequiredResponseText(ChatResponse chatResponse) {
-        String responseText = extractNullableResponseText(chatResponse);
-
-        if (isBlank(responseText)) {
-            throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE);
-        }
-
-        return responseText;
-    }
-
-    private String extractNullableResponseText(ChatResponse chatResponse) {
-        if (chatResponse == null) {
-            return null;
-        }
-
-        return chatResponse.getResult().getOutput().getText();
-    }
-
-    private TokenUsage extractTokenUsage(ChatResponse chatResponse) {
-        if (chatResponse == null || chatResponse.getMetadata().getUsage() == null) {
-            return TokenUsage.empty();
-        }
-
-        Usage usage = chatResponse.getMetadata().getUsage();
-        return new TokenUsage(usage.getPromptTokens(), usage.getCompletionTokens());
+        return aiLlmExecutor.callWithFallback(providerName, messages, tools);
     }
 
     private void persistConversationTurn(
             UUID conversationId,
             UUID userId,
             AiGeneralChatRequest request,
-            ChatResponseWithTokens llmResult) {
+            AiLlmExecutor.ChatResponseWithTokens llmResult) {
         aiMessagePersister.saveMessage(
                 conversationId,
                 userId,
@@ -363,41 +328,6 @@ public class AiGeneralChatService {
         } catch (Exception e) {
             log.error("Failed to send SSE event [{}]", eventName, e);
         }
-    }
-
-    private void logLlmException(String providerName, Exception e) {
-        if (isTimeoutException(e)) {
-            log.error("LLM call timed out for provider [{}]", providerName, e);
-            return;
-        }
-
-        log.error("LLM provider error for provider [{}]", providerName, e);
-    }
-
-    private boolean isTimeoutException(Exception e) {
-        Throwable current = e;
-
-        while (current != null) {
-            if (current instanceof SocketTimeoutException || current instanceof TimeoutException) {
-                return true;
-            }
-
-            String message = current.getMessage();
-            if (message != null && isTimeoutMessage(message)) {
-                return true;
-            }
-
-            current = current.getCause();
-        }
-
-        return false;
-    }
-
-    private boolean isTimeoutMessage(String message) {
-        String normalizedMessage = message.toLowerCase();
-        return normalizedMessage.contains("timed out")
-                || normalizedMessage.contains("timeout")
-                || normalizedMessage.contains("read timed out");
     }
 
     private RoadmapInfo toRoadmapInfo(LearningPath learningPath) {
@@ -479,12 +409,4 @@ public class AiGeneralChatService {
             RoadmapAdvisoryTools advisoryTools) {
     }
 
-    private record TokenUsage(Integer inputTokens, Integer outputTokens) {
-        static TokenUsage empty() {
-            return new TokenUsage(null, null);
-        }
-    }
-
-    record ChatResponseWithTokens(String responseText, Integer inputTokens, Integer outputTokens) {
-    }
 }
