@@ -11,9 +11,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ojuser -d onlinejudge"]
+      test: [ "CMD-SHELL", "pg_isready -U ojuser -d onlinejudge" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,9 +28,9 @@ services:
       RABBITMQ_DEFAULT_PASS: ojpass
     ports:
       - "5672:5672"
-      - "15672:15672"   # Management UI: http://localhost:15672
+      - "15672:15672"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,7 +44,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,6 +66,25 @@ services:
       - oj-dev-net
     profiles:
       - tools
+
+  judge:
+    image: ghcr.io/engineer-man/piston
+    container_name: piston_api
+    restart: always
+    privileged: true
+    ports:
+      - "2000:2000"
+    volumes:
+      - ./data/piston/packages:/piston/packages
+    tmpfs:
+      - /tmp:exec
+    networks:
+      - oj-dev-net
+    environment:
+      - PISTON_RUN_TIMEOUT=5000
+      - PISTON_COMPILE_TIMEOUT=11000
+      - PISTON_RUN_CPU_TIME=5000
+      - PISTON_COMPILE_CPU_TIME=11000
 
 networks:
   oj-dev-net:
