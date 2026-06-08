@@ -41,18 +41,11 @@ public class SecurityConfig {
             "/ws/**",
     };
     private static final String[] IGNORE_CSRF_ENDPOINTS = {
-            "/api/v1/iam/**",
-            "/auth/signin",
-            "/auth/signup",
-            "/auth/refresh",
-            "/auth/logout",
-            "/api/v1/learning-paths/**",
-            "/api/v1/topics/**",
-            "/api/v1/lessons/**",
-            "/api/v1/questions/**",
-            "/api/v1/editorials/**",
-            "/api/v1/testcases/**",
-            "/api/v1/users/me/**"
+            "/iam/**",
+            "/iam/signin",
+            "/iam/signup",
+            "/iam/refresh",
+            "/iam/logout"
     };
     private final UserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthFilter;

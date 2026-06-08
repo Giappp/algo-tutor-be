@@ -7,7 +7,6 @@ import org.rap.algotutorbe.iam.domain.model.User;
 import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
 import org.rap.algotutorbe.iam.dto.EnrollmentProgressResponse;
 import org.rap.algotutorbe.learning.enums.ProgressStatus;
-import org.rap.algotutorbe.learning.mapper.RoadmapMapper;
 import org.rap.algotutorbe.learning.models.*;
 import org.rap.algotutorbe.learning.repositories.EnrollmentLastActivityProjection;
 import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
@@ -27,7 +26,6 @@ public class UserEnrollmentService {
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
-    private final RoadmapMapper roadmapMapper;
 
     @Transactional(readOnly = true)
     public List<EnrollmentProgressResponse> getEnrollmentsSorted(UUID userId) {

@@ -25,7 +25,6 @@ public class LearningPathService extends BaseService {
     private final LearningPathRepository learningPathRepository;
     private final LearningPathMapper learningPathMapper;
     private final SlugGenerator slugGenerator;
-    private final RoadmapService roadmapService;
 
     @Transactional
     public ApiResponse<LearningPathResponseDTO> create(@Valid LearningPathRequestDTO request) {

@@ -12,7 +12,6 @@ import org.rap.algotutorbe.learning.mapper.QuizAttemptMapper;
 import org.rap.algotutorbe.learning.models.*;
 import org.rap.algotutorbe.learning.repositories.QuizAttemptRepository;
 import org.rap.algotutorbe.learning.repositories.QuizLessonRepository;
-import org.rap.algotutorbe.learning.repositories.QuizQuestionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
 public class QuizAttemptService {
     private final QuizAttemptRepository quizAttemptRepository;
     private final QuizLessonRepository quizLessonRepository;
-    private final QuizQuestionRepository quizQuestionRepository;
     private final QuizAttemptMapper quizAttemptMapper;
     private final LessonProgressUpdater lessonProgressUpdater;
 
