@@ -1,0 +1,10 @@
+target
+.git
+.idea
+.vscode
+.antigravity
+data
+*.iml
+.env
+logs
+node_modules
