@@ -94,30 +94,6 @@ services:
     networks:
       - algotutor-net
 
-  # ==========================================
-  # Database Tool: pgAdmin (Optional)
-  # ==========================================
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: algotutor-pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@oj.dev
-      PGADMIN_DEFAULT_PASSWORD: admin
-    # Bind admin panel to localhost to prevent public scanning
-    ports:
-      - "127.0.0.1:5050:80"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - algotutor-net
-    profiles:
-      - tools
-
 networks:
   algotutor-net:
     driver: bridge
-
-volumes:
-  postgres_prod_data:
