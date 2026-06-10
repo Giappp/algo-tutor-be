@@ -2,7 +2,10 @@ package org.rap.algotutorbe.ai.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.rap.algotutorbe.ai.dto.*;
+import org.rap.algotutorbe.ai.dto.AiChatRequest;
+import org.rap.algotutorbe.ai.dto.AiChatResponse;
+import org.rap.algotutorbe.ai.dto.AiLessonChatRequest;
+import org.rap.algotutorbe.ai.dto.AiQuickAction;
 import org.rap.algotutorbe.ai.entity.AIConversation;
 import org.rap.algotutorbe.ai.entity.AiMessage;
 import org.rap.algotutorbe.ai.enums.AiChatMode;
@@ -18,8 +21,8 @@ import org.rap.algotutorbe.learning.enums.LessonType;
 import org.rap.algotutorbe.learning.enums.ProgressStatus;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Lesson;
-import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.rap.algotutorbe.learning.repositories.LessonProgressRepository;
+import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -64,6 +67,7 @@ public class AiLessonChatService {
     private final SuggestionGenerator suggestionGenerator;
     private final AiMessagePersister aiMessagePersister;
     private final AiLlmExecutor aiLlmExecutor;
+    private final AiSseEventService aiSseEventService;
     private final AiResponseGuardrailService aiResponseGuardrailService;
     private final LessonProgressRepository lessonProgressRepository;
 
@@ -120,7 +124,7 @@ public class AiLessonChatService {
                 streamResult -> {
                     AiLlmExecutor.ChatResponseWithTokens guardedResult = applyResponseGuardrails(streamResult, session);
                     if (bufferForGuardrails) {
-                        sendSseEvent(emitter, "message", new AiChunkResponse(guardedResult.responseText()));
+                        aiSseEventService.sendMessage(emitter, guardedResult.responseText());
                     }
                     persistConversationTurn(session.conversationId(), userId, request, guardedResult);
 
@@ -134,7 +138,7 @@ public class AiLessonChatService {
                             Collections.emptyList(),
                             canAskNextHint);
 
-                    sendSseEvent(emitter, "metadata", metadata);
+                    aiSseEventService.sendMetadata(emitter, metadata);
                 });
     }
 
@@ -338,7 +342,7 @@ public class AiLessonChatService {
                     if (bufferForGuardrails) {
                         guardedStreamBuffer.append(chunk);
                     } else {
-                        sendSseEvent(emitter, "message", new AiChunkResponse(chunk));
+                        aiSseEventService.sendMessage(emitter, chunk);
                     }
                 },
                 result -> {
@@ -350,14 +354,12 @@ public class AiLessonChatService {
                             : result;
                     handleStreamCompleted(emitter, completedResult, completionHandler);
                 },
-                error -> {
-                    log.error("{} for provider [{}]", errorLogMessage, providerName, error);
-                    emitter.completeWithError(error);
-                });
+                error -> aiSseEventService.completeWithError(
+                        emitter,
+                        errorLogMessage + " for provider [" + providerName + "]",
+                        error));
 
-        emitter.onCompletion(subscription::dispose);
-        emitter.onTimeout(subscription::dispose);
-        emitter.onError(e -> subscription.dispose());
+        aiSseEventService.registerLifecycle(emitter, subscription);
     }
 
     private void handleStreamCompleted(
@@ -366,10 +368,9 @@ public class AiLessonChatService {
             Consumer<AiLlmExecutor.ChatResponseWithTokens> completionHandler) {
         try {
             completionHandler.accept(result);
-            emitter.complete();
+            aiSseEventService.completeSuccessfully(emitter);
         } catch (Exception e) {
-            log.error("Error in stream completion callback", e);
-            emitter.completeWithError(e);
+            aiSseEventService.completeWithError(emitter, "Error in lesson stream completion callback", e);
         }
     }
 
@@ -460,7 +461,7 @@ public class AiLessonChatService {
 
     private Boolean computeCanAskNextHintAfter(AiChatMode mode, HintPolicy hintPolicy) {
         if (!hintPolicy.applicable()) {
-            return null;
+            return false;
         }
 
         long nextHintCount = mode == AiChatMode.HINT
@@ -544,14 +545,6 @@ public class AiLessonChatService {
 
     private String safeTitle(String title) {
         return isBlank(title) ? "bài học này" : truncate(title);
-    }
-
-    private void sendSseEvent(SseEmitter emitter, String eventName, Object data) {
-        try {
-            emitter.send(SseEmitter.event().name(eventName).data(data));
-        } catch (Exception e) {
-            log.error("Failed to send SSE event [{}]", eventName, e);
-        }
     }
 
     private record LessonChatSession(

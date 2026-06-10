@@ -2,7 +2,6 @@ package org.rap.algotutorbe.ai.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.rap.algotutorbe.ai.dto.AiChunkResponse;
 import org.rap.algotutorbe.ai.dto.AiGeneralChatRequest;
 import org.rap.algotutorbe.ai.dto.AiGeneralChatResponse;
 import org.rap.algotutorbe.ai.dto.AiRoadmapAdvisoryResponse;
@@ -50,6 +49,7 @@ public class AiGeneralChatService {
     private final AiMessagePersister aiMessagePersister;
     private final LearningPathRepository learningPathRepository;
     private final AiLlmExecutor aiLlmExecutor;
+    private final AiSseEventService aiSseEventService;
     private final AiGeneralChatIntentClassifier intentClassifier;
 
     @Value("${ai.history.max-messages:16}")
@@ -102,7 +102,7 @@ public class AiGeneralChatService {
                 request.provider(),
                 session.messages(),
                 session.advisoryTools(),
-                chunk -> sendSseEvent(emitter, "message", new AiChunkResponse(chunk)),
+                chunk -> aiSseEventService.sendMessage(emitter, chunk),
                 llmResult -> handleGeneralStreamCompleted(
                         emitter,
                         session,
@@ -110,14 +110,9 @@ public class AiGeneralChatService {
                         request,
                         availableRoadmaps,
                         llmResult),
-                error -> {
-                    log.error("General LLM stream error", error);
-                    emitter.completeWithError(error);
-                });
+                error -> aiSseEventService.completeWithError(emitter, "General LLM stream error", error));
 
-        emitter.onCompletion(subscription::dispose);
-        emitter.onTimeout(subscription::dispose);
-        emitter.onError(e -> subscription.dispose());
+        aiSseEventService.registerLifecycle(emitter, subscription);
     }
 
     private void handleGeneralStreamCompleted(
@@ -142,11 +137,10 @@ public class AiGeneralChatService {
                             availableRoadmaps,
                             normalizedResult.responseText()));
 
-            sendSseEvent(emitter, "metadata", metadata);
-            emitter.complete();
+            aiSseEventService.sendMetadata(emitter, metadata);
+            aiSseEventService.completeSuccessfully(emitter);
         } catch (Exception e) {
-            log.error("Error in general stream completion callback", e);
-            emitter.completeWithError(e);
+            aiSseEventService.completeWithError(emitter, "Error in general stream completion callback", e);
         }
     }
 
@@ -275,7 +269,6 @@ public class AiGeneralChatService {
                 break;
             }
         }
-
         return selected;
     }
 
@@ -320,14 +313,6 @@ public class AiGeneralChatService {
                 "GENERAL",
                 null,
                 llmResult.outputTokens());
-    }
-
-    private void sendSseEvent(SseEmitter emitter, String eventName, Object data) {
-        try {
-            emitter.send(SseEmitter.event().name(eventName).data(data));
-        } catch (Exception e) {
-            log.error("Failed to send SSE event [{}]", eventName, e);
-        }
     }
 
     private RoadmapInfo toRoadmapInfo(LearningPath learningPath) {

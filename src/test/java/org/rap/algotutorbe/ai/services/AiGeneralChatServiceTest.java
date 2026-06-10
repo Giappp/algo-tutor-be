@@ -44,6 +44,8 @@ class AiGeneralChatServiceTest {
         @Mock
         private AiLlmExecutor aiLlmExecutor;
         @Mock
+        private AiSseEventService aiSseEventService;
+        @Mock
         private AiGeneralChatIntentClassifier intentClassifier;
 
         @InjectMocks

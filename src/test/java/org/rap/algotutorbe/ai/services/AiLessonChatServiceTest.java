@@ -55,6 +55,8 @@ class AiLessonChatServiceTest {
     @Mock
     private AiLlmExecutor aiLlmExecutor;
     @Mock
+    private AiSseEventService aiSseEventService;
+    @Mock
     private AiResponseGuardrailService aiResponseGuardrailService;
     @Mock
     private LessonProgressRepository lessonProgressRepository;
