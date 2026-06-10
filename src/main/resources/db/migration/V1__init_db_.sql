@@ -280,115 +280,405 @@ CREATE TABLE IF NOT EXISTS users
     CONSTRAINT pk_users PRIMARY KEY (id)
     );
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'uc_0882f6a755f233d0e251d35ea'
+          AND conrelid = 'lesson_progresses'::regclass
+    ) THEN
 ALTER TABLE lesson_progresses
     ADD CONSTRAINT uc_0882f6a755f233d0e251d35ea UNIQUE (user_id, lesson_id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'uc_98919920e10e937ceff783bc2'
+          AND conrelid = 'enrollments'::regclass
+    ) THEN
 ALTER TABLE enrollments
     ADD CONSTRAINT uc_98919920e10e937ceff783bc2 UNIQUE (user_id, learning_path_id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'uc_lessons_slug'
+          AND conrelid = 'lessons'::regclass
+    ) THEN
 ALTER TABLE lessons
     ADD CONSTRAINT uc_lessons_slug UNIQUE (slug);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'uc_refreshtokens_token'
+          AND conrelid = 'refresh_tokens'::regclass
+    ) THEN
 ALTER TABLE refresh_tokens
     ADD CONSTRAINT uc_refreshtokens_token UNIQUE (token);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'uc_roles_code'
+          AND conrelid = 'roles'::regclass
+    ) THEN
 ALTER TABLE roles
     ADD CONSTRAINT uc_roles_code UNIQUE (code);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'uc_roles_name'
+          AND conrelid = 'roles'::regclass
+    ) THEN
 ALTER TABLE roles
     ADD CONSTRAINT uc_roles_name UNIQUE (name);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'uc_users_email'
+          AND conrelid = 'users'::regclass
+    ) THEN
 ALTER TABLE users
     ADD CONSTRAINT uc_users_email UNIQUE (email);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'uc_users_username'
+          AND conrelid = 'users'::regclass
+    ) THEN
 ALTER TABLE users
     ADD CONSTRAINT uc_users_username UNIQUE (username);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_ai_conversation_state_conversation_id ON ai_conversation_state (conversation_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_CODINGLESSON_ON_ID'
+          AND conrelid = 'coding_lesson'::regclass
+    ) THEN
 ALTER TABLE coding_lesson
     ADD CONSTRAINT FK_CODINGLESSON_ON_ID FOREIGN KEY (id) REFERENCES lessons (id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_EDITORIALS_ON_CODING_LESSON'
+          AND conrelid = 'editorials'::regclass
+    ) THEN
 ALTER TABLE editorials
     ADD CONSTRAINT FK_EDITORIALS_ON_CODING_LESSON FOREIGN KEY (coding_lesson_id) REFERENCES coding_lesson (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_editorials_coding_lesson_id ON editorials (coding_lesson_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_ENROLLMENTS_ON_LEARNING_PATH'
+          AND conrelid = 'enrollments'::regclass
+    ) THEN
 ALTER TABLE enrollments
     ADD CONSTRAINT FK_ENROLLMENTS_ON_LEARNING_PATH FOREIGN KEY (learning_path_id) REFERENCES learning_paths (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_enrollments_learning_path_id ON enrollments (learning_path_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_ENROLLMENTS_ON_USER'
+          AND conrelid = 'enrollments'::regclass
+    ) THEN
 ALTER TABLE enrollments
     ADD CONSTRAINT FK_ENROLLMENTS_ON_USER FOREIGN KEY (user_id) REFERENCES users (id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_LESSONS_ON_TOPIC'
+          AND conrelid = 'lessons'::regclass
+    ) THEN
 ALTER TABLE lessons
     ADD CONSTRAINT FK_LESSONS_ON_TOPIC FOREIGN KEY (topic_id) REFERENCES topics (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_lessons_topic_id ON lessons (topic_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_LESSON_PROGRESSES_ON_ENROLLMENT'
+          AND conrelid = 'lesson_progresses'::regclass
+    ) THEN
 ALTER TABLE lesson_progresses
     ADD CONSTRAINT FK_LESSON_PROGRESSES_ON_ENROLLMENT FOREIGN KEY (enrollment_id) REFERENCES enrollments (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_lesson_progresses_enrollment_id ON lesson_progresses (enrollment_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_LESSON_PROGRESSES_ON_LESSON'
+          AND conrelid = 'lesson_progresses'::regclass
+    ) THEN
 ALTER TABLE lesson_progresses
     ADD CONSTRAINT FK_LESSON_PROGRESSES_ON_LESSON FOREIGN KEY (lesson_id) REFERENCES lessons (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_lesson_progresses_lesson_id ON lesson_progresses (lesson_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_LESSON_PROGRESSES_ON_USER'
+          AND conrelid = 'lesson_progresses'::regclass
+    ) THEN
 ALTER TABLE lesson_progresses
     ADD CONSTRAINT FK_LESSON_PROGRESSES_ON_USER FOREIGN KEY (user_id) REFERENCES users (id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_QUIZLESSON_ON_ID'
+          AND conrelid = 'quiz_lesson'::regclass
+    ) THEN
 ALTER TABLE quiz_lesson
     ADD CONSTRAINT FK_QUIZLESSON_ON_ID FOREIGN KEY (id) REFERENCES lessons (id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_QUIZ_ATTEMPTS_ON_QUIZ'
+          AND conrelid = 'quiz_attempts'::regclass
+    ) THEN
 ALTER TABLE quiz_attempts
     ADD CONSTRAINT FK_QUIZ_ATTEMPTS_ON_QUIZ FOREIGN KEY (quiz_id) REFERENCES quiz_lesson (id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_QUIZ_ATTEMPTS_ON_USER'
+          AND conrelid = 'quiz_attempts'::regclass
+    ) THEN
 ALTER TABLE quiz_attempts
     ADD CONSTRAINT FK_QUIZ_ATTEMPTS_ON_USER FOREIGN KEY (user_id) REFERENCES users (id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_QUIZ_QUESTIONS_ON_LESSON'
+          AND conrelid = 'quiz_questions'::regclass
+    ) THEN
 ALTER TABLE quiz_questions
     ADD CONSTRAINT FK_QUIZ_QUESTIONS_ON_LESSON FOREIGN KEY (lesson_id) REFERENCES quiz_lesson (id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_REFRESHTOKENS_ON_USER'
+          AND conrelid = 'refresh_tokens'::regclass
+    ) THEN
 ALTER TABLE refresh_tokens
     ADD CONSTRAINT FK_REFRESHTOKENS_ON_USER FOREIGN KEY (user_id) REFERENCES users (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens (user_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_SUBMISSIONS_ON_CODING_LESSON'
+          AND conrelid = 'submissions'::regclass
+    ) THEN
 ALTER TABLE submissions
     ADD CONSTRAINT FK_SUBMISSIONS_ON_CODING_LESSON FOREIGN KEY (coding_lesson_id) REFERENCES coding_lesson (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_submissions_coding_lesson_id ON submissions (coding_lesson_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_SUBMISSIONS_ON_USER'
+          AND conrelid = 'submissions'::regclass
+    ) THEN
 ALTER TABLE submissions
     ADD CONSTRAINT FK_SUBMISSIONS_ON_USER FOREIGN KEY (user_id) REFERENCES users (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_submissions_user_id ON submissions (user_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_SUBMISSION_DETAIL_ON_SUBMISSION'
+          AND conrelid = 'submission_detail'::regclass
+    ) THEN
 ALTER TABLE submission_detail
     ADD CONSTRAINT FK_SUBMISSION_DETAIL_ON_SUBMISSION FOREIGN KEY (submission_id) REFERENCES submissions (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_submission_detail_submission_id ON submission_detail (submission_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_SUBMISSION_DETAIL_ON_TESTCASE'
+          AND conrelid = 'submission_detail'::regclass
+    ) THEN
 ALTER TABLE submission_detail
     ADD CONSTRAINT FK_SUBMISSION_DETAIL_ON_TESTCASE FOREIGN KEY (testcase_id) REFERENCES test_cases (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_submission_detail_testcase_id ON submission_detail (testcase_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_TEST_CASES_ON_CODING_LESSON'
+          AND conrelid = 'test_cases'::regclass
+    ) THEN
 ALTER TABLE test_cases
     ADD CONSTRAINT FK_TEST_CASES_ON_CODING_LESSON FOREIGN KEY (coding_lesson_id) REFERENCES coding_lesson (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_test_cases_coding_lesson_id ON test_cases (coding_lesson_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_THEORYLESSON_ON_ID'
+          AND conrelid = 'theory_lesson'::regclass
+    ) THEN
 ALTER TABLE theory_lesson
     ADD CONSTRAINT FK_THEORYLESSON_ON_ID FOREIGN KEY (id) REFERENCES lessons (id);
+END IF;
+END $$;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_TOPICS_ON_LEARNING_PATH'
+          AND conrelid = 'topics'::regclass
+    ) THEN
 ALTER TABLE topics
     ADD CONSTRAINT FK_TOPICS_ON_LEARNING_PATH FOREIGN KEY (learning_path_id) REFERENCES learning_paths (id);
+END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_topics_learning_path_id ON topics (learning_path_id);
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'FK_USERS_ON_ROLE'
+          AND conrelid = 'users'::regclass
+    ) THEN
 ALTER TABLE users
     ADD CONSTRAINT FK_USERS_ON_ROLE FOREIGN KEY (role_id) REFERENCES roles (id);
+END IF;
+END $$;
