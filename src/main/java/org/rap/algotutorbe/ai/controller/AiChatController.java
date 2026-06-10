@@ -1,11 +1,13 @@
 package org.rap.algotutorbe.ai.controller;
 
 import jakarta.validation.Valid;
+import org.rap.algotutorbe.ai.dto.AiChatHistoryResponse;
 import org.rap.algotutorbe.ai.dto.AiChatResponse;
 import org.rap.algotutorbe.ai.dto.AiGeneralChatRequest;
 import org.rap.algotutorbe.ai.dto.AiGeneralChatResponse;
 import org.rap.algotutorbe.ai.dto.AiLessonChatRequest;
 import org.rap.algotutorbe.ai.dto.AiRoadmapAdvisoryResponse.RoadmapInfo;
+import org.rap.algotutorbe.ai.services.AiChatHistoryService;
 import org.rap.algotutorbe.ai.services.AiGeneralChatService;
 import org.rap.algotutorbe.ai.services.AiLessonChatService;
 import org.rap.algotutorbe.common.api.ApiResponse;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/ai")
@@ -28,6 +31,7 @@ public class AiChatController {
 
     private final AiGeneralChatService aiGeneralChatService;
     private final AiLessonChatService aiLessonChatService;
+    private final AiChatHistoryService aiChatHistoryService;
     private final RateLimiter rateLimiter;
     private final int maxRequests;
     private final long windowMs;
@@ -35,11 +39,13 @@ public class AiChatController {
     public AiChatController(
             AiGeneralChatService aiGeneralChatService,
             AiLessonChatService aiLessonChatService,
+            AiChatHistoryService aiChatHistoryService,
             RateLimiter rateLimiter,
             @Value("${ai.rate-limit.max-requests:20}") int maxRequests,
             @Value("${ai.rate-limit.window-seconds:60}") int windowSeconds) {
         this.aiGeneralChatService = aiGeneralChatService;
         this.aiLessonChatService = aiLessonChatService;
+        this.aiChatHistoryService = aiChatHistoryService;
         this.rateLimiter = rateLimiter;
         this.maxRequests = maxRequests;
         this.windowMs = windowSeconds * 1000L;
@@ -117,6 +123,22 @@ public class AiChatController {
     public ResponseEntity<ApiResponse<AiChatResponse>> bootstrapChat(@RequestParam(name = "lessonSlug") String lessonSlug,
                                                                      @AuthenticationPrincipal SecurityUser principal) {
         var response = aiLessonChatService.bootstrap(principal.getId(), lessonSlug);
+        return ResponseEntity.ok(ApiResponse.buildSuccess(response));
+    }
+
+    @GetMapping("/chat/history/{conversationId}")
+    public ResponseEntity<ApiResponse<AiChatHistoryResponse>> getLessonChatHistory(
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal SecurityUser principal) {
+        var response = aiChatHistoryService.getLessonChatHistory(conversationId, principal.getId());
+        return ResponseEntity.ok(ApiResponse.buildSuccess(response));
+    }
+
+    @GetMapping("/general/chat/history/{conversationId}")
+    public ResponseEntity<ApiResponse<AiChatHistoryResponse>> getGeneralChatHistory(
+            @PathVariable UUID conversationId,
+            @AuthenticationPrincipal SecurityUser principal) {
+        var response = aiChatHistoryService.getGeneralChatHistory(conversationId, principal.getId());
         return ResponseEntity.ok(ApiResponse.buildSuccess(response));
     }
 }

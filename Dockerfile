@@ -5,10 +5,16 @@ WORKDIR /app
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
-COPY src ./src
 
 RUN chmod +x mvnw
-RUN ./mvnw clean package -DskipTests
+
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw dependency:go-offline -B
+
+COPY src ./src
+
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw package -DskipTests -B
 
 FROM eclipse-temurin:21-jre-alpine
 
@@ -17,8 +23,9 @@ ENV PORT=8080
 
 WORKDIR /app
 
-RUN mkdir -p /algotutor/testcases
-RUN addgroup -S algotutor && adduser -S algotutor -G algotutor
+RUN mkdir -p /algotutor/testcases \
+    && addgroup -S algotutor \
+    && adduser -S algotutor -G algotutor
 
 COPY --from=builder /app/target/algo-tutor-be-0.0.1-SNAPSHOT.jar app.jar
 

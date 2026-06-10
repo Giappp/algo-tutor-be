@@ -14,6 +14,8 @@ public interface AiMessageRepository extends JpaRepository<AiMessage, UUID> {
 
     List<AiMessage> findByConversationIdOrderByCreatedAtDesc(UUID conversationId, Pageable pageable);
 
+    List<AiMessage> findByConversationIdOrderByCreatedAtAsc(UUID conversationId);
+
     long countByConversationIdAndRoleAndMode(UUID conversationId, org.rap.algotutorbe.ai.enums.AiMessageRole role, String mode);
 
     @Query("SELECT COALESCE(SUM(m.tokenInput), 0) FROM AiMessage m")

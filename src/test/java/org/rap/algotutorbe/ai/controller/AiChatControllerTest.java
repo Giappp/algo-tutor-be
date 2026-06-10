@@ -7,8 +7,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.rap.algotutorbe.ai.dto.AiChatResponse;
+import org.rap.algotutorbe.ai.dto.AiChatHistoryResponse;
 import org.rap.algotutorbe.ai.dto.AiGeneralChatRequest;
 import org.rap.algotutorbe.ai.dto.AiLessonChatRequest;
+import org.rap.algotutorbe.ai.enums.ConversationType;
+import org.rap.algotutorbe.ai.enums.LLMProvider;
+import org.rap.algotutorbe.ai.services.AiChatHistoryService;
 import org.rap.algotutorbe.ai.services.AiGeneralChatService;
 import org.rap.algotutorbe.ai.services.AiLessonChatService;
 import org.rap.algotutorbe.common.handler.GeneralExceptionHandler;
@@ -32,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -46,13 +51,16 @@ class AiChatControllerTest {
     @Mock
     private AiLessonChatService aiLessonChatService;
     @Mock
+    private AiChatHistoryService aiChatHistoryService;
+    @Mock
     private RateLimiter rateLimiter;
     @Mock
     private MessageSource messageSource;
 
     @BeforeEach
     void setUp() {
-        AiChatController controller = new AiChatController(aiGeneralChatService, aiLessonChatService, rateLimiter, 20, 60);
+        AiChatController controller = new AiChatController(
+                aiGeneralChatService, aiLessonChatService, aiChatHistoryService, rateLimiter, 20, 60);
         GeneralExceptionHandler exceptionHandler = new GeneralExceptionHandler(messageSource);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -184,5 +192,49 @@ class AiChatControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.answer").value("Here is roadmaps advisory."));
+    }
+
+    @Test
+    void lessonChatHistory_shouldReturnOk() throws Exception {
+        UUID conversationId = UUID.randomUUID();
+        AiChatHistoryResponse response = new AiChatHistoryResponse(
+                conversationId,
+                ConversationType.LESSON,
+                1L,
+                "Chat về Two Sum",
+                LLMProvider.GEMINI,
+                null,
+                null,
+                Collections.emptyList());
+
+        when(aiChatHistoryService.getLessonChatHistory(conversationId, testUserId)).thenReturn(response);
+
+        mockMvc.perform(get("/ai/chat/history/{conversationId}", conversationId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.conversationId").value(conversationId.toString()))
+                .andExpect(jsonPath("$.data.type").value("LESSON"));
+    }
+
+    @Test
+    void generalChatHistory_shouldReturnOk() throws Exception {
+        UUID conversationId = UUID.randomUUID();
+        AiChatHistoryResponse response = new AiChatHistoryResponse(
+                conversationId,
+                ConversationType.GENERAL,
+                null,
+                "Tư vấn lộ trình Java",
+                LLMProvider.GEMINI,
+                null,
+                null,
+                Collections.emptyList());
+
+        when(aiChatHistoryService.getGeneralChatHistory(conversationId, testUserId)).thenReturn(response);
+
+        mockMvc.perform(get("/ai/general/chat/history/{conversationId}", conversationId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.conversationId").value(conversationId.toString()))
+                .andExpect(jsonPath("$.data.type").value("GENERAL"));
     }
 }
