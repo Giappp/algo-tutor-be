@@ -71,7 +71,7 @@ services:
     container_name: algotutor-backend
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     # Ensure databases and dependencies are healthy before booting the application
     depends_on:
       redis:
