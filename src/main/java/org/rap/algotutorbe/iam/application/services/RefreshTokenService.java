@@ -139,6 +139,10 @@ public class RefreshTokenService {
      * Chỉ chịu trách nhiệm: Bắt lỗi an toàn khi parse chuỗi sang UUID
      */
     private UUID parseUUID(String tokenStr) {
+        if (tokenStr == null || tokenStr.isBlank()) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        }
+
         try {
             return UUID.fromString(tokenStr);
         } catch (IllegalArgumentException e) {
