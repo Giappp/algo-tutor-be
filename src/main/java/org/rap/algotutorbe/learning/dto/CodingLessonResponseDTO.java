@@ -9,6 +9,7 @@ import java.util.Map;
 public record CodingLessonResponseDTO(
         Long id,
         String title,
+        Boolean isPublished,
         String type,
         String statement,
         Integer displayOrder,

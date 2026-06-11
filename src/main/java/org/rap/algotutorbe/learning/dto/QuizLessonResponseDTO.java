@@ -5,6 +5,7 @@ import java.util.List;
 public record QuizLessonResponseDTO(
         Long id,
         String title,
+        Boolean isPublished,
         String type,
         Integer displayOrder,
         String difficulty,
