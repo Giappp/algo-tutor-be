@@ -25,11 +25,22 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByEmail(String email);
 
-    @Query(value = "SELECT u FROM User u LEFT JOIN FETCH u.role WHERE " +
-            "(:search IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))",
-            countQuery = "SELECT COUNT(u) FROM User u WHERE " +
-            "(:search IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+    @Query(
+            value = """
+                    SELECT u
+                    FROM User u
+                    LEFT JOIN FETCH u.role
+                    WHERE (COALESCE(:search, '') = ''
+                        OR LOWER(u.username) LIKE CONCAT('%', :search, '%')
+                        OR LOWER(u.email) LIKE CONCAT('%', :search, '%'))
+                    """,
+            countQuery = """
+                    SELECT COUNT(u)
+                    FROM User u
+                    WHERE (COALESCE(:search, '') = ''
+                        OR LOWER(u.username) LIKE CONCAT('%', :search, '%')
+                        OR LOWER(u.email) LIKE CONCAT('%', :search, '%'))
+                    """
+    )
     Page<User> searchUsers(@Param("search") String search, Pageable pageable);
 }

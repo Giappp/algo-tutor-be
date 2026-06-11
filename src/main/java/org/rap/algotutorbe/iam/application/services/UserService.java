@@ -59,9 +59,11 @@ public class UserService implements UserDetailsService {
     }
 
     public PageResponse<UserResponse> getAllUsers(String search, Pageable pageable) {
-        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        String searchTerm = (search != null) ? search.trim().toLowerCase() : "";
+
         Page<User> usersPage = userRepository.searchUsers(searchTerm, pageable);
         Page<UserResponse> responsePage = usersPage.map(this::toResponseWithRole);
+
         return PageResponse.of(responsePage);
     }
 
