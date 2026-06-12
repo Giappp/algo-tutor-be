@@ -72,6 +72,12 @@ public enum ErrorCode {
     NO_MORE_HINTS(8006, "errors.ai.no-more-hints", HttpStatus.BAD_REQUEST),
     PROVIDER_NOT_CONFIGURED(8007, "errors.ai.provider-not-configured", HttpStatus.SERVICE_UNAVAILABLE),
     LOAD_TEMPLATE_FAILED(8008, "errors.ai.load-template-failed", HttpStatus.INTERNAL_SERVER_ERROR),
+    INVALID_AI_GENERATED_CONTENT(8009, "errors.ai.invalid-generated-content", HttpStatus.BAD_GATEWAY),
+    INVALID_AI_QUESTION_SOURCES(8010, "errors.ai.invalid-question-sources", HttpStatus.BAD_REQUEST),
+    INVALID_AI_GENERATED_QUESTIONS(8011, "errors.ai.invalid-generated-questions", HttpStatus.BAD_GATEWAY),
+    INVALID_AI_CODING_SOURCES(8012, "errors.ai.invalid-coding-sources", HttpStatus.BAD_REQUEST),
+    INVALID_AI_CODING_DRAFT(8013, "errors.ai.invalid-coding-draft", HttpStatus.BAD_GATEWAY),
+    AI_GENERATED_CODE_COMPILE_FAILED(8014, "errors.ai.generated-code-compile-failed", HttpStatus.BAD_GATEWAY),
 
     FILE_EMPTY(9000, "errors.file.empty", HttpStatus.BAD_REQUEST),
     IMAGE_TYPE_ERROR(9001, "errors.image.type", HttpStatus.BAD_REQUEST),

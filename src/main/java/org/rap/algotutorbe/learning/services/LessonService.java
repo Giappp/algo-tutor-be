@@ -88,6 +88,7 @@ public class LessonService extends BaseService {
 
     private void updateTheory(TheoryLesson lesson, TheoryLessonRequestDTO request) {
         lesson.setContent(request.getContent());
+        lesson.setEstimatedMinutes(request.getEstimatedMinutes());
     }
 
     @Transactional
@@ -174,6 +175,7 @@ public class LessonService extends BaseService {
         theoryLesson.setTitle(request.getTitle());
         theoryLesson.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
         theoryLesson.setContent(request.getContent());
+        theoryLesson.setEstimatedMinutes(request.getEstimatedMinutes());
         theoryLesson.setType(request.getType());
         theoryLesson.setDifficulty(request.getDifficulty());
         return theoryLesson;

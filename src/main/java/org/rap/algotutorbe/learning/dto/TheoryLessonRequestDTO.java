@@ -7,4 +7,5 @@ import lombok.EqualsAndHashCode;
 @Data
 public class TheoryLessonRequestDTO extends LessonRequestDTO {
     private String content;
+    private Integer estimatedMinutes;
 }

@@ -1,6 +1,7 @@
 package org.rap.algotutorbe.learning.repositories;
 
 import org.rap.algotutorbe.learning.models.Lesson;
+import org.rap.algotutorbe.learning.models.TheoryLesson;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -39,5 +40,16 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
                   AND l.isPublished = true
             """)
     long countPublishedLessonsByLearningPathId(@Param("learningPathId") Long learningPathId);
+
+    @Query("""
+            SELECT tl
+            FROM TheoryLesson tl
+            JOIN FETCH tl.topic t
+            JOIN FETCH t.learningPath lp
+            WHERE lp.id = :learningPathId
+              AND LENGTH(TRIM(tl.content)) > 0
+            ORDER BY t.displayOrder, tl.displayOrder
+            """)
+    List<TheoryLesson> findQuestionSourcesByLearningPathId(@Param("learningPathId") Long learningPathId);
 
 }
