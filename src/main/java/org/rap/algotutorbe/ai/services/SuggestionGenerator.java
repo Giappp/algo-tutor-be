@@ -25,46 +25,46 @@ public class SuggestionGenerator {
             // General coding suggestions
             if (currentMode == AiChatMode.HINT) {
                 if (canAskHint) {
-                    actions.add(new AiQuickAction("Gợi ý tiếp theo", AiChatIntent.NEXT_HINT, "HINT", "Cho tôi xin gợi ý tiếp theo nhé."));
+                    actions.add(new AiQuickAction("Gợi ý tiếp theo", AiChatIntent.NEXT_HINT, "HINT", "Cho tôi gợi ý tiếp theo."));
                 }
-                actions.add(new AiQuickAction("Giải thích đề bài", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Hãy giải thích chi tiết đề bài này cho tôi."));
+                actions.add(new AiQuickAction("Giải thích đề bài", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Giải thích ngắn gọn đề bài."));
                 if (hasCode) {
-                    actions.add(new AiQuickAction("Kiểm tra lỗi code", AiChatIntent.DEBUG_CODE, "DEBUG", "Hãy kiểm tra lỗi trong đoạn code này."));
+                    actions.add(new AiQuickAction("Kiểm tra lỗi code", AiChatIntent.DEBUG_CODE, "DEBUG", "Chỉ ra lỗi quan trọng nhất trong code."));
                 }
             } else if (currentMode == AiChatMode.DEBUG) {
-                actions.add(new AiQuickAction("Đánh giá code", AiChatIntent.REVIEW_CODE, "REVIEW", "Đánh giá chất lượng và tối ưu code này giúp tôi."));
-                actions.add(new AiQuickAction("Phân tích độ phức tạp", AiChatIntent.ANALYZE_COMPLEXITY, "COMPLEXITY", "Phân tích độ phức tạp thời gian và không gian của code này."));
+                actions.add(new AiQuickAction("Đánh giá code", AiChatIntent.REVIEW_CODE, "REVIEW", "Đánh giá ngắn gọn code này."));
+                actions.add(new AiQuickAction("Phân tích độ phức tạp", AiChatIntent.ANALYZE_COMPLEXITY, "COMPLEXITY", "Phân tích Big-O của code."));
                 if (canAskHint) {
-                    actions.add(new AiQuickAction("Cho tôi gợi ý", AiChatIntent.GIVE_HINT, "HINT", "Cho tôi xin một gợi ý để sửa code."));
+                    actions.add(new AiQuickAction("Cho tôi gợi ý", AiChatIntent.GIVE_HINT, "HINT", "Gợi ý một cách sửa code."));
                 }
             } else if (currentMode == AiChatMode.REVIEW) {
-                actions.add(new AiQuickAction("Phân tích độ phức tạp", AiChatIntent.ANALYZE_COMPLEXITY, "COMPLEXITY", "Phân tích độ phức tạp Big-O của code."));
-                actions.add(new AiQuickAction("Giải thích hướng giải tối ưu", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Giải thích phương pháp tối ưu hơn cho bài này."));
+                actions.add(new AiQuickAction("Phân tích độ phức tạp", AiChatIntent.ANALYZE_COMPLEXITY, "COMPLEXITY", "Phân tích Big-O của code."));
+                actions.add(new AiQuickAction("Giải thích hướng tối ưu", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Giải thích ngắn gọn hướng tối ưu."));
             } else if (currentMode == AiChatMode.COMPLEXITY) {
-                actions.add(new AiQuickAction("Tối ưu hóa code", AiChatIntent.REVIEW_CODE, "REVIEW", "Hãy review và đề xuất tối ưu code này."));
-                actions.add(new AiQuickAction("Gợi ý bước tiếp theo", AiChatIntent.SUGGEST_NEXT_STEP, "NEXT_STEP", "Bước tiếp theo tôi cần làm gì để cải thiện code?"));
+                actions.add(new AiQuickAction("Tối ưu code", AiChatIntent.REVIEW_CODE, "REVIEW", "Đề xuất một cách tối ưu code."));
+                actions.add(new AiQuickAction("Bước tiếp theo", AiChatIntent.SUGGEST_NEXT_STEP, "NEXT_STEP", "Tôi nên cải thiện gì tiếp theo?"));
             } else if (currentMode == AiChatMode.EXPLAIN) {
                 if (canAskHint) {
-                    actions.add(new AiQuickAction("Cho tôi gợi ý", AiChatIntent.GIVE_HINT, "HINT", "Gợi ý cho tôi hướng bắt đầu code."));
+                    actions.add(new AiQuickAction("Cho tôi gợi ý", AiChatIntent.GIVE_HINT, "HINT", "Gợi ý hướng bắt đầu."));
                 }
-                actions.add(new AiQuickAction("Gợi ý bước tiếp theo", AiChatIntent.SUGGEST_NEXT_STEP, "NEXT_STEP", "Tôi cần làm gì tiếp theo để giải quyết bài này?"));
+                actions.add(new AiQuickAction("Bước tiếp theo", AiChatIntent.SUGGEST_NEXT_STEP, "NEXT_STEP", "Tôi cần làm gì tiếp theo?"));
             } else if (currentMode == AiChatMode.NEXT_STEP) {
                 if (canAskHint) {
-                    actions.add(new AiQuickAction("Cho tôi gợi ý", AiChatIntent.GIVE_HINT, "HINT", "Cho tôi gợi ý chi tiết hơn về bước này."));
+                    actions.add(new AiQuickAction("Cho tôi gợi ý", AiChatIntent.GIVE_HINT, "HINT", "Gợi ý rõ hơn về bước này."));
                 }
-                actions.add(new AiQuickAction("Giải thích lý thuyết", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Giải thích rõ hơn về thuật toán cần dùng."));
+                actions.add(new AiQuickAction("Giải thích lý thuyết", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Giải thích ngắn gọn thuật toán cần dùng."));
             } else { // SOLUTION or other
-                actions.add(new AiQuickAction("Phân tích độ phức tạp", AiChatIntent.ANALYZE_COMPLEXITY, "COMPLEXITY", "Phân tích độ phức tạp của giải pháp này."));
-                actions.add(new AiQuickAction("Đánh giá code", AiChatIntent.REVIEW_CODE, "REVIEW", "Đánh giá chất lượng của giải pháp."));
+                actions.add(new AiQuickAction("Phân tích độ phức tạp", AiChatIntent.ANALYZE_COMPLEXITY, "COMPLEXITY", "Phân tích Big-O của giải pháp."));
+                actions.add(new AiQuickAction("Đánh giá code", AiChatIntent.REVIEW_CODE, "REVIEW", "Đánh giá ngắn gọn giải pháp."));
             }
         } else {
             // THEORY or QUIZ suggestions
             if (currentMode == AiChatMode.EXPLAIN) {
-                actions.add(new AiQuickAction("Cho tôi ví dụ thực tế", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Hãy cho tôi một ví dụ thực tế minh họa cho kiến thức này."));
-                actions.add(new AiQuickAction("Tôi cần làm gì tiếp theo?", AiChatIntent.SUGGEST_NEXT_STEP, "NEXT_STEP", "Tôi nên học hoặc làm gì tiếp theo?"));
+                actions.add(new AiQuickAction("Ví dụ thực tế", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Cho tôi một ví dụ thực tế ngắn."));
+                actions.add(new AiQuickAction("Bước tiếp theo", AiChatIntent.SUGGEST_NEXT_STEP, "NEXT_STEP", "Tôi nên học gì tiếp theo?"));
             } else {
-                actions.add(new AiQuickAction("Giải thích lý thuyết", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Giải thích lại lý thuyết của bài học này giúp tôi."));
-                actions.add(new AiQuickAction("Gợi ý câu hỏi ôn tập", AiChatIntent.SUGGEST_NEXT_STEP, "NEXT_STEP", "Gợi ý cho tôi một câu hỏi ôn tập về bài học."));
+                actions.add(new AiQuickAction("Giải thích lý thuyết", AiChatIntent.EXPLAIN_PROBLEM, "EXPLAIN", "Giải thích ngắn gọn bài học."));
+                actions.add(new AiQuickAction("Câu hỏi ôn tập", AiChatIntent.SUGGEST_NEXT_STEP, "NEXT_STEP", "Cho tôi một câu hỏi ôn tập."));
             }
         }
 

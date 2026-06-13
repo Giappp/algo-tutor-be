@@ -8,6 +8,8 @@ import org.rap.algotutorbe.submission.service.SubmissionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 /**
  * Submission history endpoints.
  * Submission creation is handled by JudgeController (POST /judge/submit).
@@ -20,8 +22,15 @@ public class SubmissionController {
 
     @GetMapping("/{lessonSlug}")
     public ResponseEntity<ApiResponse<?>> getSubmissionOrHistory(@PathVariable String lessonSlug) {
-        var res = submissionService.getSubmissionsByLessonSlug(lessonSlug);
-        return ResponseEntity.ok(ApiResponse.buildSuccess(res));
+        UUID submissionId;
+        try {
+            submissionId = UUID.fromString(lessonSlug);
+        } catch (IllegalArgumentException ignored) {
+            return ResponseEntity.ok(ApiResponse.buildSuccess(
+                    submissionService.getSubmissionsByLessonSlug(lessonSlug)
+            ));
+        }
+        return ResponseEntity.ok(ApiResponse.buildSuccess(submissionService.getSubmissionDetail(submissionId)));
     }
 
     @GetMapping

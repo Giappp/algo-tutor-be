@@ -26,4 +26,10 @@ public class SubmissionDetail extends BaseEntity {
     private Integer time;
 
     private Integer memory;
+
+    @Column(columnDefinition = "TEXT")
+    private String stdout;
+
+    @Column(columnDefinition = "TEXT")
+    private String stderr;
 }

@@ -3,6 +3,10 @@
 AlgoTutor is a smart online learning platform that combines algorithmic theory with hands-on coding through specialized
 learning roadmaps. It guides learners systematically from foundational concepts to advanced problem-solving.
 
+## API Integration Docs
+
+- [Judge API - FE Alignment](JUDGE_FE_ALIGNMENT.md)
+
 # Features
 
 ## Specialized Roadmaps & Knowledge Isolation

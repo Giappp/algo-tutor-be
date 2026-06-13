@@ -47,8 +47,8 @@ public class AiLessonChatService {
     private static final int MAX_TITLE_LENGTH = 255;
     private static final int MAX_CODING_HINTS = 5;
 
-    private static final String DEFAULT_CONVERSATION_TITLE = "New Conversation";
-    private static final String DEFAULT_AI_ASSISTANT_TITLE = "New AI Assistant Chat";
+    private static final String DEFAULT_CONVERSATION_TITLE = "Cuộc trò chuyện mới";
+    private static final String DEFAULT_AI_ASSISTANT_TITLE = "Trợ lý AI";
     private static final String BOOTSTRAP_MODE = "BOOTSTRAP";
     private static final String HINT_MODE = AiChatMode.HINT.name();
 
@@ -518,28 +518,16 @@ public class AiLessonChatService {
     private String buildOnboardingMessage(Lesson lesson) {
         if (lesson == null) {
             return """
-                    Xin chào, mình là AlgoTutor AI.
-                    
-                    Mình có thể giúp bạn:
-                    - Giải thích kiến thức thuật toán
-                     - Gợi ý hướng giải từng bước
-                    - Kiểm tra và debug code
-                    - Phân tích độ phức tạp
-                    
-                    Bạn muốn bắt đầu với phần nào?
+                    Mình là AlgoTutor AI. Mình có thể giải thích bài, gợi ý từng bước, kiểm tra code hoặc phân tích độ phức tạp.
+
+                    Bạn cần hỗ trợ gì?
                     """;
         }
 
         return """
                 Bạn đang học bài "%s".
-                
-                Mình có thể hỗ trợ bạn theo từng bước:
-                - Giải thích lại nội dung bài học
-                - Đưa gợi ý nhẹ trước, không tiết lộ lời giải ngay
-                - Kiểm tra code nếu bạn gửi lên
-                - Phân tích độ phức tạp và edge cases
-                
-                Bạn muốn mình hỗ trợ theo hướng nào?
+
+                Mình có thể giải thích bài, gợi ý từng bước, kiểm tra code hoặc phân tích độ phức tạp. Bạn cần hỗ trợ gì?
                 """.formatted(safeTitle(lesson.getTitle()));
     }
 

@@ -11,12 +11,19 @@ public record JudgeResponse(
         String compilationError,
         boolean progressUpdated
 ) {
-    public record Summary(int passed, int total, int failed) {
+    public record Summary(int passed, int total, int failed, int executed) {
     }
 
-    public record Performance(Integer totalTimeMs, Integer maxMemoryKb) {
+    public record Performance(Integer maxTimeMs, Integer maxMemoryKb) {
     }
 
-    public record TestCaseResult(int index, String status, Integer timeMs, Integer memoryKb, String actualOutput) {
+    public record TestCaseResult(
+            int index,
+            String status,
+            Integer timeMs,
+            Integer memoryKb,
+            String stdout,
+            String stderr
+    ) {
     }
 }

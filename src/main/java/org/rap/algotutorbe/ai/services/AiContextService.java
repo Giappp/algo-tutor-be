@@ -46,12 +46,12 @@ public class AiContextService {
             context.append("[FAILED_TEST_CASES]\n");
             int limit = Math.min(MAX_FAILED_TEST_CASES, request.failedTestCases().size());
             for (int i = 0; i < limit; i++) {
-                context.append("Test Case %d: %s%n".formatted(
+                context.append("Testcase %d: %s%n".formatted(
                         i + 1,
                         truncate(request.failedTestCases().get(i), MAX_FAILED_TEST_CASE_LENGTH)));
             }
             if (request.failedTestCases().size() > limit) {
-                context.append("... %d more failed test case(s) omitted.\n".formatted(
+                context.append("... đã lược bớt %d testcase lỗi.\n".formatted(
                         request.failedTestCases().size() - limit));
             }
             context.append("[/FAILED_TEST_CASES]\n\n");
@@ -74,16 +74,16 @@ public class AiContextService {
         if (value == null || value.length() <= maxLength) {
             return value;
         }
-        return value.substring(0, maxLength) + "\n...[truncated]";
+        return value.substring(0, maxLength) + "\n...[đã rút gọn]";
     }
 
     private void buildLesson(Lesson lesson, StringBuilder context) {
         if (lesson instanceof TheoryLesson theoryLesson) {
             context.append("""
                     [LESSON_CONTEXT]
-                    Title: %s
-                    Difficulty: %s
-                    Content:
+                    Tiêu đề: %s
+                    Độ khó: %s
+                    Nội dung:
                     %s
                     [/LESSON_CONTEXT]
                     
@@ -95,11 +95,11 @@ public class AiContextService {
         } else if (lesson instanceof CodingLesson codingLesson) {
             context.append("""
                     [LESSON_CONTEXT]
-                    Title: %s
-                    Difficulty: %s
-                    Statement:
+                    Tiêu đề: %s
+                    Độ khó: %s
+                    Đề bài:
                     %s
-                    Constraints:
+                    Ràng buộc:
                     %s
                     [/LESSON_CONTEXT]
                     """.formatted(

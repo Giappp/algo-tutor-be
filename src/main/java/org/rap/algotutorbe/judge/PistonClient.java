@@ -84,7 +84,7 @@ public class PistonClient {
                 stdin != null ? stdin : "",
                 runTimeoutMs,
                 compileTimeoutMs,
-                memoryLimitMb
+                Math.multiplyExact(memoryLimitMb, 1024 * 1024)
         );
     }
 

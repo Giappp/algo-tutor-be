@@ -8,7 +8,11 @@ import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.submission.dto.SubmissionDetailResponse;
 import org.rap.algotutorbe.submission.dto.SubmissionResponse;
 import org.rap.algotutorbe.submission.entities.Submission;
+import org.rap.algotutorbe.submission.entities.SubmissionDetail;
 import org.rap.algotutorbe.submission.entities.Verdict;
+
+import java.util.Comparator;
+import java.util.List;
 
 @Mapper(config = GlobalMapperConfig.class)
 public interface SubmissionMapper {
@@ -23,6 +27,27 @@ public interface SubmissionMapper {
         return verdict != null ? verdict.toApiValue() : null;
     }
 
+    @Named("detailsToTestCases")
+    default List<SubmissionDetailResponse.TestCaseResult> detailsToTestCases(List<SubmissionDetail> details) {
+        if (details == null) {
+            return List.of();
+        }
+        return details.stream()
+                .sorted(Comparator.comparing(
+                        detail -> detail.getTestcase().getSortOrder(),
+                        Comparator.nullsLast(Integer::compareTo)
+                ))
+                .map(detail -> new SubmissionDetailResponse.TestCaseResult(
+                        detail.getTestcase().getSortOrder(),
+                        verdictToApiValue(detail.getVerdict()),
+                        detail.getTime(),
+                        detail.getMemory(),
+                        detail.getStdout(),
+                        detail.getStderr()
+                ))
+                .toList();
+    }
+
     @Mapping(target = "language", source = "language", qualifiedByName = "languageToApiValue")
     @Mapping(target = "status", source = "verdict", qualifiedByName = "verdictToApiValue")
     @Mapping(target = "submittedAt", source = "createdAt")
@@ -34,5 +59,6 @@ public interface SubmissionMapper {
     @Mapping(target = "passedTestCases", source = "submission.passedTestcases")
     @Mapping(target = "totalTestCases", source = "submission.totalTestcases")
     @Mapping(target = "submittedAt", source = "submission.createdAt")
+    @Mapping(target = "testCases", source = "submission.submissionDetails", qualifiedByName = "detailsToTestCases")
     SubmissionDetailResponse toDetailResponse(Submission submission);
 }

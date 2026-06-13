@@ -8,7 +8,7 @@ public record PistonStage(
         String stdout,
         String stderr,
         String output,
-        int code,
+        Integer code,
         String signal,
         @JsonProperty("memory") Integer memory,
         @JsonProperty("cpu_time") Integer cpuTime,

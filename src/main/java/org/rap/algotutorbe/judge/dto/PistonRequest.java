@@ -14,7 +14,7 @@ public record PistonRequest(
         int runTimeout,
         @JsonProperty("compile_timeout")
         int compileTimeout,
-        @JsonProperty("memory_limit_mb")
-        int memoryLimitMb
+        @JsonProperty("run_memory_limit")
+        int runMemoryLimitBytes
 ) {
 }

@@ -91,7 +91,7 @@ public class JudgeService extends BaseService {
             return emptyResponse();
         }
 
-        JudgingResult result = judgeTestCases(language, request.code(), lesson, sampleTestcases, null);
+        JudgingResult result = judgeTestCases(language, request.code(), lesson, sampleTestcases, false, null);
 
         return toRunResponse(result);
     }
@@ -138,6 +138,7 @@ public class JudgeService extends BaseService {
                 code,
                 lesson,
                 testcases,
+                true,
                 (testcase, testCaseResult, completed) ->
                         saveDetailAndNotify(submissionId, testcase, testCaseResult, completed)
         );
@@ -150,13 +151,14 @@ public class JudgeService extends BaseService {
             String code,
             CodingLesson lesson,
             List<Testcase> testcases,
+            boolean stopOnFailure,
             TestCaseResultListener listener
     ) {
         int maxTimeMs = 0;
         int maxMemoryKb = 0;
         int passedCount = 0;
         Verdict finalVerdict = Verdict.ACCEPTED;
-        String compileError = null;
+        String compilationError = null;
 
         List<JudgeResponse.TestCaseResult> responseResults = new ArrayList<>();
 
@@ -171,20 +173,23 @@ public class JudgeService extends BaseService {
 
             if (result.verdict() == Verdict.ACCEPTED) {
                 passedCount++;
-            } else {
+            } else if (finalVerdict == Verdict.ACCEPTED) {
                 finalVerdict = result.verdict();
             }
 
             if (result.verdict() == Verdict.COMPILATION_ERROR) {
-                compileError = result.output();
+                compilationError = result.stderr();
             }
 
             responseResults.add(toHttpTestCaseResult(index, result));
 
-            boolean completed = isLastTestcase || result.verdict() != Verdict.ACCEPTED;
+            boolean mustStop = result.verdict() == Verdict.COMPILATION_ERROR
+                    || result.verdict() == Verdict.SYSTEM_ERROR
+                    || (stopOnFailure && result.verdict() != Verdict.ACCEPTED);
+            boolean completed = isLastTestcase || mustStop;
             notifyListener(listener, testcase, result, completed);
 
-            if (result.verdict() != Verdict.ACCEPTED) {
+            if (mustStop) {
                 break;
             }
         }
@@ -195,7 +200,7 @@ public class JudgeService extends BaseService {
                 testcases.size(),
                 maxTimeMs,
                 maxMemoryKb,
-                compileError,
+                compilationError,
                 responseResults
         );
     }
@@ -210,7 +215,7 @@ public class JudgeService extends BaseService {
             String stdin = readTestcaseFile(lesson, testcase.getInputFileUrl());
             String expectedOutput = readTestcaseFile(lesson, testcase.getOutputFileUrl());
 
-            JudgeLimits limits = resolveLimits(lesson);
+            JudgeLimits limits = resolveLimits(language, lesson);
 
             PistonResponse response = pistonClient.executeRaw(
                     language,
@@ -226,6 +231,7 @@ public class JudgeService extends BaseService {
                         Verdict.SYSTEM_ERROR,
                         0,
                         0,
+                        "",
                         "No response from judging engine"
                 );
             }
@@ -235,7 +241,8 @@ public class JudgeService extends BaseService {
                         Verdict.COMPILATION_ERROR,
                         0,
                         0,
-                        response.compile() != null ? response.compile().stderr() : "Compilation error"
+                        "",
+                        stageError(response.compile(), "Compilation error")
                 );
             }
 
@@ -244,24 +251,37 @@ public class JudgeService extends BaseService {
                         Verdict.SYSTEM_ERROR,
                         0,
                         0,
+                        "",
                         "No execution result from judging engine"
                 );
             }
 
-            int timeMs = valueOrZero(response.run().cpuTime());
-            int memoryKb = valueOrZero(response.run().memory()) / 1024;
+            int timeMs = cleanTimeMs(language, response.run().cpuTime(), response.run().wallTime());
+            int memoryKb = bytesToKb(response.run().memory());
+            String stdout = cleanStream(response.run().stdout());
+            String stderr = stageError(response.run(), "");
 
-            if (response.run().code() != 0) {
+            if (hasStageFailed(response.run())) {
                 return new SingleTestCaseResult(
-                        Verdict.RUNTIME_ERROR,
+                        resolveFailureVerdict(response.run(), memoryKb, limits),
                         timeMs,
                         memoryKb,
-                        response.run().stderr()
+                        stdout,
+                        stderr
                 );
             }
 
-            String actualOutput = normalize(response.run().stdout());
-            Verdict verdict = actualOutput.equals(normalize(expectedOutput))
+            if (timeMs > limits.baseTimeLimitMs()) {
+                return new SingleTestCaseResult(
+                        Verdict.TIME_LIMIT_EXCEEDED,
+                        timeMs,
+                        memoryKb,
+                        stdout,
+                        stderr
+                );
+            }
+
+            Verdict verdict = normalizeForComparison(stdout).equals(normalizeForComparison(expectedOutput))
                     ? Verdict.ACCEPTED
                     : Verdict.WRONG_ANSWER;
 
@@ -269,7 +289,8 @@ public class JudgeService extends BaseService {
                     verdict,
                     timeMs,
                     memoryKb,
-                    actualOutput
+                    stdout,
+                    stderr
             );
         } catch (Exception e) {
             log.error("Judge testcase failed: {}", e.getMessage(), e);
@@ -278,7 +299,8 @@ public class JudgeService extends BaseService {
                     Verdict.SYSTEM_ERROR,
                     0,
                     0,
-                    ""
+                    "",
+                    "Unable to execute testcase"
             );
         }
     }
@@ -289,7 +311,8 @@ public class JudgeService extends BaseService {
                 result.verdict().name(),
                 result.timeMs(),
                 result.memoryKb(),
-                result.output()
+                result.stdout(),
+                result.stderr()
         );
     }
 
@@ -300,14 +323,15 @@ public class JudgeService extends BaseService {
                 new JudgeResponse.Summary(
                         result.passedCount(),
                         result.totalCount(),
-                        result.totalCount() - result.passedCount()
+                        result.testCaseResults().size() - result.passedCount(),
+                        result.testCaseResults().size()
                 ),
                 new JudgeResponse.Performance(
                         result.maxTimeMs(),
                         result.maxMemoryKb()
                 ),
                 result.testCaseResults(),
-                result.compileError(),
+                result.compilationError(),
                 false
         );
     }
@@ -353,6 +377,8 @@ public class JudgeService extends BaseService {
             detail.setVerdict(result.verdict());
             detail.setTime(result.timeMs());
             detail.setMemory(result.memoryKb());
+            detail.setStdout(result.stdout());
+            detail.setStderr(result.stderr());
 
             submissionDetailRepository.save(detail);
         } catch (Exception e) {
@@ -371,7 +397,10 @@ public class JudgeService extends BaseService {
                 .submissionId(submissionId)
                 .testCaseId(testcase.getId())
                 .status(result.verdict().name())
-                .runTimeMs(result.timeMs())
+                .timeMs(result.timeMs())
+                .memoryKb(result.memoryKb())
+                .stdout(result.stdout())
+                .stderr(result.stderr())
                 .sortOrder(testcase.getSortOrder() != null ? testcase.getSortOrder() : 0)
                 .isCompleted(completed)
                 .build();
@@ -394,7 +423,7 @@ public class JudgeService extends BaseService {
             submission.setTotalTestcases(result.totalCount());
             submission.setExecutionTime(result.maxTimeMs());
             submission.setMemoryUsed(result.maxMemoryKb());
-            submission.setCompileOutput(result.compileError());
+            submission.setCompileOutput(result.compilationError());
 
             submissionRepository.save(submission);
 
@@ -402,17 +431,22 @@ public class JudgeService extends BaseService {
                 lessonProgressUpdater.markLessonCompleted(user, lesson);
             }
 
-            notifyFinalResult(submissionId, result.finalVerdict());
+            notifyFinalResult(submissionId, result);
         } catch (Exception e) {
             log.error("Finalize submission failed: {}", e.getMessage(), e);
         }
     }
 
-    private void notifyFinalResult(UUID submissionId, Verdict verdict) {
+    private void notifyFinalResult(UUID submissionId, JudgingResult result) {
         TestCaseResultWebSocketResponse response = TestCaseResultWebSocketResponse.builder()
                 .type("FINAL_RESULT")
                 .submissionId(submissionId)
-                .status(verdict.name())
+                .status(result.finalVerdict().name())
+                .passed(result.passedCount())
+                .total(result.totalCount())
+                .maxTimeMs(result.maxTimeMs())
+                .maxMemoryKb(result.maxMemoryKb())
+                .compilationError(result.compilationError())
                 .isCompleted(true)
                 .build();
 
@@ -424,16 +458,20 @@ public class JudgeService extends BaseService {
         return Files.readString(path, StandardCharsets.UTF_8);
     }
 
-    private JudgeLimits resolveLimits(CodingLesson lesson) {
-        int timeLimitMs = lesson.getBaseTimeLimitMs() != null
+    private JudgeLimits resolveLimits(ProgrammingLanguage language, CodingLesson lesson) {
+        int baseTimeLimitMs = lesson.getBaseTimeLimitMs() != null
                 ? lesson.getBaseTimeLimitMs()
                 : DEFAULT_TIME_LIMIT_MS;
 
-        int memoryLimitMb = lesson.getBaseMemoryLimitMb() != null
+        int baseMemoryLimitMb = lesson.getBaseMemoryLimitMb() != null
                 ? lesson.getBaseMemoryLimitMb()
                 : DEFAULT_MEMORY_LIMIT_MB;
 
-        return new JudgeLimits(timeLimitMs, memoryLimitMb);
+        return new JudgeLimits(
+                baseTimeLimitMs,
+                language.calculatePistonRunTimeout(baseTimeLimitMs),
+                language.calculateMemoryLimit(baseMemoryLimitMb)
+        );
     }
 
     private User findCurrentUser() {
@@ -455,15 +493,56 @@ public class JudgeService extends BaseService {
     }
 
     private boolean hasCompileError(PistonResponse response) {
-        return response.compile() != null && response.compile().code() != 0;
+        return hasStageFailed(response.compile());
     }
 
-    private String normalize(String value) {
-        return value == null ? "" : value.replace("\r\n", "\n").trim();
+    private boolean hasStageFailed(org.rap.algotutorbe.judge.dto.PistonStage stage) {
+        return stage != null
+                && ((stage.code() != null && stage.code() != 0)
+                || (stage.signal() != null && !stage.signal().isBlank()));
     }
 
-    private int valueOrZero(Integer value) {
-        return value != null ? value : 0;
+    private String cleanStream(String value) {
+        return value == null ? "" : value.replace("\r\n", "\n");
+    }
+
+    private String normalizeForComparison(String value) {
+        return cleanStream(value).trim();
+    }
+
+    private String stageError(org.rap.algotutorbe.judge.dto.PistonStage stage, String fallback) {
+        if (stage == null) {
+            return fallback;
+        }
+        String stderr = cleanStream(stage.stderr());
+        if (!stderr.isBlank()) {
+            return stderr;
+        }
+        String output = cleanStream(stage.output());
+        return !output.isBlank() ? output : fallback;
+    }
+
+    private int cleanTimeMs(ProgrammingLanguage language, Integer cpuTime, Integer wallTime) {
+        int rawTimeMs = cpuTime != null ? cpuTime : wallTime != null ? wallTime : 0;
+        return rawTimeMs > 0 ? language.adjustExecutionTime(rawTimeMs) : 0;
+    }
+
+    private int bytesToKb(Integer bytes) {
+        return bytes == null || bytes <= 0 ? 0 : (int) Math.ceil(bytes / 1024.0);
+    }
+
+    private Verdict resolveFailureVerdict(
+            org.rap.algotutorbe.judge.dto.PistonStage run,
+            int memoryKb,
+            JudgeLimits limits
+    ) {
+        if (memoryKb >= limits.memoryLimitMb() * 1024) {
+            return Verdict.MEMORY_LIMIT_EXCEEDED;
+        }
+        if (run.signal() != null && !run.signal().isBlank()) {
+            return Verdict.fromPistonSignal(run.signal());
+        }
+        return Verdict.RUNTIME_ERROR;
     }
 
     private String submissionTopic(UUID submissionId) {
@@ -485,7 +564,7 @@ public class JudgeService extends BaseService {
         return new JudgeResponse(
                 null,
                 Verdict.ACCEPTED.name(),
-                new JudgeResponse.Summary(0, 0, 0),
+                new JudgeResponse.Summary(0, 0, 0, 0),
                 new JudgeResponse.Performance(0, 0),
                 List.of(),
                 null,
@@ -499,6 +578,7 @@ public class JudgeService extends BaseService {
     }
 
     private record JudgeLimits(
+            int baseTimeLimitMs,
             int timeLimitMs,
             int memoryLimitMb
     ) {
@@ -508,7 +588,8 @@ public class JudgeService extends BaseService {
             Verdict verdict,
             int timeMs,
             int memoryKb,
-            String output
+            String stdout,
+            String stderr
     ) {
     }
 
@@ -518,7 +599,7 @@ public class JudgeService extends BaseService {
             int totalCount,
             int maxTimeMs,
             int maxMemoryKb,
-            String compileError,
+            String compilationError,
             List<JudgeResponse.TestCaseResult> testCaseResults
     ) {
     }

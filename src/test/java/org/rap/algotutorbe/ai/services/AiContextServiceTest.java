@@ -52,9 +52,9 @@ class AiContextServiceTest {
         String context = aiContextService.buildContext(request);
 
         assertThat(context).contains("[LESSON_CONTEXT]");
-        assertThat(context).contains("Title: Binary Search");
-        assertThat(context).contains("Difficulty: EASY");
-        assertThat(context).contains("Content:\nBinary search is a fast search algorithm...");
+        assertThat(context).contains("Tiêu đề: Binary Search");
+        assertThat(context).contains("Độ khó: EASY");
+        assertThat(context).contains("Nội dung:\nBinary search is a fast search algorithm...");
     }
 
     @Test
@@ -84,12 +84,12 @@ class AiContextServiceTest {
         String context = aiContextService.buildContext(request);
 
         assertThat(context).contains("[LESSON_CONTEXT]");
-        assertThat(context).contains("Title: Two Sum");
-        assertThat(context).contains("Statement:\nGiven an array of integers...");
-        assertThat(context).contains("Constraints:\n[2 <= nums.length <= 10^4]");
+        assertThat(context).contains("Tiêu đề: Two Sum");
+        assertThat(context).contains("Đề bài:\nGiven an array of integers...");
+        assertThat(context).contains("Ràng buộc:\n[2 <= nums.length <= 10^4]");
         assertThat(context).contains("[JUDGE_RESULT]\nWRONG_ANSWER");
         assertThat(context).contains("[ERROR_MESSAGE]\nArrayOutOfBounds");
         assertThat(context).contains("[FAILED_TEST_CASES]");
-        assertThat(context).contains("Test Case 1: Input: [3,2,4], Target: 6 | Got: [0,0]");
+        assertThat(context).contains("Testcase 1: Input: [3,2,4], Target: 6 | Got: [0,0]");
     }
 }

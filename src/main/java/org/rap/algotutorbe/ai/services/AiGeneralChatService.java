@@ -40,7 +40,7 @@ public class AiGeneralChatService {
 
     private static final int MAX_MESSAGE_LENGTH = 5_000;
     private static final int MAX_TITLE_LENGTH = 255;
-    private static final String DEFAULT_CONVERSATION_TITLE = "New Conversation";
+    private static final String DEFAULT_CONVERSATION_TITLE = "Cuộc trò chuyện mới";
 
     private final AiPromptService aiPromptService;
     private final ConversationRepository conversationRepository;

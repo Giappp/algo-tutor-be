@@ -14,6 +14,7 @@ import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -49,17 +50,19 @@ public class AiPromptService {
     @PostConstruct
     public void init() {
         try {
-            baseSystemPrompt = StreamUtils.copyToString(baseSystemPromptResource.getInputStream(), StandardCharsets.UTF_8);
-            generalChatPrompt = StreamUtils.copyToString(generalChatPromptResource.getInputStream(), StandardCharsets.UTF_8);
-            generalAssistantPrompt = StreamUtils.copyToString(generalAssistantPromptResource.getInputStream(), StandardCharsets.UTF_8);
-            modePrompts.put(AiChatMode.GENERAL, "MODE: GENERAL");
-            modePrompts.put(AiChatMode.HINT, StreamUtils.copyToString(hintPromptResource.getInputStream(), StandardCharsets.UTF_8));
-            modePrompts.put(AiChatMode.EXPLAIN, StreamUtils.copyToString(explainPromptResource.getInputStream(), StandardCharsets.UTF_8));
-            modePrompts.put(AiChatMode.DEBUG, StreamUtils.copyToString(debugPromptResource.getInputStream(), StandardCharsets.UTF_8));
-            modePrompts.put(AiChatMode.REVIEW, StreamUtils.copyToString(reviewPromptResource.getInputStream(), StandardCharsets.UTF_8));
-            modePrompts.put(AiChatMode.COMPLEXITY, StreamUtils.copyToString(complexityPromptResource.getInputStream(), StandardCharsets.UTF_8));
-            modePrompts.put(AiChatMode.SOLUTION, StreamUtils.copyToString(solutionPromptResource.getInputStream(), StandardCharsets.UTF_8));
-            modePrompts.put(AiChatMode.NEXT_STEP, StreamUtils.copyToString(nextStepPromptResource.getInputStream(), StandardCharsets.UTF_8));
+            baseSystemPrompt = load(baseSystemPromptResource);
+            generalChatPrompt = load(generalChatPromptResource);
+            generalAssistantPrompt = load(generalAssistantPromptResource);
+
+            modePrompts.clear();
+            modePrompts.put(AiChatMode.GENERAL, "CHẾ ĐỘ: GENERAL");
+            modePrompts.put(AiChatMode.HINT, load(hintPromptResource));
+            modePrompts.put(AiChatMode.EXPLAIN, load(explainPromptResource));
+            modePrompts.put(AiChatMode.DEBUG, load(debugPromptResource));
+            modePrompts.put(AiChatMode.REVIEW, load(reviewPromptResource));
+            modePrompts.put(AiChatMode.COMPLEXITY, load(complexityPromptResource));
+            modePrompts.put(AiChatMode.SOLUTION, load(solutionPromptResource));
+            modePrompts.put(AiChatMode.NEXT_STEP, load(nextStepPromptResource));
             log.info("AI Prompt templates loaded successfully from resources.");
         } catch (IOException e) {
             log.error("Failed to load prompt templates from resources", e);
@@ -77,7 +80,7 @@ public class AiPromptService {
 
     public String buildSystemPrompt(AiChatMode mode, boolean lessonCompleted) {
         String modeInstruction = modePrompts.getOrDefault(mode, "");
-        return baseSystemPrompt + "\n" + modeInstruction + "\n" + buildLessonDisclosurePolicy(mode, lessonCompleted);
+        return joinSections(baseSystemPrompt, modeInstruction, buildLessonDisclosurePolicy(mode, lessonCompleted));
     }
 
     /**
@@ -90,22 +93,19 @@ public class AiPromptService {
     public String buildGeneralAssistantSystemPrompt(AiGeneralChatIntent intent) {
         String intentInstruction = switch (intent) {
             case CODING_HELP -> """
-                    
-                    Ngữ cảnh intent: CODING_HELP
-                    - Trả lời như một trợ giảng lập trình.
-                    - Hỏi thêm code, input, output, hoặc lỗi cụ thể nếu thiếu dữ liệu.
-                    - Ưu tiên giải thích nguyên nhân và hướng sửa, không bịa test case.
+                    Ý định: CODING_HELP
+                    - Ưu tiên nguyên nhân và hướng sửa ngắn gọn.
+                    - Nếu thiếu dữ liệu, hỏi thêm code, input/output hoặc lỗi cụ thể.
                     """;
             case PLATFORM_HELP -> """
-                    
-                    Ngữ cảnh intent: PLATFORM_HELP
-                    - Giải thích ngắn gọn theo vai trò trợ lý nền tảng AlgoTutor.
-                    - Nếu không chắc một tính năng có tồn tại, nói rõ và hướng học viên kiểm tra trên giao diện.
+                    Ý định: PLATFORM_HELP
+                    - Chỉ giải thích tính năng AlgoTutor đã biết chắc.
+                    - Nếu không chắc, nói rõ và hướng học viên kiểm tra trên giao diện.
                     """;
             case GENERAL, ROADMAP_ADVISORY -> "";
         };
 
-        return generalAssistantPrompt + intentInstruction;
+        return joinSections(generalAssistantPrompt, intentInstruction);
     }
 
     /**
@@ -115,19 +115,17 @@ public class AiPromptService {
     public String buildUserPrompt(AiChatRequest request, String context) {
         StringBuilder prompt = new StringBuilder();
 
-        // 1. Context Section (contains lesson instructions and judge compile results)
         if (context != null && !context.isBlank()) {
-            prompt.append(context);
+            prompt.append(context.trim()).append("\n\n");
         }
 
-        // 2. Submission State Section
         boolean hasCode = request.code() != null && !request.code().isBlank();
         if (hasCode) {
             prompt.append("[SUBMISSION_STATE]\n");
             if (request.language() != null && !request.language().isBlank()) {
-                prompt.append("Programming language: ").append(request.language()).append("\n");
+                prompt.append("Ngôn ngữ: ").append(request.language()).append("\n");
             }
-            prompt.append("User code:\n");
+            prompt.append("Code của học viên:\n");
             prompt.append("```");
             if (request.language() != null && !request.language().isBlank()) {
                 prompt.append(request.language());
@@ -136,11 +134,10 @@ public class AiPromptService {
             prompt.append("[/SUBMISSION_STATE]\n\n");
         }
 
-        // 3. User Query Section
         prompt.append("[USER_QUERY]\n");
-        prompt.append("Mode: ").append(request.mode()).append("\n");
+        prompt.append("Chế độ: ").append(request.mode()).append("\n");
         if (request.message() != null && !request.message().isBlank()) {
-            prompt.append("User message: ").append(request.message()).append("\n");
+            prompt.append("Yêu cầu: ").append(request.message().trim()).append("\n");
         }
         prompt.append("[/USER_QUERY]");
 
@@ -150,23 +147,30 @@ public class AiPromptService {
     private String buildLessonDisclosurePolicy(AiChatMode mode, boolean lessonCompleted) {
         if (mode == AiChatMode.SOLUTION) {
             return """
-                    
                     [DISCLOSURE_POLICY]
-                    Chế độ SOLUTION: được phép cung cấp lời giải hoàn chỉnh. Hãy giải thích ý tưởng trước, sau đó mới đưa code sạch.
+                    Được phép đưa lời giải hoàn chỉnh: nêu ý tưởng ngắn, code sạch, rồi độ phức tạp.
                     [/DISCLOSURE_POLICY]
                     """;
         }
 
-        String completionState = lessonCompleted ? "COMPLETED" : "NOT_COMPLETED";
+        String completionState = lessonCompleted ? "đã hoàn thành" : "chưa hoàn thành";
         return """
-                
                 [DISCLOSURE_POLICY]
-                Lesson progress: %s
-                - Chỉ chế độ SOLUTION mới được cung cấp lời giải hoặc toàn bộ code hoàn chỉnh.
-                - Nếu lesson chưa hoàn thành, hãy ưu tiên hướng dẫn từng bước, câu hỏi gợi mở, dry-run nhỏ, hoặc mã giả ngắn.
-                - Không viết lại toàn bộ hàm/class/chương trình cho học viên trong mode hiện tại.
-                - Code block chỉ dùng cho ví dụ cực ngắn hoặc pseudocode; tránh đưa cấu trúc lời giải đầy đủ.
+                Bài học: %s.
+                Không đưa lời giải hoặc code hoàn chỉnh. Chỉ hướng dẫn, dry-run hoặc mã giả ngắn.
                 [/DISCLOSURE_POLICY]
                 """.formatted(completionState);
+    }
+
+    private String load(Resource resource) throws IOException {
+        return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8).trim();
+    }
+
+    private String joinSections(String... sections) {
+        return Arrays.stream(sections)
+                .filter(section -> section != null && !section.isBlank())
+                .map(String::trim)
+                .reduce((left, right) -> left + "\n\n" + right)
+                .orElse("");
     }
 }

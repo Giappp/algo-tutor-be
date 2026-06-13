@@ -18,7 +18,13 @@ import java.util.UUID;
 @Repository
 public interface SubmissionRepository extends JpaRepository<Submission, UUID> {
 
-    @Query("SELECT s FROM Submission s LEFT JOIN FETCH s.codingLesson WHERE s.id = :id")
+    @Query("""
+            SELECT DISTINCT s FROM Submission s
+            LEFT JOIN FETCH s.codingLesson
+            LEFT JOIN FETCH s.submissionDetails d
+            LEFT JOIN FETCH d.testcase
+            WHERE s.id = :id
+            """)
     Optional<Submission> findByIdWithLesson(@Param("id") UUID id);
 
     @Query("""
