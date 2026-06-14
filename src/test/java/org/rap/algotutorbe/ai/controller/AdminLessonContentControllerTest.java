@@ -9,6 +9,9 @@ import org.rap.algotutorbe.ai.dto.AdminLessonContentGenerateResponse;
 import org.rap.algotutorbe.ai.services.AdminLessonContentGenerationService;
 import org.rap.algotutorbe.learning.enums.LessonType;
 import org.rap.algotutorbe.learning.dto.TheoryLessonRequestDTO;
+import org.rap.algotutorbe.learning.dto.QuizChoiceDTO;
+import org.rap.algotutorbe.learning.dto.QuizQuestionDTO;
+import org.rap.algotutorbe.learning.models.QuestionType;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -65,5 +68,34 @@ class AdminLessonContentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"prompt\":\"  \"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void generateContent_shouldReturnQuizQuestionsAsArray() throws Exception {
+        AdminLessonContentGenerateResponse response = new AdminLessonContentGenerateResponse(
+                32L,
+                LessonType.QUIZ,
+                List.of(new QuizQuestionDTO(
+                        "What is random access complexity?",
+                        QuestionType.SINGLE_CHOICE,
+                        1,
+                        null,
+                        1,
+                        List.of(
+                                new QuizChoiceDTO("a", "O(1)", true, null),
+                                new QuizChoiceDTO("b", "O(n)", false, null)))),
+                new AdminLessonContentGenerateResponse.GenerationContext(
+                        10L, "Data Structures", 20L, "Arrays", List.of("Array Quiz (QUIZ)")),
+                100,
+                50);
+        when(generationService.generate(eq(32L), any())).thenReturn(response);
+
+        mockMvc.perform(post("/admin/ai/lessons/32/generate-content")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"provider\":\"GEMINI\",\"prompt\":\"Generate questions\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.lessonType").value("QUIZ"))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content[0].question").value("What is random access complexity?"));
     }
 }

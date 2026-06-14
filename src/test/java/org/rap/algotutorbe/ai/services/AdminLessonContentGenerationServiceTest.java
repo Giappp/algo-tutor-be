@@ -12,12 +12,15 @@ import org.rap.algotutorbe.learning.enums.Difficulty;
 import org.rap.algotutorbe.learning.enums.LessonType;
 import org.rap.algotutorbe.learning.enums.Level;
 import org.rap.algotutorbe.learning.dto.TheoryLessonRequestDTO;
+import org.rap.algotutorbe.learning.dto.QuizQuestionDTO;
 import org.rap.algotutorbe.learning.models.LearningPath;
+import org.rap.algotutorbe.learning.models.QuizLesson;
 import org.rap.algotutorbe.learning.models.TheoryLesson;
 import org.rap.algotutorbe.learning.models.Topic;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -109,5 +112,41 @@ class AdminLessonContentGenerationServiceTest {
                 .isInstanceOf(AppException.class)
                 .extracting("error")
                 .isEqualTo(org.rap.algotutorbe.common.errors.ErrorCode.INVALID_AI_GENERATED_CONTENT);
+    }
+
+    @Test
+    void generate_shouldReturnOnlyQuestionsForQuizLesson() {
+        QuizLesson quiz = new QuizLesson();
+        quiz.setId(31L);
+        quiz.setTitle("Array Quiz");
+        quiz.setType(LessonType.QUIZ);
+        quiz.setDifficulty(Difficulty.EASY);
+        quiz.setDisplayOrder(2);
+        quiz.setPassingScore(70);
+        quiz.setTimeLimitMinutes(15);
+        quiz.setTopic(lesson.getTopic());
+        quiz.setQuestions(List.of());
+        lesson.getTopic().getLessons().add(quiz);
+
+        when(lessonRepository.findById(31L)).thenReturn(Optional.of(quiz));
+        when(aiLlmExecutor.callWithFallback(eq("GEMINI"), anyList(), eq(null)))
+                .thenReturn(new AiLlmExecutor.ChatResponseWithTokens("""
+                        ## Question 1
+                        What is random access complexity?
+                        - [x] O(1)
+                        - [ ] O(n)
+                        > Explanation: Arrays support direct indexing.
+                        """, 100, 50));
+
+        AdminLessonContentGenerateResponse response = service.generate(
+                31L,
+                new AdminLessonContentGenerateRequest("GEMINI", "Generate one question"));
+
+        assertThat(response.content()).isInstanceOf(List.class);
+        assertThat((List<?>) response.content())
+                .hasSize(1)
+                .allSatisfy(question -> assertThat(question).isInstanceOf(QuizQuestionDTO.class));
+        QuizQuestionDTO question = (QuizQuestionDTO) ((List<?>) response.content()).getFirst();
+        assertThat(question.question()).isEqualTo("What is random access complexity?");
     }
 }

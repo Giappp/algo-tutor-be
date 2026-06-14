@@ -3,7 +3,7 @@ package org.rap.algotutorbe.ai.services;
 import org.junit.jupiter.api.Test;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.learning.dto.CodingLessonRequestDTO;
-import org.rap.algotutorbe.learning.dto.QuizLessonRequestDTO;
+import org.rap.algotutorbe.learning.dto.QuizQuestionDTO;
 import org.rap.algotutorbe.learning.enums.Difficulty;
 import org.rap.algotutorbe.learning.enums.LessonType;
 import org.rap.algotutorbe.learning.models.CodingLesson;
@@ -65,13 +65,14 @@ class MarkdownLessonRequestBuilderTest {
                 - [ ] Access a missing index safely
                 """;
 
-        QuizLessonRequestDTO request = (QuizLessonRequestDTO) builder.build(lesson, markdown);
+        @SuppressWarnings("unchecked")
+        List<QuizQuestionDTO> questions = (List<QuizQuestionDTO>) builder.build(lesson, markdown);
 
-        assertThat(request.getQuestions()).hasSize(2);
-        assertThat(request.getQuestions().getFirst().question()).isEqualTo("What is random access complexity?");
-        assertThat(request.getQuestions().getFirst().choices()).hasSize(2);
-        assertThat(request.getQuestions().getFirst().type().name()).isEqualTo("SINGLE_CHOICE");
-        assertThat(request.getQuestions().get(1).type().name()).isEqualTo("MULTIPLE_CHOICE");
+        assertThat(questions).hasSize(2);
+        assertThat(questions.getFirst().question()).isEqualTo("What is random access complexity?");
+        assertThat(questions.getFirst().choices()).hasSize(2);
+        assertThat(questions.getFirst().type().name()).isEqualTo("SINGLE_CHOICE");
+        assertThat(questions.get(1).type().name()).isEqualTo("MULTIPLE_CHOICE");
     }
 
     @Test

@@ -9,7 +9,6 @@ import org.rap.algotutorbe.ai.dto.AdminLessonContentGenerateResponse;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.learning.enums.LessonType;
-import org.rap.algotutorbe.learning.dto.LessonRequestDTO;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.LearningPath;
 import org.rap.algotutorbe.learning.models.Lesson;
@@ -58,7 +57,7 @@ public class AdminLessonContentGenerationService {
 
         AiLlmExecutor.ChatResponseWithTokens llmResult =
                 aiLlmExecutor.callWithFallback(request.provider(), messages, null);
-        LessonRequestDTO generatedContent =
+        Object generatedContent =
                 markdownLessonRequestBuilder.build(lesson, llmResult.responseText());
 
         return new AdminLessonContentGenerateResponse(
@@ -184,17 +183,14 @@ public class AdminLessonContentGenerationService {
     }
 
     private Object quizLessonContent(QuizLesson lesson) {
-        return new QuizContent(
-                lesson.getPassingScore(),
-                lesson.getTimeLimitMinutes(),
-                lesson.getQuestions().stream()
-                        .map(question -> new QuizQuestionContent(
-                                question.getQuestion(),
-                                question.getType(),
-                                question.getPoints(),
-                                question.getExplanation(),
-                                question.getChoices()))
-                        .toList());
+        return lesson.getQuestions().stream()
+                .map(question -> new QuizQuestionContent(
+                        question.getQuestion(),
+                        question.getType(),
+                        question.getPoints(),
+                        question.getExplanation(),
+                        question.getChoices()))
+                .toList();
     }
 
     private String truncate(String value) {
@@ -217,9 +213,6 @@ public class AdminLessonContentGenerationService {
             Object examples,
             Object hints
     ) {
-    }
-
-    private record QuizContent(Integer passingScore, Integer timeLimitMinutes, Object questions) {
     }
 
     private record QuizQuestionContent(

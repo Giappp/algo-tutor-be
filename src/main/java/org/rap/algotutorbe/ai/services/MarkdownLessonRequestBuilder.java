@@ -5,7 +5,6 @@ import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.learning.dto.CodingLessonRequestDTO;
 import org.rap.algotutorbe.learning.dto.LessonRequestDTO;
 import org.rap.algotutorbe.learning.dto.QuizChoiceDTO;
-import org.rap.algotutorbe.learning.dto.QuizLessonRequestDTO;
 import org.rap.algotutorbe.learning.dto.QuizQuestionDTO;
 import org.rap.algotutorbe.learning.dto.TheoryLessonRequestDTO;
 import org.rap.algotutorbe.learning.models.CodingLesson;
@@ -27,23 +26,25 @@ public class MarkdownLessonRequestBuilder {
     private static final String INCORRECT_CHOICE_PREFIX = "- [ ] ";
     private static final String EXPLANATION_PREFIX = "> Explanation:";
 
-    public LessonRequestDTO build(Lesson lesson, String markdown) {
+    public Object build(Lesson lesson, String markdown) {
         if (markdown == null || markdown.isBlank()) {
             throw new AppException(ErrorCode.INVALID_AI_GENERATED_CONTENT);
         }
 
-        LessonRequestDTO request = switch (lesson) {
+        Object content = switch (lesson) {
             case TheoryLesson theory -> buildTheory(theory, markdown);
             case CodingLesson coding -> buildCoding(coding, markdown);
-            case QuizLesson quiz -> buildQuiz(quiz, markdown);
+            case QuizLesson ignored -> parseQuizQuestions(markdown);
             default -> throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
         };
 
-        request.setTitle(lesson.getTitle());
-        request.setType(lesson.getType());
-        request.setDifficulty(lesson.getDifficulty());
-        request.setDisplayOrder(lesson.getDisplayOrder());
-        return request;
+        if (content instanceof LessonRequestDTO request) {
+            request.setTitle(lesson.getTitle());
+            request.setType(lesson.getType());
+            request.setDifficulty(lesson.getDifficulty());
+            request.setDisplayOrder(lesson.getDisplayOrder());
+        }
+        return content;
     }
 
     private TheoryLessonRequestDTO buildTheory(TheoryLesson lesson, String markdown) {
@@ -62,14 +63,6 @@ public class MarkdownLessonRequestBuilder {
         request.setStarterCode(lesson.getStarterCode() == null ? null : new java.util.LinkedHashMap<>(lesson.getStarterCode()));
         request.setExamples(copy(lesson.getExamples()));
         request.setHints(copy(lesson.getHints()));
-        return request;
-    }
-
-    private QuizLessonRequestDTO buildQuiz(QuizLesson lesson, String markdown) {
-        QuizLessonRequestDTO request = new QuizLessonRequestDTO();
-        request.setPassingScore(lesson.getPassingScore());
-        request.setTimeLimitMinutes(lesson.getTimeLimitMinutes());
-        request.setQuestions(parseQuizQuestions(markdown));
         return request;
     }
 
