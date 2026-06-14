@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -161,12 +160,6 @@ public class LessonService extends BaseService {
     private QuizLesson createQuizLesson(QuizLessonRequestDTO request) {
         QuizLesson quiz = lessonMapper.toEntity(request);
         quiz.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
-        AtomicInteger index = new AtomicInteger(1);
-        quiz.getQuestions()
-                .forEach(question -> {
-                    question.setQuiz(quiz);
-                    question.setOrderIndex(index.getAndIncrement());
-                });
         return quiz;
     }
 

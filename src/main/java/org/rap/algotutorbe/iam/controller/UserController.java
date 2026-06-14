@@ -10,7 +10,6 @@ import org.rap.algotutorbe.iam.application.services.AuthService;
 import org.rap.algotutorbe.iam.application.services.UserEnrollmentService;
 import org.rap.algotutorbe.iam.dto.EnrollmentProgressResponse;
 import org.rap.algotutorbe.iam.dto.SessionResponse;
-import org.rap.algotutorbe.iam.dto.UserProfileResponse;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
 import org.rap.algotutorbe.learning.repositories.QuizAttemptRepository;
 import org.rap.algotutorbe.submission.repositories.SubmissionRepository;
@@ -36,22 +35,21 @@ public class UserController {
     private final QuizAttemptRepository quizAttemptRepository;
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserProfileResponse>> getCurrentUserProfile() {
-        UserProfileResponse profile = authService.getUserProfile();
-        return ResponseEntity.ok(ApiResponse.buildSuccess(profile));
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
+        UserResponse currentUser = authService.getUserInfo();
+        return ResponseEntity.ok(ApiResponse.buildSuccess(currentUser));
     }
 
     @GetMapping("/me/profile")
-    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUserProfile() {
         UserResponse user = authService.getUserInfo();
         return ResponseEntity.ok(ApiResponse.buildSuccess(user));
     }
 
     @PutMapping("/me/profile")
     public ResponseEntity<ApiResponse<String>> updateProfile(
-            @AuthenticationPrincipal SecurityUser principal,
             @RequestBody @Valid UpdateProfileRequest payload) {
-        authService.updateProfile(principal.getId(), payload);
+        authService.updateProfile(payload);
         return ResponseEntity.ok(ApiResponse.buildMessage("Profile updated successfully"));
     }
 

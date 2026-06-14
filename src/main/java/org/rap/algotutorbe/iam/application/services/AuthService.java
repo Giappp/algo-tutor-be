@@ -5,22 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.common.services.BaseService;
-import org.rap.algotutorbe.iam.application.dto.SignInRequest;
-import org.rap.algotutorbe.iam.application.dto.SignUpRequest;
-import org.rap.algotutorbe.iam.application.dto.TokenResponse;
-import org.rap.algotutorbe.iam.application.dto.UserResponse;
-import org.rap.algotutorbe.iam.application.dto.UpdateProfileRequest;
-import org.rap.algotutorbe.iam.application.dto.ChangePasswordRequest;
-import org.rap.algotutorbe.iam.dto.SessionResponse;
+import org.rap.algotutorbe.iam.application.dto.*;
 import org.rap.algotutorbe.iam.application.mapper.UserMapper;
 import org.rap.algotutorbe.iam.domain.model.RoleCode;
 import org.rap.algotutorbe.iam.domain.model.User;
-
-import java.util.List;
-import java.util.UUID;
 import org.rap.algotutorbe.iam.domain.repositories.RoleRepository;
 import org.rap.algotutorbe.iam.domain.repositories.UserRepository;
-import org.rap.algotutorbe.iam.dto.UserProfileResponse;
+import org.rap.algotutorbe.iam.dto.SessionResponse;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
 import org.rap.algotutorbe.iam.infrastructure.jwt.JwtUtil;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,6 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
@@ -125,16 +118,6 @@ public class AuthService extends BaseService {
         return response;
     }
 
-    public UserProfileResponse getUserProfile() {
-        User user = getCurrentUserOrThrow();
-        return new UserProfileResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                null
-        );
-    }
-
     private User getCurrentUserOrThrow() {
         return userRepository.findById(getCurrentUserIdOrThrow())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -145,7 +128,8 @@ public class AuthService extends BaseService {
         if (currentTokenStr != null) {
             try {
                 currentUuid = UUID.fromString(currentTokenStr);
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException ignored) {
+            }
         }
         final UUID finalCurrentUuid = currentUuid;
         return refreshTokenService.getActiveSessions(userId).stream()
@@ -155,7 +139,7 @@ public class AuthService extends BaseService {
                         rt.getDeviceInfo(),
                         rt.getCreatedAt(),
                         rt.getExpiryDate(),
-                        finalCurrentUuid != null && rt.getToken().equals(finalCurrentUuid)
+                        rt.getToken().equals(finalCurrentUuid)
                 ))
                 .toList();
     }
@@ -169,7 +153,7 @@ public class AuthService extends BaseService {
     }
 
     @org.springframework.transaction.annotation.Transactional
-    public void updateProfile(UUID userId, UpdateProfileRequest request) {
+    public void updateProfile(UpdateProfileRequest request) {
         User user = getCurrentUserOrThrow();
         if (!user.getUsername().equals(request.username()) && userRepository.existsByUsername(request.username())) {
             throw new AppException(ErrorCode.USERNAME_TAKEN);

@@ -36,6 +36,7 @@ public interface LessonMapper {
     @Mapping(target = "topic", ignore = true)
     @Mapping(target = "isPublished", ignore = true)
     @Mapping(target = "attempts", ignore = true)
+    @Mapping(target = "questions", ignore = true)
     QuizLesson toEntity(QuizLessonRequestDTO request);
 
     TheoryLessonResponseDTO toTheoryResponse(TheoryLesson lesson);
