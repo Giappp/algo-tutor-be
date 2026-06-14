@@ -111,6 +111,36 @@ class AdminAiQuizQuestionServiceTest {
     }
 
     @Test
+    void generateQuestions_shouldAcceptRawQuestionArrayAndAssignOrderIndex() {
+        stubQuizAndSource();
+        when(quizQuestionRepository.findByQuizIdOrderByOrderIndex(30L)).thenReturn(List.of());
+        when(aiLlmExecutor.callWithFallback(eq("GEMINI"), anyList(), eq(null)))
+                .thenReturn(new AiLlmExecutor.ChatResponseWithTokens(rawArrayJson(), 100, 30));
+
+        GenerateQuestionsFromSourcesResponse response = service.generateQuestions(30L, request(List.of(40L)));
+
+        assertThat(response.questions()).hasSize(1);
+        assertThat(response.questions().getFirst().orderIndex()).isEqualTo(1);
+        verify(aiLlmExecutor).callWithFallback(eq("GEMINI"), anyList(), eq(null));
+    }
+
+    @Test
+    void generateQuestions_shouldRemoveExplanationsWhenNotRequestedWithoutRepair() {
+        stubQuizAndSource();
+        when(quizQuestionRepository.findByQuizIdOrderByOrderIndex(30L)).thenReturn(List.of());
+        when(aiLlmExecutor.callWithFallback(eq("GEMINI"), anyList(), eq(null)))
+                .thenReturn(new AiLlmExecutor.ChatResponseWithTokens(rawArrayJson(), 100, 30));
+
+        GenerateQuestionsFromSourcesResponse response =
+                service.generateQuestions(30L, request(List.of(40L), false));
+
+        assertThat(response.questions().getFirst().explanation()).isNull();
+        assertThat(response.questions().getFirst().choices())
+                .allSatisfy(choice -> assertThat(choice.explanation()).isNull());
+        verify(aiLlmExecutor).callWithFallback(eq("GEMINI"), anyList(), eq(null));
+    }
+
+    @Test
     void generateQuestions_shouldRejectDuplicateSourceIdsBeforeCallingLlm() {
         when(lessonRepository.findById(30L)).thenReturn(Optional.of(quiz));
 
@@ -140,6 +170,10 @@ class AdminAiQuizQuestionServiceTest {
     }
 
     private GenerateQuestionsFromSourcesRequest request(List<Long> sourceIds) {
+        return request(sourceIds, true);
+    }
+
+    private GenerateQuestionsFromSourcesRequest request(List<Long> sourceIds, boolean includeExplanations) {
         return new GenerateQuestionsFromSourcesRequest(
                 sourceIds,
                 "Focus on concepts",
@@ -148,7 +182,22 @@ class AdminAiQuizQuestionServiceTest {
                 Set.of(QuestionType.SINGLE_CHOICE),
                 1,
                 2,
-                true);
+                includeExplanations);
+    }
+
+    private String rawArrayJson() {
+        return """
+                [{
+                  "question": "Why must binary search use sorted input?",
+                  "type": "SINGLE_CHOICE",
+                  "points": 2,
+                  "explanation": "Ordering makes discarding a half valid.",
+                  "choices": [
+                    {"text": "To decide which half can be discarded", "isCorrect": true, "explanation": "Correct"},
+                    {"text": "To allocate less memory", "isCorrect": false, "explanation": "Incorrect"}
+                  ]
+                }]
+                """;
     }
 
     private String validJson() {

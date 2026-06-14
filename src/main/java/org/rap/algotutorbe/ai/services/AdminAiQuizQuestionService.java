@@ -1,6 +1,8 @@
 package org.rap.algotutorbe.ai.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +45,9 @@ public class AdminAiQuizQuestionService {
             Pattern.compile("(?is)<(script|style)[^>]*>.*?</\\1>");
     private static final Pattern HTML_TAG = Pattern.compile("(?s)<[^>]+>");
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+    private static final TypeReference<List<GenerateQuestionsFromSourcesResponse.DraftQuestion>> QUESTION_LIST_TYPE =
+            new TypeReference<>() {
+            };
 
     private final LessonRepository lessonRepository;
     private final QuizQuestionRepository quizQuestionRepository;
@@ -77,7 +82,10 @@ public class AdminAiQuizQuestionService {
         try {
             questions = parseAndValidate(first.responseText(), request);
         } catch (AppException invalidFirstOutput) {
-            log.warn("Invalid generated quiz questions for quiz [{}]; attempting one repair", quizLessonId);
+            log.warn(
+                    "Invalid generated quiz questions for quiz [{}]; attempting one repair. reason={}",
+                    quizLessonId,
+                    validationFailureReason(invalidFirstOutput));
             result = aiLlmExecutor.callWithFallback(
                     providerName(request),
                     repairMessages(first.responseText(), request),
@@ -151,9 +159,9 @@ public class AdminAiQuizQuestionService {
         String systemPrompt = """
                 You generate grounded draft quiz questions for an algorithms learning platform.
                 Use only facts present in the supplied SOURCE blocks. Do not add outside knowledge.
-                Return only valid JSON matching this shape:
-                {"questions":[{"question":"...","type":"SINGLE_CHOICE","points":1,"orderIndex":1,
-                "explanation":"... or null","choices":[{"text":"...","isCorrect":true,"explanation":"... or null"}]}]}
+                Return only a valid JSON array matching this shape:
+                [{"question":"...","type":"SINGLE_CHOICE","points":1,
+                "explanation":"... or null","choices":[{"text":"...","isCorrect":true,"explanation":"... or null"}]}]
                 Do not wrap JSON in Markdown fences or include commentary.
                 """;
         String userPrompt = """
@@ -171,7 +179,7 @@ public class AdminAiQuizQuestionService {
                 - SINGLE_CHOICE must have exactly one correct choice.
                 - MULTIPLE_CHOICE must have at least two correct choices.
                 - points must be between %d and %d.
-                - orderIndex must run from 1 to %d.
+                - Do not include orderIndex; the backend assigns it.
 
                 %s
                 """.formatted(
@@ -185,7 +193,6 @@ public class AdminAiQuizQuestionService {
                 existingQuestions,
                 MIN_POINTS,
                 MAX_POINTS,
-                request.count(),
                 sourceContent);
         return List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt));
     }
@@ -193,7 +200,7 @@ public class AdminAiQuizQuestionService {
     private List<Message> repairMessages(String invalidOutput, GenerateQuestionsFromSourcesRequest request) {
         return List.of(
                 new SystemMessage("""
-                        Repair the supplied JSON quiz draft. Return only valid JSON with the same schema.
+                        Repair the supplied JSON quiz draft. Return only a valid JSON array with the same question schema.
                         Preserve grounded question meaning. Do not include Markdown or commentary.
                         """),
                 new UserMessage("""
@@ -215,52 +222,104 @@ public class AdminAiQuizQuestionService {
             String responseText,
             GenerateQuestionsFromSourcesRequest request) {
         try {
-            GeneratedPayload payload = objectMapper.readValue(stripJsonFence(responseText), GeneratedPayload.class);
-            validatePayload(payload, request);
-            return payload.questions();
-        } catch (JsonProcessingException | RuntimeException e) {
+            JsonNode root = objectMapper.readTree(stripJsonFence(responseText));
+            JsonNode questionsNode = root != null && root.isArray() ? root : root == null ? null : root.get("questions");
+            if (questionsNode == null || !questionsNode.isArray()) {
+                invalidGeneratedQuestions("response must be a JSON question array");
+            }
+
+            List<GenerateQuestionsFromSourcesResponse.DraftQuestion> questions =
+                    objectMapper.convertValue(questionsNode, QUESTION_LIST_TYPE);
+            questions = normalizeGeneratedQuestions(questions, request);
+            validateQuestions(questions, request);
+            return questions;
+        } catch (JsonProcessingException e) {
+            throw invalidGeneratedQuestionsException("response is not valid JSON", e);
+        } catch (RuntimeException e) {
             if (e instanceof AppException appException) {
                 throw appException;
             }
-            throw new AppException(ErrorCode.INVALID_AI_GENERATED_QUESTIONS, e);
+            throw invalidGeneratedQuestionsException("response does not match the question schema", e);
         }
     }
 
-    private void validatePayload(GeneratedPayload payload, GenerateQuestionsFromSourcesRequest request) {
-        if (payload == null || payload.questions() == null || payload.questions().size() != request.count()) {
-            invalidGeneratedQuestions();
+    private List<GenerateQuestionsFromSourcesResponse.DraftQuestion> normalizeGeneratedQuestions(
+            List<GenerateQuestionsFromSourcesResponse.DraftQuestion> questions,
+            GenerateQuestionsFromSourcesRequest request) {
+        if (questions == null) {
+            return null;
+        }
+
+        List<GenerateQuestionsFromSourcesResponse.DraftQuestion> normalized = new ArrayList<>();
+        for (int index = 0; index < questions.size(); index++) {
+            GenerateQuestionsFromSourcesResponse.DraftQuestion question = questions.get(index);
+            if (question == null) {
+                normalized.add(null);
+                continue;
+            }
+            List<GenerateQuestionsFromSourcesResponse.DraftChoice> choices = question.choices() == null
+                    ? null
+                    : question.choices().stream()
+                    .map(choice -> choice == null
+                            ? null
+                            : new GenerateQuestionsFromSourcesResponse.DraftChoice(
+                                    choice.text(),
+                                    choice.isCorrect(),
+                                    Boolean.TRUE.equals(request.includeExplanations()) ? choice.explanation() : null))
+                    .toList();
+            normalized.add(new GenerateQuestionsFromSourcesResponse.DraftQuestion(
+                    question.question(),
+                    question.type(),
+                    question.points(),
+                    index + 1,
+                    Boolean.TRUE.equals(request.includeExplanations()) ? question.explanation() : null,
+                    choices));
+        }
+        return normalized;
+    }
+
+    private void validateQuestions(
+            List<GenerateQuestionsFromSourcesResponse.DraftQuestion> questions,
+            GenerateQuestionsFromSourcesRequest request) {
+        if (questions == null || questions.size() != request.count()) {
+            invalidGeneratedQuestions("question count must equal " + request.count());
         }
 
         Set<String> questionTexts = new HashSet<>();
-        for (int index = 0; index < payload.questions().size(); index++) {
-            GenerateQuestionsFromSourcesResponse.DraftQuestion question = payload.questions().get(index);
-            if (question == null
-                    || isBlank(question.question())
-                    || question.type() == null
-                    || !request.questionTypes().contains(question.type())
-                    || question.points() == null
-                    || question.points() < MIN_POINTS
-                    || question.points() > MAX_POINTS
-                    || question.orderIndex() == null
-                    || question.orderIndex() != index + 1
-                    || question.choices() == null
-                    || question.choices().size() != request.choicesPerQuestion()
-                    || (!request.includeExplanations() && !isBlank(question.explanation()))) {
-                invalidGeneratedQuestions();
+        for (int index = 0; index < questions.size(); index++) {
+            GenerateQuestionsFromSourcesResponse.DraftQuestion question = questions.get(index);
+            int questionNumber = index + 1;
+            if (question == null) {
+                invalidGeneratedQuestions("question " + questionNumber + " is null");
+            }
+            if (isBlank(question.question())) {
+                invalidGeneratedQuestions("question " + questionNumber + " text is blank");
+            }
+            if (question.type() == null || !request.questionTypes().contains(question.type())) {
+                invalidGeneratedQuestions("question " + questionNumber + " type is not allowed");
+            }
+            if (question.points() == null || question.points() < MIN_POINTS || question.points() > MAX_POINTS) {
+                invalidGeneratedQuestions("question " + questionNumber + " points must be between "
+                        + MIN_POINTS + " and " + MAX_POINTS);
+            }
+            if (question.choices() == null || question.choices().size() != request.choicesPerQuestion()) {
+                invalidGeneratedQuestions("question " + questionNumber + " choices count must equal "
+                        + request.choicesPerQuestion());
             }
             if (!questionTexts.add(normalizeForComparison(question.question()))) {
-                invalidGeneratedQuestions();
+                invalidGeneratedQuestions("question " + questionNumber + " duplicates another question");
             }
 
             int correct = 0;
             Set<String> choices = new HashSet<>();
-            for (GenerateQuestionsFromSourcesResponse.DraftChoice choice : question.choices()) {
-                if (choice == null
-                        || isBlank(choice.text())
-                        || choice.isCorrect() == null
-                        || (!request.includeExplanations() && !isBlank(choice.explanation()))
-                        || !choices.add(normalizeForComparison(choice.text()))) {
-                    invalidGeneratedQuestions();
+            for (int choiceIndex = 0; choiceIndex < question.choices().size(); choiceIndex++) {
+                GenerateQuestionsFromSourcesResponse.DraftChoice choice = question.choices().get(choiceIndex);
+                if (choice == null || isBlank(choice.text()) || choice.isCorrect() == null) {
+                    invalidGeneratedQuestions("question " + questionNumber + " choice " + (choiceIndex + 1)
+                            + " is incomplete");
+                }
+                if (!choices.add(normalizeForComparison(choice.text()))) {
+                    invalidGeneratedQuestions("question " + questionNumber + " has duplicate choices");
                 }
                 if (Boolean.TRUE.equals(choice.isCorrect())) {
                     correct++;
@@ -268,7 +327,7 @@ public class AdminAiQuizQuestionService {
             }
             if ((question.type() == QuestionType.SINGLE_CHOICE && correct != 1)
                     || (question.type() == QuestionType.MULTIPLE_CHOICE && correct < 2)) {
-                invalidGeneratedQuestions();
+                invalidGeneratedQuestions("question " + questionNumber + " has invalid correct-choice count");
             }
         }
     }
@@ -327,8 +386,18 @@ public class AdminAiQuizQuestionService {
         return value == null || value.isBlank();
     }
 
-    private void invalidGeneratedQuestions() {
-        throw new AppException(ErrorCode.INVALID_AI_GENERATED_QUESTIONS);
+    private void invalidGeneratedQuestions(String reason) {
+        throw invalidGeneratedQuestionsException(reason, null);
+    }
+
+    private AppException invalidGeneratedQuestionsException(String reason, Throwable cause) {
+        return new AppException(
+                ErrorCode.INVALID_AI_GENERATED_QUESTIONS,
+                new IllegalArgumentException(reason, cause));
+    }
+
+    private String validationFailureReason(AppException exception) {
+        return exception.getCause() == null ? "unknown validation failure" : exception.getCause().getMessage();
     }
 
     private AiLlmExecutor.ChatResponseWithTokens sumUsage(
@@ -347,6 +416,4 @@ public class AdminAiQuizQuestionService {
     private record ContextBuildResult(String content, List<Long> truncatedSourceIds) {
     }
 
-    private record GeneratedPayload(List<GenerateQuestionsFromSourcesResponse.DraftQuestion> questions) {
-    }
 }
