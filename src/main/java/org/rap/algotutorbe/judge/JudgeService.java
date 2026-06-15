@@ -405,6 +405,15 @@ public class JudgeService extends BaseService {
                 .isCompleted(completed)
                 .build();
 
+        String topic = submissionTopic(submissionId);
+
+        log.info("Publishing testcase result to topic={}, testcaseId={}, status={}, completed={}",
+                topic,
+                testcase.getId(),
+                result.verdict(),
+                completed
+        );
+
         messagingTemplate.convertAndSend(submissionTopic(submissionId), response);
     }
 

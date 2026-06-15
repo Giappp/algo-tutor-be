@@ -9,11 +9,17 @@ import org.rap.algotutorbe.common.ratelimit.RateLimiter;
 import org.rap.algotutorbe.common.services.BaseService;
 import org.rap.algotutorbe.judge.dto.JudgeRequest;
 import org.rap.algotutorbe.judge.dto.JudgeResponse;
+import org.rap.algotutorbe.submission.dto.SubmissionDetailResponse;
+import org.rap.algotutorbe.submission.service.SubmissionService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/judge")
@@ -26,6 +32,7 @@ public class JudgeController extends BaseService {
 
     private final JudgeService judgeService;
     private final RateLimiter rateLimiter;
+    private final SubmissionService submissionService;
 
     /**
      * Run code against visible test cases only.
@@ -50,6 +57,17 @@ public class JudgeController extends BaseService {
             @Valid @RequestBody JudgeRequest request) {
         checkSubmitRateLimit();
         JudgeResponse response = judgeService.submit(request);
+        return ResponseEntity.ok(ApiResponse.buildSuccess(response));
+    }
+
+    /**
+     * Get the latest persisted state of a submission.
+     * Intended as a polling fallback when WebSocket updates are unavailable.
+     */
+    @GetMapping("/submissions/{submissionId}")
+    public ResponseEntity<ApiResponse<SubmissionDetailResponse>> getSubmission(
+            @PathVariable UUID submissionId) {
+        SubmissionDetailResponse response = submissionService.getSubmissionDetail(submissionId);
         return ResponseEntity.ok(ApiResponse.buildSuccess(response));
     }
 
