@@ -6,7 +6,6 @@ services:
     image: redis:7-alpine
     container_name: algotutor-redis
     restart: unless-stopped
-    # Bind cache port to localhost for security
     ports:
       - "127.0.0.1:6379:6379"
     healthcheck:
@@ -27,7 +26,6 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-ojuser}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-ojpass}
-    # Bind queue & management ports to localhost for security
     ports:
       - "127.0.0.1:5672:5672"
       - "127.0.0.1:15672:15672"
@@ -40,24 +38,35 @@ services:
       - algotutor-net
 
   # ==========================================
-  # Sandbox Code Runner: Piston (Judge API)
+  # Sandbox Code Runner: Piston / Judge API
   # ==========================================
   judge:
-    image: ghcr.io/engineer-man/piston
+    image: ghcr.io/engineer-man/piston:latest
     container_name: algotutor-judge
     restart: unless-stopped
     privileged: true
-    # No ports exposed to the host for safety.
-    # Backend accesses this judge container internally via 'algotutor-net' at http://judge:2000.
+
+    # Không expose ra internet.
+    # Backend truy cập nội bộ qua: http://judge:2000
+    expose:
+      - "2000"
+
     volumes:
+      # Lưu runtime đã cài: Java, Python, C++...
       - ./data/piston/packages:/piston/packages
+
+      # Lưu job tạm của Piston
+      - piston_jobs:/piston/jobs
+
     tmpfs:
       - /tmp:exec
+
     environment:
-      - PISTON_RUN_TIMEOUT=5000
-      - PISTON_COMPILE_TIMEOUT=11000
-      - PISTON_RUN_CPU_TIME=5000
-      - PISTON_COMPILE_CPU_TIME=11000
+      PISTON_RUN_TIMEOUT: 5000
+      PISTON_COMPILE_TIMEOUT: 11000
+      PISTON_RUN_CPU_TIME: 5000
+      PISTON_COMPILE_CPU_TIME: 11000
+
     networks:
       - algotutor-net
 
@@ -70,9 +79,10 @@ services:
       dockerfile: Dockerfile
     container_name: algotutor-backend
     restart: unless-stopped
+
     ports:
       - "127.0.0.1:8080:8080"
-    # Ensure databases and dependencies are healthy before booting the application
+
     depends_on:
       redis:
         condition: service_healthy
@@ -80,20 +90,32 @@ services:
         condition: service_healthy
       judge:
         condition: service_started
+
     env_file:
       - .env
+
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      # Override hostnames to match Docker service network names
-      - REDIS_HOST=redis
-      - RABBITMQ_HOST=rabbitmq
-      - PISTON_API_URL=http://judge:2000
-      - JUDGE_STORAGE_PATH=/app/algotutor/testcases
+      SPRING_PROFILES_ACTIVE: docker
+
+      # Docker service names
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+
+      # Piston Judge API internal URL
+      PISTON_API_URL: http://judge:2000
+
+      # Khớp với volume mount bên dưới
+      JUDGE_STORAGE_PATH: /algotutor/testcases
+
     volumes:
       - ./data/testcases:/algotutor/testcases
+
     networks:
       - algotutor-net
 
 networks:
   algotutor-net:
     driver: bridge
+
+volumes:
+  piston_jobs:
