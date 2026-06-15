@@ -48,6 +48,14 @@ public enum ErrorCode {
     CODING_LESSON_REQUIRED(4015, "errors.coding-lesson-required", HttpStatus.BAD_REQUEST),
     INVALID_QUIZ_QUESTION(4016, "errors.quiz-choice-invalid", HttpStatus.INTERNAL_SERVER_ERROR),
     LESSON_LOCKED(4017, "errors.lesson-locked", HttpStatus.FORBIDDEN),
+    VIDEO_LESSON_REQUIRED(4018, "errors.video-lesson-required", HttpStatus.BAD_REQUEST),
+    VIDEO_INVALID_TYPE(4019, "errors.video-invalid-type", HttpStatus.BAD_REQUEST),
+    VIDEO_INVALID_SIZE(4020, "errors.video-invalid-size", HttpStatus.BAD_REQUEST),
+    VIDEO_UPLOAD_NOT_FOUND(4021, "errors.video-upload-not-found", HttpStatus.NOT_FOUND),
+    VIDEO_UPLOAD_INCOMPLETE(4022, "errors.video-upload-incomplete", HttpStatus.BAD_REQUEST),
+    VIDEO_NOT_READY(4023, "errors.video-not-ready", HttpStatus.CONFLICT),
+    VIDEO_PROGRESS_INVALID(4024, "errors.video-progress-invalid", HttpStatus.BAD_REQUEST),
+    VIDEO_PROGRESS_MANAGED_AUTOMATICALLY(4025, "errors.video-progress-managed-automatically", HttpStatus.BAD_REQUEST),
 
     // Enroll Errors
     ALREADY_ENROLL(5000, "errors.already-enroll", HttpStatus.CONFLICT),

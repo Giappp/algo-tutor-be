@@ -4,16 +4,22 @@ import lombok.RequiredArgsConstructor;
 import org.rap.algotutorbe.common.errors.ErrorCode;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.common.services.BaseService;
+import org.rap.algotutorbe.common.services.S3Service;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
 import org.rap.algotutorbe.learning.dto.landing.CodingContentResponse;
 import org.rap.algotutorbe.learning.dto.landing.QuizContentResponse;
 import org.rap.algotutorbe.learning.dto.landing.TheoryContentResponse;
+import org.rap.algotutorbe.learning.dto.landing.VideoContentResponse;
+import org.rap.algotutorbe.learning.enums.VideoProcessingStatus;
 import org.rap.algotutorbe.learning.models.*;
 import org.rap.algotutorbe.learning.repositories.EnrollmentRepository;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +31,10 @@ public class LessonContentService extends BaseService {
     private final LessonRepository lessonRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final LearningAccessService learningAccessService;
+    private final S3Service s3Service;
+
+    @Value("${app.video.playback-url-expiration-minutes:30}")
+    private long playbackUrlExpirationMinutes;
 
     @Transactional(readOnly = true)
     public TheoryContentResponse getTheoryContent(String slug) {
@@ -122,6 +132,32 @@ public class LessonContentService extends BaseService {
                 coding.getHints(),
                 coding.getBaseTimeLimitMs(),
                 coding.getBaseMemoryLimitMb()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public VideoContentResponse getVideoContent(String slug) {
+        Lesson lesson = lessonRepository.findBySlug(slug)
+                .orElseThrow(() -> new AppException(ErrorCode.LESSON_NOT_FOUND));
+        validateLessonAccess(lesson);
+
+        if (!(lesson instanceof VideoLesson video)) {
+            throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
+        }
+        if (video.getProcessingStatus() != VideoProcessingStatus.READY
+                || video.getSourceObjectKey() == null) {
+            throw new AppException(ErrorCode.VIDEO_NOT_READY);
+        }
+
+        Duration expiration = Duration.ofMinutes(playbackUrlExpirationMinutes);
+        return new VideoContentResponse(
+                video.getId(),
+                video.getSlug(),
+                video.getTitle(),
+                video.getDescription(),
+                video.getDurationSeconds(),
+                s3Service.createPresignedDownloadUrl(video.getSourceObjectKey(), expiration),
+                Instant.now().plus(expiration)
         );
     }
 

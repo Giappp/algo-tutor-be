@@ -13,11 +13,23 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadResponse;
+import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
+import software.amazon.awssdk.services.s3.model.CompletedPart;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListBucketsResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.UploadPartPresignRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -84,6 +96,88 @@ public class S3Service {
         String fileUrl = buildFileUrl(objectKey);
 
         return new PresignedUploadTarget(objectKey, uploadUrl, fileUrl);
+    }
+
+    public CreateMultipartUploadResponse createMultipartUpload(String objectKey, String contentType) {
+        try {
+            return s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .contentType(contentType)
+                    .build());
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.S3_CONNECTION, e);
+        }
+    }
+
+    public String createPresignedUploadPartUrl(String objectKey, String uploadId, int partNumber) {
+        UploadPartRequest uploadPartRequest = UploadPartRequest.builder()
+                .bucket(bucketName)
+                .key(objectKey)
+                .uploadId(uploadId)
+                .partNumber(partNumber)
+                .build();
+
+        UploadPartPresignRequest presignRequest = UploadPartPresignRequest.builder()
+                .signatureDuration(Duration.ofMinutes(15))
+                .uploadPartRequest(uploadPartRequest)
+                .build();
+
+        return s3Presigner.presignUploadPart(presignRequest).url().toString();
+    }
+
+    public CompleteMultipartUploadResponse completeMultipartUpload(
+            String objectKey,
+            String uploadId,
+            List<CompletedPart> parts
+    ) {
+        try {
+            return s3Client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .uploadId(uploadId)
+                    .multipartUpload(CompletedMultipartUpload.builder().parts(parts).build())
+                    .build());
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.S3_CONNECTION, e);
+        }
+    }
+
+    public void abortMultipartUpload(String objectKey, String uploadId) {
+        try {
+            s3Client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .uploadId(uploadId)
+                    .build());
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.S3_CONNECTION, e);
+        }
+    }
+
+    public HeadObjectResponse headObject(String objectKey) {
+        try {
+            return s3Client.headObject(HeadObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .build());
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.VIDEO_UPLOAD_INCOMPLETE, e);
+        }
+    }
+
+    public String createPresignedDownloadUrl(String objectKey, Duration duration) {
+        GetObjectRequest request = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(objectKey)
+                .build();
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(duration)
+                .getObjectRequest(request)
+                .build();
+
+        return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
     public String buildTestCaseObjectKey(Long lessonId, String testCaseUuid, String fileName) {

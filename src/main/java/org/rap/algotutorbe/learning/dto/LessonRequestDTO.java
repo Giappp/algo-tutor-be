@@ -18,7 +18,8 @@ import org.rap.algotutorbe.learning.enums.LessonType;
 @JsonSubTypes({
         @JsonSubTypes.Type(value = TheoryLessonRequestDTO.class, name = "THEORY"),
         @JsonSubTypes.Type(value = CodingLessonRequestDTO.class, name = "CODING"),
-        @JsonSubTypes.Type(value = QuizLessonRequestDTO.class, name = "QUIZ")
+        @JsonSubTypes.Type(value = QuizLessonRequestDTO.class, name = "QUIZ"),
+        @JsonSubTypes.Type(value = VideoLessonRequestDTO.class, name = "VIDEO")
 })
 public abstract class LessonRequestDTO {
     @NotNull

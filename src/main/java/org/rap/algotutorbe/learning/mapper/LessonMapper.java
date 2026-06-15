@@ -11,6 +11,7 @@ import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.learning.models.QuizLesson;
 import org.rap.algotutorbe.learning.models.TheoryLesson;
+import org.rap.algotutorbe.learning.models.VideoLesson;
 
 @Mapper(config = GlobalMapperConfig.class,
         uses = {TestCaseMapper.class, QuizQuestionMapper.class},
@@ -45,6 +46,8 @@ public interface LessonMapper {
 
     CodingLessonResponseDTO toCodingResponse(CodingLesson lesson);
 
+    VideoLessonResponseDTO toVideoResponse(VideoLesson lesson);
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -75,6 +78,20 @@ public interface LessonMapper {
     @Mapping(target = "testCases", ignore = true)
     void updateCodingFromDTO(CodingLessonRequestDTO request, @MappingTarget CodingLesson lesson);
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "slug", ignore = true)
+    @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "isPublished", ignore = true)
+    @Mapping(target = "sourceObjectKey", ignore = true)
+    @Mapping(target = "thumbnailObjectKey", ignore = true)
+    @Mapping(target = "durationSeconds", ignore = true)
+    @Mapping(target = "fileSizeBytes", ignore = true)
+    @Mapping(target = "mimeType", ignore = true)
+    @Mapping(target = "processingStatus", ignore = true)
+    void updateVideoFromDTO(VideoLessonRequestDTO request, @MappingTarget VideoLesson lesson);
+
 
     default LessonResponseDTO toResponse(Lesson lesson) {
         if (lesson == null) return null;
@@ -96,6 +113,7 @@ public interface LessonMapper {
             case TheoryLesson theory -> toTheoryResponse(theory);
             case QuizLesson quiz -> toQuizResponse(quiz);
             case CodingLesson coding -> toCodingResponse(coding);
+            case VideoLesson video -> toVideoResponse(video);
             default -> throw new IllegalStateException("Unknown lesson type: " + lesson.getClass().getSimpleName());
         };
     }
@@ -125,6 +143,7 @@ public interface LessonMapper {
             case THEORY -> new TheoryLesson();
             case QUIZ -> new QuizLesson();
             case CODING -> new CodingLesson();
+            case VIDEO -> new VideoLesson();
         };
     }
 }

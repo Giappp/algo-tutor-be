@@ -113,6 +113,9 @@ public class RoadmapService extends BaseService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_ENROLLED));
 
         Lesson lesson = findLessonInLearningPath(learningPath, lessonSlug);
+        if (lesson instanceof VideoLesson) {
+            throw new AppException(ErrorCode.VIDEO_PROGRESS_MANAGED_AUTOMATICALLY);
+        }
 
         if (!canAccessLesson(learningPath, lesson, securityUser.getUser())) {
             throw new AppException(ErrorCode.LESSON_LOCKED);

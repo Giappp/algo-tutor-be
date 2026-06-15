@@ -7,11 +7,13 @@ import org.rap.algotutorbe.learning.dto.LessonRequestDTO;
 import org.rap.algotutorbe.learning.dto.QuizChoiceDTO;
 import org.rap.algotutorbe.learning.dto.QuizQuestionDTO;
 import org.rap.algotutorbe.learning.dto.TheoryLessonRequestDTO;
+import org.rap.algotutorbe.learning.dto.VideoLessonRequestDTO;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Lesson;
 import org.rap.algotutorbe.learning.models.QuestionType;
 import org.rap.algotutorbe.learning.models.QuizLesson;
 import org.rap.algotutorbe.learning.models.TheoryLesson;
+import org.rap.algotutorbe.learning.models.VideoLesson;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -35,6 +37,7 @@ public class MarkdownLessonRequestBuilder {
             case TheoryLesson theory -> buildTheory(theory, markdown);
             case CodingLesson coding -> buildCoding(coding, markdown);
             case QuizLesson ignored -> parseQuizQuestions(markdown);
+            case VideoLesson video -> buildVideo(video, markdown);
             default -> throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
         };
 
@@ -63,6 +66,12 @@ public class MarkdownLessonRequestBuilder {
         request.setStarterCode(lesson.getStarterCode() == null ? null : new java.util.LinkedHashMap<>(lesson.getStarterCode()));
         request.setExamples(copy(lesson.getExamples()));
         request.setHints(copy(lesson.getHints()));
+        return request;
+    }
+
+    private VideoLessonRequestDTO buildVideo(VideoLesson lesson, String markdown) {
+        VideoLessonRequestDTO request = new VideoLessonRequestDTO();
+        request.setDescription(markdown.trim());
         return request;
     }
 

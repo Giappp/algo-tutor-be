@@ -7,6 +7,7 @@ import org.rap.algotutorbe.learning.dto.LessonRequestDTO;
 import org.rap.algotutorbe.learning.dto.landing.CodingContentResponse;
 import org.rap.algotutorbe.learning.dto.landing.QuizContentResponse;
 import org.rap.algotutorbe.learning.dto.landing.TheoryContentResponse;
+import org.rap.algotutorbe.learning.dto.landing.VideoContentResponse;
 import org.rap.algotutorbe.learning.services.LessonContentService;
 import org.rap.algotutorbe.learning.services.LessonService;
 import org.springframework.data.domain.Pageable;
@@ -85,5 +86,11 @@ public class LessonController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CodingContentResponse>> getCodingContent(@PathVariable String slug) {
         return ResponseEntity.ok(ApiResponse.buildSuccess(lessonContentService.getCodingContent(slug)));
+    }
+
+    @GetMapping("/{slug}/video")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<VideoContentResponse>> getVideoContent(@PathVariable String slug) {
+        return ResponseEntity.ok(ApiResponse.buildSuccess(lessonContentService.getVideoContent(slug)));
     }
 }

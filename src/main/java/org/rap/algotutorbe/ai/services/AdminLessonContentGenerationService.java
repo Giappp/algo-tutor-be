@@ -110,6 +110,10 @@ public class AdminLessonContentGenerationService {
                     Use more than one `[x]` choice only for multiple-choice questions.
                     Every question must have at least two choices and at least one correct choice.
                     """;
+            case VIDEO -> """
+                    Write a structured video lesson script using headings for learning objectives, narration,
+                    visual demonstrations, examples, recap, and suggested next steps.
+                    """;
         };
     }
 

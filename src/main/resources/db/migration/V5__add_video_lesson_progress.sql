@@ -1,0 +1,4 @@
+ALTER TABLE lesson_progresses
+    ADD COLUMN IF NOT EXISTS video_position_seconds INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS video_watched_seconds INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS video_progress_updated_at TIMESTAMP WITHOUT TIME ZONE;

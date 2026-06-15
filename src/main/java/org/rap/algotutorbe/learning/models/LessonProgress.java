@@ -43,6 +43,15 @@ public class LessonProgress extends BaseUuidEntity {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    @Column(name = "video_position_seconds", nullable = false)
+    private Integer videoPositionSeconds = 0;
+
+    @Column(name = "video_watched_seconds", nullable = false)
+    private Integer videoWatchedSeconds = 0;
+
+    @Column(name = "video_progress_updated_at")
+    private Instant videoProgressUpdatedAt;
+
     @PrePersist
     @PreUpdate
     protected void syncFields() {

@@ -12,6 +12,7 @@ import org.rap.algotutorbe.learning.mapper.LessonMapper;
 import org.rap.algotutorbe.learning.models.*;
 import org.rap.algotutorbe.learning.repositories.LessonRepository;
 import org.rap.algotutorbe.learning.repositories.TopicRepository;
+import org.rap.algotutorbe.learning.enums.VideoProcessingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -75,6 +76,12 @@ public class LessonService extends BaseService {
                 }
                 lessonMapper.updateCodingFromDTO((CodingLessonRequestDTO) request, (CodingLesson) lesson);
             }
+            case VIDEO -> {
+                if (!(lesson instanceof VideoLesson)) {
+                    throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
+                }
+                lessonMapper.updateVideoFromDTO((VideoLessonRequestDTO) request, (VideoLesson) lesson);
+            }
         }
 
         lesson.setTitle(request.getTitle());
@@ -127,6 +134,11 @@ public class LessonService extends BaseService {
     @Transactional
     public ApiResponse<Object> togglePublish(Long lessonId) {
         Lesson lesson = getOrThrow(lessonId);
+        if (lesson instanceof VideoLesson video
+                && !Boolean.TRUE.equals(lesson.getIsPublished())
+                && video.getProcessingStatus() != VideoProcessingStatus.READY) {
+            throw new AppException(ErrorCode.VIDEO_NOT_READY);
+        }
         lesson.setIsPublished(!Boolean.TRUE.equals(lesson.getIsPublished()));
         Lesson saved = lessonRepository.save(lesson);
         return ApiResponse.buildSuccess(lessonMapper.toDetailedResponse(saved));
@@ -138,6 +150,7 @@ public class LessonService extends BaseService {
             case THEORY -> lesson = createTheoryLesson((TheoryLessonRequestDTO) request);
             case QUIZ -> lesson = createQuizLesson((QuizLessonRequestDTO) request);
             case CODING -> lesson = createCodingLesson((CodingLessonRequestDTO) request);
+            case VIDEO -> lesson = createVideoLesson((VideoLessonRequestDTO) request);
             default -> throw new AppException(ErrorCode.INVALID_LESSON_TYPE);
         }
         return lesson;
@@ -172,6 +185,17 @@ public class LessonService extends BaseService {
         theoryLesson.setType(request.getType());
         theoryLesson.setDifficulty(request.getDifficulty());
         return theoryLesson;
+    }
+
+    private VideoLesson createVideoLesson(VideoLessonRequestDTO request) {
+        VideoLesson videoLesson = new VideoLesson();
+        videoLesson.setTitle(request.getTitle());
+        videoLesson.setSlug(slugGenerator.generateUniqueForLesson(request.getTitle()));
+        videoLesson.setDescription(request.getDescription());
+        videoLesson.setType(request.getType());
+        videoLesson.setDifficulty(request.getDifficulty());
+        videoLesson.setProcessingStatus(VideoProcessingStatus.PENDING_UPLOAD);
+        return videoLesson;
     }
 
     public Lesson getOrThrow(Long id) {

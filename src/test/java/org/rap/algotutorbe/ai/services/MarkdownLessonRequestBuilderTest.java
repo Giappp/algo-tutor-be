@@ -4,10 +4,12 @@ import org.junit.jupiter.api.Test;
 import org.rap.algotutorbe.common.exception.AppException;
 import org.rap.algotutorbe.learning.dto.CodingLessonRequestDTO;
 import org.rap.algotutorbe.learning.dto.QuizQuestionDTO;
+import org.rap.algotutorbe.learning.dto.VideoLessonRequestDTO;
 import org.rap.algotutorbe.learning.enums.Difficulty;
 import org.rap.algotutorbe.learning.enums.LessonType;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.QuizLesson;
+import org.rap.algotutorbe.learning.models.VideoLesson;
 
 import java.util.List;
 import java.util.Map;
@@ -87,5 +89,18 @@ class MarkdownLessonRequestBuilderTest {
                 - [ ] Second
                 """))
                 .isInstanceOf(AppException.class);
+    }
+
+    @Test
+    void build_shouldUseMarkdownAsVideoDescription() {
+        VideoLesson lesson = new VideoLesson();
+        lesson.setTitle("Binary Search Video");
+        lesson.setType(LessonType.VIDEO);
+        lesson.setDifficulty(Difficulty.EASY);
+
+        VideoLessonRequestDTO request = (VideoLessonRequestDTO) builder.build(lesson, "# Video script");
+
+        assertThat(request.getDescription()).isEqualTo("# Video script");
+        assertThat(request.getType()).isEqualTo(LessonType.VIDEO);
     }
 }
