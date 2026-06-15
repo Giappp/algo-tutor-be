@@ -23,10 +23,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Định nghĩa endpoint "/ws" để Next.js thực hiện handshake kết nối ban đầu
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("http://localhost:3000", "https://your-production-domain.com") // Cấu hình CORS cực kỳ quan trọng
-                .withSockJS() // Bật dòng này nếu bạn muốn hỗ trợ fallback cho các trình duyệt quá cũ không hỗ trợ chuẩn WebSocket
-        ;
+                .setAllowedOriginPatterns(
+                        "http://localhost:3000",
+                        "http://localhost:3001",
+                        "http://127.0.0.1:3000",
+                        "http://127.0.0.1:3001"
+                )
+                .withSockJS();
     }
 }
