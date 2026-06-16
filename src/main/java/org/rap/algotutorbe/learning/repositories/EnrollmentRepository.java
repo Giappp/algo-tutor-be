@@ -22,7 +22,9 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
     Optional<Enrollment> findByUserAndLearningPathIdAndStatus(User user, Long learningPathId, EnrollmentStatus status);
 
     @EntityGraph(attributePaths = {
-            "learningPath"
+            "learningPath",
+            "learningPath.topics",
+            "learningPath.topics.lessons"
     })
     @Query("""
                 SELECT e
@@ -34,4 +36,17 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
                   )
             """)
     List<Enrollment> findUserLearningEnrollments(@Param("user") User user);
+
+    @EntityGraph(attributePaths = {
+            "learningPath",
+            "learningPath.topics",
+            "learningPath.topics.lessons"
+    })
+    @Query("""
+                SELECT e
+                FROM Enrollment e
+                WHERE e.user = :user
+                  AND e.status = org.rap.algotutorbe.learning.enums.EnrollmentStatus.IN_PROGRESS
+            """)
+    List<Enrollment> findActiveUserLearningEnrollments(@Param("user") User user);
 }

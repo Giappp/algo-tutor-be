@@ -8,6 +8,7 @@ import org.rap.algotutorbe.iam.application.dto.UpdateProfileRequest;
 import org.rap.algotutorbe.iam.application.dto.UserResponse;
 import org.rap.algotutorbe.iam.application.services.AuthService;
 import org.rap.algotutorbe.iam.application.services.UserEnrollmentService;
+import org.rap.algotutorbe.iam.dto.CurrentLessonResponse;
 import org.rap.algotutorbe.iam.dto.EnrollmentProgressResponse;
 import org.rap.algotutorbe.iam.dto.SessionResponse;
 import org.rap.algotutorbe.iam.infrastructure.SecurityUser;
@@ -66,6 +67,13 @@ public class UserController {
             @AuthenticationPrincipal SecurityUser principal) {
         List<EnrollmentProgressResponse> enrollments = userEnrollmentService.getEnrollmentsSorted(principal.getId());
         return ResponseEntity.ok(ApiResponse.buildSuccess(enrollments));
+    }
+
+    @GetMapping("/me/current-lesson")
+    public ResponseEntity<ApiResponse<CurrentLessonResponse>> getCurrentLesson(
+            @AuthenticationPrincipal SecurityUser principal) {
+        CurrentLessonResponse currentLesson = userEnrollmentService.getCurrentLesson(principal.getId());
+        return ResponseEntity.ok(ApiResponse.buildSuccess(currentLesson));
     }
 
     @GetMapping("/me/activity-heatmap")
