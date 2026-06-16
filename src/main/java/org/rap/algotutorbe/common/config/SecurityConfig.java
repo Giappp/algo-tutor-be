@@ -75,7 +75,8 @@ public class SecurityConfig {
                 "http://localhost:3001",
                 "http://localhost:3002",
                 "http://localhost:5173",
-                "https://your-frontend-domain.com"
+                "https://algo-tutor-client.vercel.app",
+                "https://algo-tutor-admin.vercel.app"
         ));
 
         config.setAllowedMethods(List.of(
