@@ -31,4 +31,12 @@ public class TestCaseController {
     public ResponseEntity<ApiResponse<List<TestCaseDTO>>> getTestCasesByLesson(@PathVariable Long lessonId) {
         return ResponseEntity.ok(testCaseService.getByLessonId(lessonId));
     }
+
+    @PutMapping("/{testCaseId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<TestCaseDTO>> updateTestCase(
+            @PathVariable Long testCaseId,
+            @RequestBody @Valid SaveTestCaseRequest request) {
+        return ResponseEntity.ok(testCaseService.update(testCaseId, request));
+    }
 }

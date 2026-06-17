@@ -52,6 +52,15 @@ public class TestCaseService {
     }
 
     @Transactional
+    public ApiResponse<TestCaseDTO> update(Long testCaseId, @Valid SaveTestCaseRequest request) {
+        Testcase testCase = getOrThrow(testCaseId);
+        testCaseMapper.updateEntity(testCase, request);
+
+        Testcase saved = testcaseRepository.save(testCase);
+        return ApiResponse.buildSuccess(testCaseMapper.toDto(saved));
+    }
+
+    @Transactional
     public ApiResponse<Object> delete(Long testCaseId) {
         Testcase testCase = getOrThrow(testCaseId);
         testcaseRepository.delete(testCase);

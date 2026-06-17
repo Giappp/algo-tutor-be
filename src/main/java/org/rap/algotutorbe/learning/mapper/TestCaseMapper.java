@@ -21,7 +21,7 @@ public interface TestCaseMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "codingLesson", ignore = true)
-    void updateEntity(@MappingTarget Testcase entity, TestCaseDTO dto);
+    void updateEntity(@MappingTarget Testcase entity, SaveTestCaseRequest request);
 
     TestCaseDTO toDto(Testcase entity);
 }
