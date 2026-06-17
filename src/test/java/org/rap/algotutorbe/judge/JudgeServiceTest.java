@@ -9,7 +9,6 @@ import org.rap.algotutorbe.judge.dto.JudgeRequest;
 import org.rap.algotutorbe.judge.dto.JudgeResponse;
 import org.rap.algotutorbe.judge.dto.PistonResponse;
 import org.rap.algotutorbe.judge.dto.PistonStage;
-import org.rap.algotutorbe.learning.enums.ProgrammingLanguage;
 import org.rap.algotutorbe.learning.models.CodingLesson;
 import org.rap.algotutorbe.learning.models.Testcase;
 import org.rap.algotutorbe.learning.repositories.CodingLessonRepository;

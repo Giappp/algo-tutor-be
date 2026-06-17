@@ -14,7 +14,7 @@ import java.time.Duration;
 @Configuration
 public class AiConfig {
 
-    @Value("${ai.default-provider:GEMINI}")
+    @Value("${ai.default-provider:OPENAI}")
     private String defaultProviderName;
 
     @Value("${ai.timeout-seconds:30}")

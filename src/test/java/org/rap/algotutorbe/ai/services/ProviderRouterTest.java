@@ -36,7 +36,7 @@ class ProviderRouterTest {
                 openAiClientProvider,
                 geminiClientProvider,
                 claudeClientProvider,
-                LLMProvider.GEMINI
+                LLMProvider.OPENAI
         );
     }
 
@@ -51,7 +51,7 @@ class ProviderRouterTest {
 
     @Test
     void route_shouldFallbackToDefaultProviderWhenNullOrBlank() {
-        when(geminiClientProvider.getIfAvailable()).thenReturn(mockChatClient);
+        when(openAiClientProvider.getIfAvailable()).thenReturn(mockChatClient);
 
         ChatClient routedClientNull = providerRouter.route(null);
         ChatClient routedClientBlank = providerRouter.route("   ");
