@@ -48,6 +48,7 @@ class SubmissionControllerTest {
                 120,
                 2048,
                 "OK",
+                true,
                 Instant.now()
         );
 
@@ -58,7 +59,8 @@ class SubmissionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(submissionId.toString()))
-                .andExpect(jsonPath("$.data.status").value("ACCEPTED"));
+                .andExpect(jsonPath("$.data.status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data.progressUpdated").value(true));
     }
 
     @Test
@@ -72,6 +74,7 @@ class SubmissionControllerTest {
                 10,
                 120,
                 2048,
+                true,
                 Instant.now()
         );
 
@@ -82,6 +85,7 @@ class SubmissionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].language").value("JAVA"))
-                .andExpect(jsonPath("$.data[0].status").value("ACCEPTED"));
+                .andExpect(jsonPath("$.data[0].status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data[0].progressUpdated").value(true));
     }
 }

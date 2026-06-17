@@ -13,6 +13,7 @@ public record SubmissionDetailResponse(
         Integer executionTime,
         Integer memoryUsed,
         String compileOutput,
+        Boolean progressUpdated,
         Instant submittedAt,
         List<TestCaseResult> testCases
 ) {
@@ -26,10 +27,11 @@ public record SubmissionDetailResponse(
             Integer executionTime,
             Integer memoryUsed,
             String compileOutput,
+            Boolean progressUpdated,
             Instant submittedAt
     ) {
         this(id, language, status, sourceCode, passedTestCases, totalTestCases, executionTime,
-                memoryUsed, compileOutput, submittedAt, List.of());
+                memoryUsed, compileOutput, progressUpdated, submittedAt, List.of());
     }
 
     public record TestCaseResult(

@@ -25,12 +25,12 @@ public class LessonProgressUpdater {
     private final LearningAccessService learningAccessService;
 
     @Transactional
-    public void markLessonCompleted(User user, Lesson lesson) {
+    public boolean markLessonCompleted(User user, Lesson lesson) {
         Topic topic = lesson.getTopic();
 
         if (topic == null || topic.getLearningPath() == null) {
             log.warn("Cannot complete lesson [{}] because topic or learning path is missing", lesson.getId());
-            return;
+            return false;
         }
 
         LearningPath learningPath = topic.getLearningPath();
@@ -49,7 +49,7 @@ public class LessonProgressUpdater {
                     lesson.getId(),
                     user.getId()
             );
-            return;
+            return false;
         }
 
         if (!learningAccessService.canAccessLesson(user.getId(), lesson.getId())) {
@@ -58,7 +58,7 @@ public class LessonProgressUpdater {
                     user.getId(),
                     lesson.getId()
             );
-            return;
+            return false;
         }
 
         LessonProgress progress = lessonProgressRepository
@@ -66,7 +66,7 @@ public class LessonProgressUpdater {
                 .orElseGet(() -> createProgress(user, enrollment, lesson));
 
         if (progress.getStatus() == ProgressStatus.COMPLETED) {
-            return;
+            return false;
         }
 
         progress.setStatus(ProgressStatus.COMPLETED);
@@ -82,6 +82,7 @@ public class LessonProgressUpdater {
         );
 
         updateEnrollmentProgress(enrollment);
+        return true;
     }
 
     private LessonProgress createProgress(User user, Enrollment enrollment, Lesson lesson) {

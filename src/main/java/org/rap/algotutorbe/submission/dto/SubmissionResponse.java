@@ -10,6 +10,7 @@ public record SubmissionResponse(
         Integer totalTestcases,
         Integer executionTime,
         Integer memoryUsed,
+        Boolean progressUpdated,
         Instant submittedAt
 ) {
 }

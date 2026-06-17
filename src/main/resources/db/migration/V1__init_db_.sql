@@ -226,6 +226,7 @@ CREATE TABLE IF NOT EXISTS submissions
     memory_used_kb    INTEGER,
     compile_output    TEXT,
     status            VARCHAR(255),
+    progress_updated  BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT pk_submissions PRIMARY KEY (id)
     );
 

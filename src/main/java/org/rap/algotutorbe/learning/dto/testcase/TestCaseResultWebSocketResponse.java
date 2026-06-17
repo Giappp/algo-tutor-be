@@ -24,5 +24,6 @@ public class TestCaseResultWebSocketResponse {
     private Integer maxTimeMs;
     private Integer maxMemoryKb;
     private String compilationError;
+    private Boolean progressUpdated;
     private Boolean isCompleted; // Đã là testcase cuối cùng chưa (để FE tắt trạng thái loading)
 }

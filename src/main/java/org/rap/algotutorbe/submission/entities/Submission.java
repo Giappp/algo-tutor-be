@@ -57,4 +57,7 @@ public class Submission extends BaseUuidEntity {
     @Column(name = "status")
     @Convert(converter = VerdictConverter.class)
     private Verdict verdict;
+
+    @Column(name = "progress_updated", nullable = false)
+    private Boolean progressUpdated = false;
 }

@@ -54,6 +54,7 @@ class JudgeControllerTest {
                 30,
                 1024,
                 null,
+                false,
                 Instant.now()
         );
 
@@ -65,7 +66,8 @@ class JudgeControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(submissionId.toString()))
                 .andExpect(jsonPath("$.data.status").value("PENDING"))
-                .andExpect(jsonPath("$.data.passedTestCases").value(2));
+                .andExpect(jsonPath("$.data.passedTestCases").value(2))
+                .andExpect(jsonPath("$.data.progressUpdated").value(false));
 
         verify(submissionService).getSubmissionDetail(submissionId);
     }

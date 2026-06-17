@@ -1,0 +1,2 @@
+ALTER TABLE submissions
+    ADD COLUMN IF NOT EXISTS progress_updated BOOLEAN NOT NULL DEFAULT FALSE;

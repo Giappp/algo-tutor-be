@@ -436,17 +436,19 @@ public class JudgeService extends BaseService {
 
             submissionRepository.save(submission);
 
-            if (result.finalVerdict() == Verdict.ACCEPTED) {
-                lessonProgressUpdater.markLessonCompleted(user, lesson);
-            }
+            boolean progressUpdated = result.finalVerdict() == Verdict.ACCEPTED
+                    && lessonProgressUpdater.markLessonCompleted(user, lesson);
+            submission.setProgressUpdated(progressUpdated);
 
-            notifyFinalResult(submissionId, result);
+            submissionRepository.save(submission);
+
+            notifyFinalResult(submissionId, result, progressUpdated);
         } catch (Exception e) {
             log.error("Finalize submission failed: {}", e.getMessage(), e);
         }
     }
 
-    private void notifyFinalResult(UUID submissionId, JudgingResult result) {
+    private void notifyFinalResult(UUID submissionId, JudgingResult result, boolean progressUpdated) {
         TestCaseResultWebSocketResponse response = TestCaseResultWebSocketResponse.builder()
                 .type("FINAL_RESULT")
                 .submissionId(submissionId)
@@ -456,6 +458,7 @@ public class JudgeService extends BaseService {
                 .maxTimeMs(result.maxTimeMs())
                 .maxMemoryKb(result.maxMemoryKb())
                 .compilationError(result.compilationError())
+                .progressUpdated(progressUpdated)
                 .isCompleted(true)
                 .build();
 
