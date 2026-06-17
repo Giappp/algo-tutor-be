@@ -166,7 +166,7 @@ public class AiLessonChatService {
                 conversation.getLessonId(),
                 userId);
 
-        enforceHintLimit(mode, lessonMetadata.hintPolicy());
+        // enforceHintLimit(mode, lessonMetadata.hintPolicy());
 
         AiChatRequest chatRequest = new AiChatRequest(
                 request.conversationId(), request.lessonId(), request.lessonSlug(),
