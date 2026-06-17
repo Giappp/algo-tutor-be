@@ -62,9 +62,9 @@ services:
       - /tmp:exec
 
     environment:
-      PISTON_RUN_TIMEOUT: 5000
+      PISTON_RUN_TIMEOUT: 10000
       PISTON_COMPILE_TIMEOUT: 11000
-      PISTON_RUN_CPU_TIME: 5000
+      PISTON_RUN_CPU_TIME: 10000
       PISTON_COMPILE_CPU_TIME: 11000
 
     networks:
